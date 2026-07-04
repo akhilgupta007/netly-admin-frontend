@@ -1,0 +1,692 @@
+"use client";
+
+import React, { useState, useMemo } from "react";
+import CardWrapper from "@/components/ui/CardWrapper";
+import TransactionDetailDrawer from "@/components/transactions/TransactionDetailDrawer";
+import { toast } from "react-toastify";
+import {
+  Search,
+  ChevronDown,
+  Calendar,
+  Copy,
+  X,
+  Plus
+} from "lucide-react";
+
+// Helper to copy text to clipboard
+const copyToClipboard = (text) => {
+  navigator.clipboard.writeText(text);
+  toast.success(`Copied Transaction ID to clipboard!`, {
+    position: "top-right",
+    autoClose: 2000,
+    hideProgressBar: true,
+    closeOnClick: true,
+    pauseOnHover: false,
+    draggable: false,
+  });
+};
+
+export default function TransactionsPage() {
+  // Filters & Page state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [filterDateRange, setFilterDateRange] = useState("All");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Selected Tx and admin modal controls
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // 'dispute' | 'refund' | 'approveCredit' | 'rejectCancel' | 'processRefund' | 'rejectRefund'
+  const [modalJustification, setModalJustification] = useState("");
+  const [modalError, setModalError] = useState("");
+
+  // Categories list
+  const categories = [
+    "All",
+    "Deep Cleaning",
+    "Window Washing",
+    "Organizing",
+    "Car Detailing",
+    "Lawn Care",
+    "Pressure Washing",
+    "Window Installation",
+    "Fence Installation",
+    "Pest Control",
+    "Gutter Cleaning"
+  ];
+
+  // Status options array
+  const statusOptions = [
+    { value: "All", label: "Status" },
+    { value: "Hour Adjustment Pending", label: "Hour Adjustment Pending" },
+    { value: "Completed", label: "Completed" },
+    { value: "In Progress", label: "In Progress" },
+    { value: "Refund Requested", label: "Refund Requested" },
+    { value: "Dispute", label: "Dispute" },
+    { value: "Wallet Credited — Client Fault", label: "Wallet Credited" },
+    { value: "Pending Provider Acceptance", label: "Pending Provider Accept" },
+    { value: "Quote Pending", label: "Quote Pending" },
+    { value: "Confirmed", label: "Confirmed" },
+    { value: "Cancelled Pending Admin Review", label: "Cancelled Pending" },
+    { value: "Pending Payment", label: "Pending Payment" }
+  ];
+
+  // 16 Mock Transactions matching exact layout from mockup (Screenshot 4)
+  const [transactions, setTransactions] = useState([
+    {
+      id: "TXN0019142136974",
+      status: "Hour Adjustment Pending",
+      client: { name: "Amara Osei", email: "amara@example.com" },
+      provider: { name: "Fatima Diallo", email: "fatima.d@corp.com" },
+      category: "Deep Cleaning",
+      date: "May 22, 2027",
+      time: "03:20 PM",
+      serviceAmount: 125.00,
+      pricingType: "Hourly",
+      tip: 10.00,
+      description: "3-bedroom flat, kitchen priority.",
+      originalHours: "4 hours",
+      requestedHours: "6 hours",
+      originalAmount: 125.00,
+      revisedAmount: 187.50,
+      adjustmentNumber: "1 of 2",
+      adjustmentSubmittedAt: "May 22, 2027 02:00 PM",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Provider Accepted", date: "June 10, 2026 • 09:45 AM", note: "Provider confirmed availability and accepted at listed rate." }
+      ]
+    },
+    {
+      id: "TXN0019142136975",
+      status: "Completed",
+      client: { name: "Liam Chen", email: "liam@example.com" },
+      provider: { name: "Aisha Patel", email: "aisha@example.com" },
+      category: "Window Washing",
+      date: "May 22, 2027",
+      time: "04:00 PM",
+      serviceAmount: 80.00,
+      pricingType: "Hourly",
+      tip: 0,
+      description: "Deep exterior window frames cleanup.",
+      completedAt: "May 22, 2027 05:30 PM",
+      payoutStatus: "Paid",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Service Completed", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136976",
+      status: "In Progress",
+      client: { name: "Sofia Reyes", email: "sofia@example.com" },
+      provider: { name: "Mark Thompson", email: "mark@example.com" },
+      category: "Organizing",
+      date: "May 23, 2027",
+      time: "09:30 AM",
+      serviceAmount: 200.00,
+      pricingType: "Hourly",
+      tip: 0,
+      description: "Basement cleanup and box classifications.",
+      serviceStartedAt: "May 23, 2027 09:45 AM",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Service Started", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136977",
+      status: "Refund Requested",
+      client: { name: "Oliver Smith", email: "oliver@example.com" },
+      provider: { name: "Ella Johnson", email: "ella@example.com" },
+      category: "Car Detailing",
+      date: "May 23, 2027",
+      time: "11:15 AM",
+      serviceAmount: 150.00,
+      pricingType: "Hourly",
+      tip: 8.00,
+      description: "Full interior detail client requested refund.",
+      refundRequestedAt: "May 23, 2027 02:00 PM",
+      walletBalanceAtRequest: 165.50,
+      amountRequested: 165.50,
+      cancelledBy: "Provider",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Refund Requested by Client", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136978",
+      status: "Dispute",
+      client: { name: "Mia Wong", email: "mia@example.com" },
+      provider: { name: "James Carter", email: "james@example.com" },
+      category: "Lawn Care",
+      date: "May 24, 2027",
+      time: "01:00 PM",
+      serviceAmount: 90.00,
+      pricingType: "Hourly",
+      tip: 3.00,
+      description: "Grass trim dispute raised.",
+      disputeId: "DISP-8802",
+      disputeOpenedAt: "May 24, 2027 02:30 PM",
+      disputeStatus: "Open",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Dispute Opened by Client", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136979",
+      status: "Wallet Credited — Client Fault",
+      client: { name: "Noah Brown", email: "noah@example.com" },
+      provider: { name: "Isabella Davis", email: "isabella@example.com" },
+      category: "Pressure Washing",
+      date: "May 24, 2027",
+      time: "02:45 PM",
+      serviceAmount: 110.00,
+      pricingType: "Hourly",
+      tip: 0,
+      description: "Driveway clean up. Client cancelled layout.",
+      cancelledBy: "Client",
+      retainedFee: 5.50,
+      creditedAmount: 104.50,
+      walletCreditedAt: "May 24, 2027 03:00 PM",
+      approvedBy: "Sophia (Admin)",
+      refundRequestedByClient: true,
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Wallet Credit Approved", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136980",
+      status: "Pending Provider Acceptance",
+      client: { name: "James Smith", email: "james@example.com" },
+      provider: { name: "Emily Clark", email: "emily@example.com" },
+      category: "Window Installation",
+      date: "June 1, 2027",
+      time: "3:30 PM",
+      serviceAmount: 500.00,
+      pricingType: "Hourly",
+      tip: 0,
+      description: "Window glass fitting.",
+      requestedDate: "June 2, 2027",
+      expiresAt: "Expires in 23h 10m",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136981",
+      status: "Quote Pending",
+      client: { name: "Sophia Turner", email: "sophia@example.com" },
+      provider: { name: "Michael Brown", email: "michael@example.com" },
+      category: "Fence Installation",
+      date: "June 5, 2027",
+      time: "10:15 AM",
+      serviceAmount: 800.00,
+      pricingType: "Quote",
+      tip: 0,
+      description: "Open-plan office, 200 sqm, 5 days/week.",
+      quotedPrice: 340.00,
+      quotedDuration: "4 hours/visit",
+      quoteSubmittedAt: "Jun 24, 2027 09:00 AM",
+      quoteExpiresAt: "Jun 26, 2027 09:00 AM",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Quote Submitted by Provider", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136982",
+      status: "Confirmed",
+      client: { name: "Ava Miller", email: "ava@example.com" },
+      provider: { name: "Lucas Wilson", email: "lucas@example.com" },
+      category: "Pest Control",
+      date: "May 25, 2027",
+      time: "08:00 AM",
+      serviceAmount: 130.00,
+      pricingType: "Hourly",
+      tip: 9.00,
+      description: "Garden pest inspection.",
+      paymentCapturedAt: "May 25, 2027 08:30 AM",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Payment Confirmed", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136983",
+      status: "Cancelled Pending Admin Review",
+      client: { name: "Ethan Martinez", email: "ethan@example.com" },
+      provider: { name: "Chloe Lopez", email: "chloe@example.com" },
+      category: "Gutter Cleaning",
+      date: "May 25, 2027",
+      time: "10:30 AM",
+      serviceAmount: 75.00,
+      pricingType: "Hourly",
+      tip: 4.00,
+      description: "Roof gutter leaves clean. Provider cancelled.",
+      cancelledBy: "Provider",
+      cancelledAt: "May 25, 2027 10:00 AM",
+      cancellationReason: "Heavy rain storm forecasts.",
+      creditAmount: 78.75, // service amount + fee credit
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Cancelled by Provider", date: "June 10, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136984",
+      status: "Quote Declined",
+      client: { name: "Fatima Diallo", email: "fatima.d@corp.com" },
+      provider: { name: "Meek Nowise", email: "emeka@cleanpro.ng" },
+      category: "Office Daily",
+      date: "Jun 24, 2027",
+      time: "08:30 AM",
+      serviceAmount: 340.00,
+      pricingType: "Quote",
+      tip: 0,
+      description: "Open-plan office space daily cleanup.",
+      quotedPrice: 340.00,
+      quotedDuration: "4 hours/visit",
+      rejectionReason: "price too high.",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Quote Submitted by Provider", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Quote Declined by Client", date: "June 11, 2026 • 09:45 AM" }
+      ]
+    },
+    {
+      id: "TXN0019142136985",
+      status: "Pending Payment",
+      client: { name: "Fatima Diallo", email: "fatima.d@corp.com" },
+      provider: { name: "Meek Nowise", email: "emeka@cleanpro.ng" },
+      category: "Office Daily",
+      date: "Jun 24, 2027",
+      time: "08:30 AM",
+      serviceAmount: 85.00,
+      pricingType: "Hourly",
+      tip: 0,
+      description: "3-bedroom flat, kitchen priority.",
+      providerAcceptedAt: "Jun 10, 2026 • 09:45 AM",
+      paymentExpiry: "Expires in 23h 30m",
+      history: [
+        { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
+        { status: "Provider Accepted", date: "June 10, 2026 • 09:45 AM", note: "Provider confirmed availability and accepted at listed rate." }
+      ]
+    }
+  ]);
+
+  // Status-to-class color styling lookup mapping
+  const statusColors = {
+    "Hour Adjustment Pending": "bg-amber-50 text-amber-600",
+    "Completed": "bg-emerald-50 text-emerald-600",
+    "In Progress": "bg-orange-50 text-orange-600",
+    "Refund Requested": "bg-blue-50 text-blue-600",
+    "Dispute": "bg-rose-50 text-rose-600",
+    "Wallet Credited — Client Fault": "bg-emerald-50 text-emerald-600",
+    "Wallet Credited — Provider Fault": "bg-emerald-50 text-emerald-600",
+    "Pending Provider Acceptance": "bg-amber-50 text-amber-600",
+    "Quote Pending": "bg-amber-50 text-amber-600",
+    "Confirmed": "bg-emerald-50 text-emerald-600",
+    "Cancelled Pending Admin Review": "bg-rose-50 text-rose-600",
+    "Pending Payment": "bg-amber-50 text-amber-600",
+    "Quote Declined": "bg-orange-50 text-orange-600",
+    "Rejected / Expired": "bg-orange-50 text-orange-600"
+  };
+
+  // Static pricing multipliers
+  const getFee = (amount) => amount * 0.05;
+  const getCommission = (amount) => amount * 0.15;
+  const getTotalCharged = (amount, tip = 0) => amount + getFee(amount) + tip;
+
+  // Search filter
+  const filteredTxs = useMemo(() => {
+    return transactions.filter((tx) => {
+      const searchStr = searchTerm.toLowerCase();
+      const matchSearch = 
+        tx.client.name.toLowerCase().includes(searchStr) ||
+        tx.client.email.toLowerCase().includes(searchStr) ||
+        tx.provider.name.toLowerCase().includes(searchStr) ||
+        tx.provider.email.toLowerCase().includes(searchStr) ||
+        tx.id.toLowerCase().includes(searchStr);
+
+      const matchStatus = filterStatus === "All" || tx.status === filterStatus;
+      const matchCategory = filterCategory === "All" || tx.category === filterCategory;
+
+      return matchSearch && matchStatus && matchCategory;
+    });
+  }, [transactions, searchTerm, filterStatus, filterCategory]);
+
+  // Pagination config
+  const itemsPerPage = 9;
+  const totalPages = Math.ceil(filteredTxs.length / itemsPerPage);
+  const paginatedTxs = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredTxs.slice(start, start + itemsPerPage);
+  }, [filteredTxs, currentPage]);
+
+  const handleActionClick = (modalType) => {
+    setModalJustification("");
+    setModalError("");
+    setActiveModal(modalType);
+  };
+
+  const handleModalSubmit = (e) => {
+    e.preventDefault();
+    if (["dispute", "refund", "rejectRefund"].includes(activeModal)) {
+      if (modalJustification.trim().length < 20) {
+        setModalError("A detailed justification of at least 20 characters is required.");
+        return;
+      }
+    }
+
+    const updatedTx = { ...selectedTx };
+    const actionDate = "Jun 24, 2027 • 12:00 PM";
+
+    if (activeModal === "dispute") {
+      updatedTx.status = "Dispute";
+      updatedTx.disputeId = "DISP-9901";
+      updatedTx.disputeOpenedAt = actionDate;
+      updatedTx.disputeStatus = "Open";
+      updatedTx.history.push({ status: "Dispute Opened by Admin", date: actionDate });
+    } else if (activeModal === "refund") {
+      updatedTx.status = "Refunded";
+      updatedTx.refundedAt = actionDate;
+      updatedTx.stripeRefundId = "re_stripe_manual_992";
+      updatedTx.amountRefunded = getTotalCharged(updatedTx.serviceAmount, updatedTx.tip);
+      updatedTx.approvedBy = "Sophia (Admin)";
+      updatedTx.history.push({ status: "Refunded via Stripe", date: actionDate });
+    } else if (activeModal === "approveCredit") {
+      updatedTx.status = updatedTx.cancelledBy === "Client" ? "Wallet Credited — Client Fault" : "Wallet Credited — Provider Fault";
+      updatedTx.walletCreditedAt = actionDate;
+      updatedTx.approvedBy = "Sophia (Admin)";
+      updatedTx.history.push({ status: "Wallet Credit Approved", date: actionDate });
+    } else if (activeModal === "rejectCancel") {
+      updatedTx.status = "Dispute";
+      updatedTx.history.push({ status: "Cancellation Rejected - Dispute Created", date: actionDate });
+    } else if (activeModal === "processRefund") {
+      updatedTx.status = "Processing";
+      updatedTx.stripeRefundInitiatedAt = actionDate;
+      updatedTx.stripeRefundId = "re_stripe_proc_812";
+      updatedTx.history.push({ status: "Refund Processing", date: actionDate });
+    } else if (activeModal === "rejectRefund") {
+      updatedTx.status = "Dispute";
+      updatedTx.history.push({ status: "Refund Rejected - Dispute Created", date: actionDate });
+    }
+
+    setTransactions(transactions.map(t => t.id === updatedTx.id ? updatedTx : t));
+    setSelectedTx(updatedTx);
+    setActiveModal(null);
+  };
+
+  return (
+    <div className="space-y-6">
+
+      {/* Main Transactions List Table Card */}
+      <div className="bg-white rounded-3xl overflow-hidden hover:shadow-xs">
+        {/* Filter and Search controls bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white">
+          {/* Single search bar input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search by client/provider's name or email..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+            />
+          </div>
+
+          {/* Dropdowns filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Status filter */}
+            <div className="relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-primary cursor-pointer"
+              >
+                {statusOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
+            </div>
+
+            {/* Category filter */}
+            <div className="relative">
+              <select
+                value={filterCategory}
+                onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }}
+                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-primary cursor-pointer"
+              >
+                <option value="All">Category</option>
+                {categories.slice(1).map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
+            </div>
+
+            {/* Date range picker selector mockup */}
+            <div className="relative">
+              <button
+                onClick={() => alert("Mock date picker triggered.")}
+                className="border border-border-main text-xs rounded-full px-4 py-2.5 text-text-primary cursor-pointer flex items-center gap-1.5"
+              >
+                Date Range
+                <Calendar size={13} className="text-text-muted" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+            <thead className="bg-secondary-bg text-text-primary text-left font-extralight">
+              <tr>
+                <th className="px-4 py-3">Transaction ID</th>
+                <th className="px-4 py-3">Date & Time</th>
+                <th className="px-4 py-3">Client</th>
+                <th className="px-4 py-3">Provider</th>
+                <th className="px-4 py-3">Service</th>
+                <th className="px-4 py-3">Amount</th>
+                <th className="px-4 py-3">Client Fee</th>
+                <th className="px-4 py-3">Commission</th>
+                <th className="px-4 py-3">Tip</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-secondary-bg bg-white text-text-primary">
+              {paginatedTxs.length > 0 ? (
+                paginatedTxs.map((tx) => {
+                  const colorBadge = statusColors[tx.status] || "bg-secondary-bg text-text-muted";
+
+                  return (
+                    <tr
+                      key={tx.id}
+                      className="hover:bg-secondary-bg/30 transition-colors duration-150 text-xs"
+                    >
+                      <td className="px-4 py-3 text-text-primary">
+                        <div className="flex items-center gap-1 font-medium">
+                          <span>{tx.id.slice(0, 10)}...</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.id); }}
+                            className="p-0.5 text-text-muted hover:text-text-primary rounded"
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>{tx.date}</div>
+                        <div className="text-[10px] text-text-muted">{tx.time}</div>
+                      </td>
+                      <td className="px-4 py-3">{tx.client.name}</td>
+                      <td className="px-4 py-3">{tx.provider.name}</td>
+                      <td className="px-4 py-3">{tx.category}</td>
+                      <td className="px-4 py-3">${tx.serviceAmount.toFixed(2)}</td>
+                      <td className="px-4 py-3">${getFee(tx.serviceAmount).toFixed(2)}</td>
+                      <td className="px-4 py-3">${getCommission(tx.serviceAmount).toFixed(2)}</td>
+                      <td className="px-4 py-3">
+                        {tx.tip > 0 ? `$${tx.tip.toFixed(2)}` : "---"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${colorBadge}`}>
+                          {tx.status === "Wallet Credited — Client Fault" ? "Wallet Credited" : tx.status === "Pending Provider Acceptance" ? "Pending Provider Accept" : tx.status === "Cancelled Pending Admin Review" ? "Cancelled Pending" : tx.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSelectedTx(tx); }}
+                          className="px-3 py-1 border border-primary-bg hover:bg-page-bg text-sm font-medium rounded-lg transition text-primary-bg cursor-pointer"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan="11" className="px-4 py-8 text-center text-text-muted">
+                    No transactions found matching search filter criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer pagination navigation row matching design layout */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white">
+            <span className="text-[10px] text-text-muted font-medium">
+              Showing {currentPage * itemsPerPage - itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredTxs.length)} of {filteredTxs.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
+              >
+                &larr;
+              </button>
+              {Array.from({ length: totalPages }).map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentPage(idx + 1)}
+                  className={`w-7 h-7 rounded-lg text-[10px] font-bold transition ${
+                    currentPage === idx + 1
+                      ? "bg-primary-bg text-white"
+                      : "border border-secondary-bg hover:bg-page-bg text-text-primary"
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
+              >
+                &rarr;
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* RENDER EXTREMELY POLISHED TRANSACTION SIDE DRAWER */}
+      {selectedTx && (
+        <TransactionDetailDrawer
+          tx={selectedTx}
+          onClose={() => setSelectedTx(null)}
+          onActionClick={handleActionClick}
+        />
+      )}
+
+      {/* CONFIRMATION / ACTION DIALOG MODALS */}
+      {activeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
+          <div 
+            className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setActiveModal(null)}
+          />
+          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
+            <button 
+              onClick={() => setActiveModal(null)}
+              className="absolute right-4 top-4 p-1.5 rounded-xl text-text-muted hover:bg-secondary-bg hover:text-text-primary transition"
+            >
+              <X size={18} />
+            </button>
+
+            <form onSubmit={handleModalSubmit} className="space-y-4">
+              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">
+                {activeModal === "dispute" && "Flag as Dispute"}
+                {activeModal === "refund" && "Force Manual Refund"}
+                {activeModal === "approveCredit" && "Approve Wallet Credit"}
+                {activeModal === "rejectCancel" && "Reject Cancellation Request"}
+                {activeModal === "processRefund" && "Process Stripe Refund"}
+                {activeModal === "rejectRefund" && "Reject Client Refund"}
+              </h3>
+
+              <div className="text-xs text-text-muted leading-relaxed">
+                {activeModal === "dispute" && "Flagging this transaction will hold payouts and launch an investigation record."}
+                {activeModal === "refund" && "Warning: Manual force refunding will dispatch Stripe funds back to the user card immediately."}
+                {activeModal === "approveCredit" && "Approving wallet credit adds calculated values straight to customer wallet balances."}
+                {activeModal === "rejectCancel" && "Rejecting request raises an open dispute for admin assessment."}
+                {activeModal === "processRefund" && "Dispatches the refund processing order via Stripe."}
+                {activeModal === "rejectRefund" && "Rejects user refund request, forwarding directly to a compliance dispute."}
+              </div>
+
+              {/* Justification input */}
+              {["dispute", "refund", "rejectRefund"].includes(activeModal) && (
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                    Justification / Reason (min 20 chars)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={modalJustification}
+                    onChange={(e) => setModalJustification(e.target.value)}
+                    placeholder="Enter context here..."
+                    className="w-full bg-page-bg border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+                    required
+                  />
+                  {modalError && (
+                    <span className="text-[10px] font-semibold text-red-500 block">
+                      {modalError}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Confirm cancel buttons */}
+              <div className="flex gap-2 justify-end pt-2 border-t border-secondary-bg">
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(null)}
+                  className="px-4 py-2 text-xs font-semibold border border-secondary-bg text-text-muted rounded-xl hover:bg-page-bg transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-semibold bg-primary-bg text-white rounded-xl hover:opacity-90 transition cursor-pointer"
+                >
+                  Confirm Action
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
