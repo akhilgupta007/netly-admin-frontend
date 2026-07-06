@@ -28,8 +28,8 @@ export const navigation = [
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, description: "Operational overview and key platform metrics" },
       { name: "Transactions", href: "/transactions", icon: ArrowLeftRight, description: "Overview across client and provider" },
-      { name: "Wallets & Refunds", href: "/wallets", icon: Wallet, description: "Manage platform liability and refunds" },
-      { name: "Accounts", href: "/accounts", icon: Users, description: "Manage client and provider profiles" },
+      { name: "Wallets & Refunds", href: "/wallets", icon: Wallet, description: "Client wallet balances and fund movements" },
+      { name: "Accounts", href: "/accounts", icon: Users, description: "Client and provider account management" },
     ]
   },
   {
@@ -109,7 +109,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/");
                   return (
                     <Link
                       key={item.name}

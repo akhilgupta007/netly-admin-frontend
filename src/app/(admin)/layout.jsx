@@ -1,13 +1,59 @@
 "use client";
 
 import React, { useState } from "react";
-import Sidebar from "@/components/layout/Sidebar";
+import { usePathname } from "next/navigation";
+import Sidebar, { navigation } from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Extract all navigation items into a single flat array
+  const allItems = navigation.flatMap((group) => group.items);
+  
+  // Find active item matching current pathname (or prefix match for child routes)
+  const activeItem =
+    allItems.find((item) => item.href === pathname) ||
+    allItems.find((item) => pathname.startsWith(item.href) && item.href !== "/");
+
+  let activeTitle = activeItem ? activeItem.name : "Dashboard";
+  let activeSubtitle = activeItem ? activeItem.description : "Operational overview and key platform metrics";
+
+  // Dynamic child route titles (e.g. for /transactions/TXN001928 detail page)
+  if (activeItem) {
+    if (pathname.length > activeItem.href.length && activeItem.href !== "/") {
+      const remainingPath = pathname.slice(activeItem.href.length).replace(/^\//, "");
+      const segments = remainingPath.split("/").filter(Boolean);
+
+      if (segments.length > 0) {
+        const subSegment = segments[0];
+        const isId = /[0-9]/.test(subSegment) || subSegment.toUpperCase() === subSegment || subSegment.length > 8;
+
+        if (isId) {
+          const parentName = activeItem.name;
+          const singularParent = parentName.endsWith("s") ? parentName.slice(0, -1) : parentName;
+          activeTitle = `${singularParent} Detail`;
+          activeSubtitle = `Review timeline, transaction parameters, and administrative controls for this ${singularParent.toLowerCase()}`;
+        } else {
+          const formattedSub = subSegment
+            .split(/[-_]/)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+          activeTitle = formattedSub;
+          activeSubtitle = `View details and operational metrics for ${formattedSub.toLowerCase()}`;
+        }
+      }
+    }
+  } else {
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length > 0) {
+      activeTitle = segments.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
+      activeSubtitle = `Operational overview and key platform metrics for ${activeTitle.toLowerCase()}`;
+    }
+  }
 
   return (
     <div className="flex h-screen bg-page-bg overflow-hidden font-onest text-text-primary">
@@ -16,8 +62,8 @@ export default function AdminLayout({ children }) {
 
       {/* Main Content wrapper */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header component */}
-        <Header setSidebarOpen={setSidebarOpen} />
+        {/* Header component with dynamic props */}
+        <Header setSidebarOpen={setSidebarOpen} title={activeTitle} subtitle={activeSubtitle} />
 
         {/* Content body wrapper */}
         <main className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-page-bg">

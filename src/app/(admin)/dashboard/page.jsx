@@ -247,7 +247,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h3 className="font-medium text-text-primary">
-                    Outbound vs Wallet Credits Retained
+                    Real Refunds vs. Wallet Credits
                   </h3>
                 </div>
                 <div className="flex gap-2 items-center">

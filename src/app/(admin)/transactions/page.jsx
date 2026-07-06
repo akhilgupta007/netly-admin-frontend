@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import CardWrapper from "@/components/ui/CardWrapper";
-import TransactionDetailDrawer from "@/components/transactions/TransactionDetailDrawer";
+import DateRangePicker from "@/components/ui/DateRangePicker";
 import { toast } from "react-toastify";
 import {
   Search,
@@ -26,19 +27,25 @@ const copyToClipboard = (text) => {
   });
 };
 
+// Helper to parse localized transaction date string
+const parseTxDate = (dateStr) => {
+  let cleanStr = dateStr;
+  if (dateStr.startsWith("Jun ")) {
+    cleanStr = dateStr.replace("Jun ", "June ");
+  }
+  return new Date(cleanStr);
+};
+
 export default function TransactionsPage() {
   // Filters & Page state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
-  const [filterDateRange, setFilterDateRange] = useState("All");
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Selected Tx and admin modal controls
-  const [selectedTx, setSelectedTx] = useState(null);
-  const [activeModal, setActiveModal] = useState(null); // 'dispute' | 'refund' | 'approveCredit' | 'rejectCancel' | 'processRefund' | 'rejectRefund'
-  const [modalJustification, setModalJustification] = useState("");
-  const [modalError, setModalError] = useState("");
+  const router = useRouter();
 
   // Categories list
   const categories = [
@@ -72,7 +79,7 @@ export default function TransactionsPage() {
   ];
 
   // 16 Mock Transactions matching exact layout from mockup (Screenshot 4)
-  const [transactions, setTransactions] = useState([
+  const defaultTransactions = [
     {
       id: "TXN0019142136974",
       status: "Hour Adjustment Pending",
@@ -315,7 +322,31 @@ export default function TransactionsPage() {
         { status: "Provider Accepted", date: "June 10, 2026 • 09:45 AM", note: "Provider confirmed availability and accepted at listed rate." }
       ]
     }
-  ]);
+  ];
+
+  const [transactions, setTransactions] = useState([]);
+
+  // Initialize and synchronize transactions with localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("netly_transactions");
+    if (stored) {
+      try {
+        setTransactions(JSON.parse(stored));
+      } catch (err) {
+        console.error(err);
+        setTransactions(defaultTransactions);
+      }
+    } else {
+      setTransactions(defaultTransactions);
+      localStorage.setItem("netly_transactions", JSON.stringify(defaultTransactions));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (transactions && transactions.length > 0) {
+      localStorage.setItem("netly_transactions", JSON.stringify(transactions));
+    }
+  }, [transactions]);
 
   // Status-to-class color styling lookup mapping
   const statusColors = {
@@ -354,9 +385,24 @@ export default function TransactionsPage() {
       const matchStatus = filterStatus === "All" || tx.status === filterStatus;
       const matchCategory = filterCategory === "All" || tx.category === filterCategory;
 
-      return matchSearch && matchStatus && matchCategory;
+      let matchDate = true;
+      if (startDate || endDate) {
+        const txDate = parseTxDate(tx.date);
+        if (startDate && txDate < startDate) {
+          matchDate = false;
+        }
+        if (endDate) {
+          const endOfDay = new Date(endDate);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (txDate > endOfDay) {
+            matchDate = false;
+          }
+        }
+      }
+
+      return matchSearch && matchStatus && matchCategory && matchDate;
     });
-  }, [transactions, searchTerm, filterStatus, filterCategory]);
+  }, [transactions, searchTerm, filterStatus, filterCategory, startDate, endDate]);
 
   // Pagination config
   const itemsPerPage = 9;
@@ -366,67 +412,15 @@ export default function TransactionsPage() {
     return filteredTxs.slice(start, start + itemsPerPage);
   }, [filteredTxs, currentPage]);
 
-  const handleActionClick = (modalType) => {
-    setModalJustification("");
-    setModalError("");
-    setActiveModal(modalType);
-  };
 
-  const handleModalSubmit = (e) => {
-    e.preventDefault();
-    if (["dispute", "refund", "rejectRefund"].includes(activeModal)) {
-      if (modalJustification.trim().length < 20) {
-        setModalError("A detailed justification of at least 20 characters is required.");
-        return;
-      }
-    }
-
-    const updatedTx = { ...selectedTx };
-    const actionDate = "Jun 24, 2027 • 12:00 PM";
-
-    if (activeModal === "dispute") {
-      updatedTx.status = "Dispute";
-      updatedTx.disputeId = "DISP-9901";
-      updatedTx.disputeOpenedAt = actionDate;
-      updatedTx.disputeStatus = "Open";
-      updatedTx.history.push({ status: "Dispute Opened by Admin", date: actionDate });
-    } else if (activeModal === "refund") {
-      updatedTx.status = "Refunded";
-      updatedTx.refundedAt = actionDate;
-      updatedTx.stripeRefundId = "re_stripe_manual_992";
-      updatedTx.amountRefunded = getTotalCharged(updatedTx.serviceAmount, updatedTx.tip);
-      updatedTx.approvedBy = "Sophia (Admin)";
-      updatedTx.history.push({ status: "Refunded via Stripe", date: actionDate });
-    } else if (activeModal === "approveCredit") {
-      updatedTx.status = updatedTx.cancelledBy === "Client" ? "Wallet Credited — Client Fault" : "Wallet Credited — Provider Fault";
-      updatedTx.walletCreditedAt = actionDate;
-      updatedTx.approvedBy = "Sophia (Admin)";
-      updatedTx.history.push({ status: "Wallet Credit Approved", date: actionDate });
-    } else if (activeModal === "rejectCancel") {
-      updatedTx.status = "Dispute";
-      updatedTx.history.push({ status: "Cancellation Rejected - Dispute Created", date: actionDate });
-    } else if (activeModal === "processRefund") {
-      updatedTx.status = "Processing";
-      updatedTx.stripeRefundInitiatedAt = actionDate;
-      updatedTx.stripeRefundId = "re_stripe_proc_812";
-      updatedTx.history.push({ status: "Refund Processing", date: actionDate });
-    } else if (activeModal === "rejectRefund") {
-      updatedTx.status = "Dispute";
-      updatedTx.history.push({ status: "Refund Rejected - Dispute Created", date: actionDate });
-    }
-
-    setTransactions(transactions.map(t => t.id === updatedTx.id ? updatedTx : t));
-    setSelectedTx(updatedTx);
-    setActiveModal(null);
-  };
 
   return (
     <div className="space-y-6">
 
       {/* Main Transactions List Table Card */}
-      <div className="bg-white rounded-3xl overflow-hidden hover:shadow-xs">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
         {/* Filter and Search controls bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl">
           {/* Single search bar input */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -472,16 +466,16 @@ export default function TransactionsPage() {
               <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
             </div>
 
-            {/* Date range picker selector mockup */}
-            <div className="relative">
-              <button
-                onClick={() => alert("Mock date picker triggered.")}
-                className="border border-border-main text-xs rounded-full px-4 py-2.5 text-text-primary cursor-pointer flex items-center gap-1.5"
-              >
-                Date Range
-                <Calendar size={13} className="text-text-muted" />
-              </button>
-            </div>
+            {/* Date range picker selector with Custom DateRangePicker Component */}
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(start, end) => {
+                setStartDate(start);
+                setEndDate(end);
+                setCurrentPage(1);
+              }}
+            />
           </div>
         </div>
 
@@ -543,7 +537,7 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSelectedTx(tx); }}
+                          onClick={(e) => { e.stopPropagation(); router.push(`/transactions/${tx.id}`); }}
                           className="px-3 py-1 border border-primary-bg hover:bg-page-bg text-sm font-medium rounded-lg transition text-primary-bg cursor-pointer"
                         >
                           View
@@ -565,7 +559,7 @@ export default function TransactionsPage() {
 
         {/* Footer pagination navigation row matching design layout */}
         {totalPages > 0 && (
-          <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white">
+          <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
             <span className="text-[10px] text-text-muted font-medium">
               Showing {currentPage * itemsPerPage - itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredTxs.length)} of {filteredTxs.length}
             </span>
@@ -602,91 +596,7 @@ export default function TransactionsPage() {
         )}
       </div>
 
-      {/* RENDER EXTREMELY POLISHED TRANSACTION SIDE DRAWER */}
-      {selectedTx && (
-        <TransactionDetailDrawer
-          tx={selectedTx}
-          onClose={() => setSelectedTx(null)}
-          onActionClick={handleActionClick}
-        />
-      )}
 
-      {/* CONFIRMATION / ACTION DIALOG MODALS */}
-      {activeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
-          <div 
-            className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs transition-opacity"
-            onClick={() => setActiveModal(null)}
-          />
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
-            <button 
-              onClick={() => setActiveModal(null)}
-              className="absolute right-4 top-4 p-1.5 rounded-xl text-text-muted hover:bg-secondary-bg hover:text-text-primary transition"
-            >
-              <X size={18} />
-            </button>
-
-            <form onSubmit={handleModalSubmit} className="space-y-4">
-              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">
-                {activeModal === "dispute" && "Flag as Dispute"}
-                {activeModal === "refund" && "Force Manual Refund"}
-                {activeModal === "approveCredit" && "Approve Wallet Credit"}
-                {activeModal === "rejectCancel" && "Reject Cancellation Request"}
-                {activeModal === "processRefund" && "Process Stripe Refund"}
-                {activeModal === "rejectRefund" && "Reject Client Refund"}
-              </h3>
-
-              <div className="text-xs text-text-muted leading-relaxed">
-                {activeModal === "dispute" && "Flagging this transaction will hold payouts and launch an investigation record."}
-                {activeModal === "refund" && "Warning: Manual force refunding will dispatch Stripe funds back to the user card immediately."}
-                {activeModal === "approveCredit" && "Approving wallet credit adds calculated values straight to customer wallet balances."}
-                {activeModal === "rejectCancel" && "Rejecting request raises an open dispute for admin assessment."}
-                {activeModal === "processRefund" && "Dispatches the refund processing order via Stripe."}
-                {activeModal === "rejectRefund" && "Rejects user refund request, forwarding directly to a compliance dispute."}
-              </div>
-
-              {/* Justification input */}
-              {["dispute", "refund", "rejectRefund"].includes(activeModal) && (
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted">
-                    Justification / Reason (min 20 chars)
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={modalJustification}
-                    onChange={(e) => setModalJustification(e.target.value)}
-                    placeholder="Enter context here..."
-                    className="w-full bg-page-bg border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
-                    required
-                  />
-                  {modalError && (
-                    <span className="text-[10px] font-semibold text-red-500 block">
-                      {modalError}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Confirm cancel buttons */}
-              <div className="flex gap-2 justify-end pt-2 border-t border-secondary-bg">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 text-xs font-semibold border border-secondary-bg text-text-muted rounded-xl hover:bg-page-bg transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold bg-primary-bg text-white rounded-xl hover:opacity-90 transition cursor-pointer"
-                >
-                  Confirm Action
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

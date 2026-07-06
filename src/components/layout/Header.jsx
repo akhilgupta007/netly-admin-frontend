@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Bell, Menu, User } from "lucide-react";
 import { navigation } from "./Sidebar";
 
-export default function Header({ setSidebarOpen }) {
+export default function Header({ setSidebarOpen, title: propTitle, subtitle: propSubtitle }) {
   const pathname = usePathname();
 
   // Extract all navigation items into a single flat array
@@ -15,8 +15,43 @@ export default function Header({ setSidebarOpen }) {
     allItems.find((item) => item.href === pathname) ||
     allItems.find((item) => pathname.startsWith(item.href) && item.href !== "/");
 
-  const title = activeItem ? activeItem.name : "Dashboard";
-  const subtitle = activeItem ? activeItem.description : "Operational overview and key platform metrics";
+  let resolvedTitle = propTitle || (activeItem ? activeItem.name : "Dashboard");
+  let resolvedSubtitle = propSubtitle || (activeItem ? activeItem.description : "Operational overview and key platform metrics");
+
+  // Dynamic fallback calculation if props are not supplied directly
+  if (!propTitle && !propSubtitle) {
+    if (activeItem) {
+      if (pathname.length > activeItem.href.length && activeItem.href !== "/") {
+        const remainingPath = pathname.slice(activeItem.href.length).replace(/^\//, "");
+        const segments = remainingPath.split("/").filter(Boolean);
+
+        if (segments.length > 0) {
+          const subSegment = segments[0];
+          const isId = /[0-9]/.test(subSegment) || subSegment.toUpperCase() === subSegment || subSegment.length > 8;
+
+          if (isId) {
+            const parentName = activeItem.name;
+            const singularParent = parentName.endsWith("s") ? parentName.slice(0, -1) : parentName;
+            resolvedTitle = `${singularParent} Detail`;
+            resolvedSubtitle = `Review timeline, transaction parameters, and administrative controls for this ${singularParent.toLowerCase()}`;
+          } else {
+            const formattedSub = subSegment
+              .split(/[-_]/)
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+            resolvedTitle = formattedSub;
+            resolvedSubtitle = `View details and operational metrics for ${formattedSub.toLowerCase()}`;
+          }
+        }
+      }
+    } else {
+      const segments = pathname.split("/").filter(Boolean);
+      if (segments.length > 0) {
+        resolvedTitle = segments.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
+        resolvedSubtitle = `Operational overview and key platform metrics for ${resolvedTitle.toLowerCase()}`;
+      }
+    }
+  }
 
   return (
     <header className="flex h-16 items-center justify-between lg:px-4 px-8 bg-white border-b border-secondary-bg">
@@ -29,8 +64,8 @@ export default function Header({ setSidebarOpen }) {
           <Menu size={24} />
         </button>
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{title}</h1>
-          <p className="text-xs text-text-muted">{subtitle}</p>
+          <h1 className="text-xl font-bold text-text-primary">{resolvedTitle}</h1>
+          <p className="text-xs text-text-muted">{resolvedSubtitle}</p>
         </div>
       </div>
 

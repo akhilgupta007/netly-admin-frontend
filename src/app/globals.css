@@ -7,6 +7,7 @@
 @theme inline {
   /* Colors */
   --color-primary-bg: #6FB5BD;
+  --color-primary-bg-muted: #8DD3DB;
   --color-secondary-bg: #EDF3F3;
   --color-alt-bg: #0B163F;
   --color-page-bg: #F7FAFA;
