@@ -287,8 +287,11 @@ export default function KYCVerificationPage() {
             <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-text-muted font-light">
-                    No KYC submissions found matching filter criteria.
+                  <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
+                      <span>No KYC submissions found matching filter criteria.</span>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -334,17 +337,13 @@ export default function KYCVerificationPage() {
                       <td className="px-4 py-3 text-right pr-6">
                         {row.status === "Not Submitted" ? (
                           <span className="text-text-muted text-xs pr-4">-</span>
-                        ) : ["Approved"].includes(row.status) ? (
-                          <span className="inline-block border border-border-main text-text-muted font-medium text-xs px-4 py-1.5 rounded-xl bg-page-bg/30">
-                            {actionText}
-                          </span>
                         ) : (
                           <button
                             onClick={() => {
                               setSelectedItem(row);
                               setIsModalOpen(true);
                             }}
-                            className="inline-block border border-primary-bg-muted hover:border-primary-bg text-primary-bg-muted font-semibold text-xs px-4 py-1.5 rounded-xl transition cursor-pointer text-center"
+                            className={`inline-block text-xs px-4 py-1.5 rounded-xl transition cursor-pointer text-center font-medium border border-primary-bg-muted hover:border-primary-bg text-primary-bg`}
                           >
                             {actionText}
                           </button>

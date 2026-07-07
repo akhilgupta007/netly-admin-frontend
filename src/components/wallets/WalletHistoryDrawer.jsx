@@ -150,8 +150,11 @@ export default function WalletHistoryDrawer({ wallet, isOpen, onClose }) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="px-4 py-8 text-center text-text-muted">
-                        No transactions found matching filter criteria.
+                      <td colSpan="5" className="px-4 py-12 text-center text-text-muted font-light">
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
+                          <span>No transactions found matching filter criteria.</span>
+                        </div>
                       </td>
                     </tr>
                   )}

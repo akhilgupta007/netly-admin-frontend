@@ -120,8 +120,11 @@ export default function ProvidersTab({
           <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-6 py-8 text-center text-text-muted font-light">
-                  No providers found matching filter criteria.
+                <td colSpan={9} className="px-6 py-12 text-center text-text-muted font-light">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
+                    <span>No providers found matching filter criteria.</span>
+                  </div>
                 </td>
               </tr>
             ) : (

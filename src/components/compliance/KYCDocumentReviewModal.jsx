@@ -108,7 +108,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
           )}
 
           {/* Validation Warnings (conditional based on status) */}
-          {!isRejectMode && ["Pending", "In Review", "Expired", "Rejected"].includes(item.status) && (
+          {!isRejectMode && ["Expired", "Rejected"].includes(item.status) && (
             <div className="text-red-500 rounded-xl py-2 text-xs flex items-center gap-2 shrink-0">
               <ShieldAlert size={14} className="shrink-0 text-red-500" />
               <span>Cannot perform payouts, pending KYC approval.</span>
@@ -293,27 +293,52 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
               ) : item.status === "Expired" ? (
                 <button
                   onClick={() => onRequestResubmission(item.id)}
-                  className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Send size={13} /> Request Resubmission
                 </button>
+              ) : item.status === "Rejected" ? (
+                <div className="space-y-3">
+                  <div className="text-center text-red-500 font-semibold text-xs py-1">
+                    Document rejected – awaiting resubmission
+                  </div>
+                  <div className="bg-red-50/50 border border-red-100 rounded-xl p-3 text-xs text-text-primary">
+                    <span className="font-semibold block text-[10px] text-red-500 uppercase tracking-wide">Previous Rejection Feedback</span>
+                    <strong className="block mt-0.5 text-text-primary font-medium">Category: {item.rejectCategory || "Blurry"}</strong>
+                    <p className="mt-1 text-text-muted font-light">{item.rejectReason || "The document is blurred. Please upload a clear copy."}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onApprove(item.id)}
+                      className="flex-1 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                    >
+                      Override & Approve
+                    </button>
+                    <button
+                      onClick={() => onRequestResubmission(item.id)}
+                      className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                    >
+                      Resend Resubmission Email
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => onApprove(item.id)}
-                    className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Check size={13} /> Approve Document
                   </button>
                   <button
                     onClick={() => setIsRejectMode(true)}
-                    className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <X size={13} /> Reject Document
                   </button>
                   <button
                     onClick={() => onRequestResubmission(item.id)}
-                    className="w-full bg-white border border-border-main text-text-primary hover:bg-page-bg font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Send size={13} /> Request Resubmission
                   </button>

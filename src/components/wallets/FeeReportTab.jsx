@@ -13,7 +13,7 @@ export default function FeeReportTab({
   return (
     <div className="space-y-6 animate-scale-up">
       {/* Header row with date display */}
-      <div className="flex justify-between items-center bg-white p-4 border border-secondary-bg rounded-2xl shadow-xs">
+      <div className="flex justify-between items-center bg-white py-3 px-4 border border-secondary-bg rounded-2xl shadow-xs">
         <div>
           <span className="text-xs text-text-muted font-light">Fee report boundary range</span>
           <strong className="text-sm font-bold text-text-primary block mt-0.5">
