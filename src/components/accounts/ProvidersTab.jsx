@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, ChevronDown, MoreVertical, Eye, FileText, CreditCard, Ban } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
+import Pagination from "@/components/ui/Pagination";
 
 export default function ProvidersTab({
   providers,
@@ -27,12 +28,25 @@ export default function ProvidersTab({
   onSuspendBan
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest("[data-dropdown-container]")) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
 
   // Sliced page providers list
   const paginated = providers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
+    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
       {/* Filters controls bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
         <div className="relative flex-1">
@@ -166,18 +180,29 @@ export default function ProvidersTab({
                       {provider.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4 relative" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()} data-dropdown-container>
                     <button
-                      onClick={() => setOpenMenuId(openMenuId === provider.id ? null : provider.id)}
+                      onClick={(e) => {
+                        if (openMenuId === provider.id) {
+                          setOpenMenuId(null);
+                        } else {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const isLastItem = idx === paginated.length - 1;
+                          const top = isLastItem ? rect.top - 150 : rect.bottom + 4;
+                          setDropdownPos({ top, left: rect.left - 100 });
+                          setOpenMenuId(provider.id);
+                        }
+                      }}
                       className="px-4 text-text-primary hover:text-text-primary rounded transition cursor-pointer"
                     >
                       <MoreVertical size={20} />
                     </button>
                     
                     {openMenuId === provider.id && (
-                      <div className={`absolute right-6 w-32 bg-white border border-secondary-bg rounded-xl shadow-lg z-10 py-1.5 animate-scale-up ${
-                        idx >= paginated.length - 3 ? "bottom-11 origin-bottom" : "top-10 origin-top"
-                      }`}>
+                      <div
+                        className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
+                        style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                      >
                         <button
                           onClick={() => {
                             onViewProvider(provider);
@@ -225,27 +250,12 @@ export default function ProvidersTab({
       </div>
 
       {/* Pagination Navigation Footer */}
-      <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-        <span className="text-[10px] text-text-muted font-medium">
-          Showing {(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, providers.length)} of {providers.length}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-          >
-            &larr;
-          </button>
-          <button
-            disabled={currentPage * itemsPerPage >= providers.length}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-          >
-            &rarr;
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={providers.length}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

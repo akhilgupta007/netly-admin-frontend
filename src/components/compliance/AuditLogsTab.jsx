@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from "react";
 import { Search, ChevronDown, Download } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import Pagination from "@/components/ui/Pagination";
+import { exportCSV } from "@/utils/exportHelper";
 
 const mockAuditLogs = [
   { timestamp: "June 2, 2027\n12:45 PM", admin: "contact@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr12", justification: "Incomplete documentation submitted.", ipAddress: "192.168.1.21" },
@@ -16,39 +18,26 @@ const mockAuditLogs = [
   { timestamp: "May 24, 2027\n12:30 PM", admin: "hr@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr3", justification: "Documents verified against passport database.", ipAddress: "192.168.1.12" }
 ];
 
-export default function AuditLogsTab({ onExport }) {
+export default function AuditLogsTab() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterAdmin, setFilterAdmin] = useState("All");
   const [filterAction, setFilterAction] = useState("All");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
 
   const filteredLogs = useMemo(() => {
     return mockAuditLogs.filter((log) => {
-      const matchSearch = log.justification.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          log.admin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          log.targetId.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchAdmin = filterAdmin === "All" || log.admin === filterAdmin;
+      const matchSearch =
+        log.admin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.targetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.justification.toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchAction = filterAction === "All" || log.action === filterAction;
 
-      let matchDate = true;
-      if (startDate && endDate) {
-        const cleanDateStr = log.timestamp.split("\n")[0];
-        const logTime = new Date(cleanDateStr);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
-        matchDate = logTime >= start && logTime <= end;
-      }
-
-      return matchSearch && matchAdmin && matchAction && matchDate;
+      return matchSearch && matchAction;
     });
-  }, [searchTerm, filterAdmin, filterAction, startDate, endDate]);
+  }, [searchTerm, filterAction, startDate, endDate]);
 
   const paginated = useMemo(() => {
     return filteredLogs.slice(
@@ -57,46 +46,31 @@ export default function AuditLogsTab({ onExport }) {
     );
   }, [filteredLogs, currentPage]);
 
+  const handleExportCSV = () => {
+    const headers = ["Timestamp", "Admin", "Action", "Target Entity", "Target ID", "Justification", "IP Address"];
+    const rows = filteredLogs.map(log => `"${log.timestamp.replace(/\n/g, " ")}","${log.admin}","${log.action}","${log.targetEntity}","${log.targetId}","${log.justification}","${log.ipAddress}"`);
+    exportCSV(headers, rows, `audit_logs_${Date.now()}.csv`);
+  };
+
   return (
-    <div className="animate-scale-up">
-      {/* Filters row bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
-        <div className="relative flex-1">
+    <div className="space-y-4 p-5 animate-scale-up text-xs text-text-primary">
+      {/* Controls Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+        <div className="flex items-center gap-2 max-w-md flex-1 relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Search logs by admin, ID or reason..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+            className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          
-          <div className="relative">
-            <select
-              value={filterAdmin}
-              onChange={(e) => {
-                setFilterAdmin(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
-            >
-              <option value="All">Admin User</option>
-              <option value="contact@netly.io">contact@netly.io</option>
-              <option value="finance@netly.io">finance@netly.io</option>
-              <option value="support@netly.io">support@netly.io</option>
-              <option value="info@netly.io">info@netly.io</option>
-              <option value="admin@netly.io">admin@netly.io</option>
-              <option value="hr@netly.io">hr@netly.io</option>
-            </select>
-            <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
-          </div>
-
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <select
               value={filterAction}
@@ -104,9 +78,9 @@ export default function AuditLogsTab({ onExport }) {
                 setFilterAction(e.target.value);
                 setCurrentPage(1);
               }}
-              className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+              className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
             >
-              <option value="All">Action Type</option>
+              <option value="All">All Actions</option>
               <option value="Rejected">Rejected</option>
               <option value="Pending Approval">Pending Approval</option>
               <option value="KYC Approved">KYC Approved</option>
@@ -125,7 +99,7 @@ export default function AuditLogsTab({ onExport }) {
           />
 
           <button
-            onClick={onExport}
+            onClick={handleExportCSV}
             className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5"
           >
             <Download size={13} /> Export CSV
@@ -138,22 +112,22 @@ export default function AuditLogsTab({ onExport }) {
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
           <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
           <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-text-primary">No Audit Logs</h3>
-            <p className="text-xs text-text-muted font-light">No platform actions match filter criteria.</p>
+            <h3 className="text-sm font-semibold text-text-primary">No logs found</h3>
+            <p className="text-xs text-text-muted font-light">Refine your filters to see entries</p>
           </div>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-            <thead className="bg-secondary-bg text-text-primary text-left text-xs font-semibold">
+          <table className="min-w-full divide-y divide-secondary-bg text-left">
+            <thead className="bg-secondary-bg font-semibold text-text-primary">
               <tr>
-                <th className="px-4 py-3 font-semibold">Timestamp</th>
-                <th className="px-4 py-3 font-semibold">Admin</th>
-                <th className="px-4 py-3 font-semibold">Action</th>
-                <th className="px-4 py-3 font-semibold">Target Entity</th>
-                <th className="px-4 py-3 font-semibold">Target ID</th>
-                <th className="px-4 py-3 font-semibold">Justification</th>
-                <th className="px-4 py-3 font-semibold">IP Address</th>
+                <th className="px-4 py-3">Timestamp</th>
+                <th className="px-4 py-3">Admin</th>
+                <th className="px-4 py-3">Action</th>
+                <th className="px-4 py-3">Target Entity</th>
+                <th className="px-4 py-3">Target ID</th>
+                <th className="px-4 py-3">Justification</th>
+                <th className="px-4 py-3">IP Address</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-secondary-bg">
@@ -182,27 +156,12 @@ export default function AuditLogsTab({ onExport }) {
 
       {/* Table Pagination Footer */}
       {filteredLogs.length > 0 && (
-        <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-          <span className="text-[10px] text-text-muted font-medium">
-            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredLogs.length)} of {filteredLogs.length}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-            >
-              &larr;
-            </button>
-            <button
-              disabled={currentPage * itemsPerPage >= filteredLogs.length}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-            >
-              &rarr;
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredLogs.length}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

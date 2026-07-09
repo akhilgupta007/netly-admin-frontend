@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Search, ChevronDown, Check, RotateCcw } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import Pagination from "@/components/ui/Pagination";
 
 const initialPayouts = [
   { id: "1", provider: "Riya Gupta", bookingId: "TXN00192123456800", gross: 180.00, commission: 15.00, tip: 5.50, status: "Pending" },
@@ -91,9 +92,9 @@ export default function PayoutQueueTab() {
   };
 
   return (
-    <div className="animate-scale-up">
+    <div className="animate-scale-up border border-secondary-bg rounded-3xl overflow-hidden bg-white shadow-2xs">
       {/* Filters row bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white border-b border-secondary-bg">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -210,27 +211,12 @@ export default function PayoutQueueTab() {
 
       {/* Pagination Footer */}
       {filteredPayouts.length > 0 && (
-        <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-          <span className="text-[10px] text-text-muted font-medium">
-            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredPayouts.length)} of {filteredPayouts.length}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-            >
-              &larr;
-            </button>
-            <button
-              disabled={currentPage * itemsPerPage >= filteredPayouts.length}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-            >
-              &rarr;
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredPayouts.length}
+          onPageChange={setCurrentPage}
+        />
       )}
     </div>
   );

@@ -11,7 +11,7 @@ export default function FeeReportTab({
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
 
   return (
-    <div className="space-y-6 animate-scale-up">
+    <div className="space-y-4 animate-scale-up">
       {/* Header row with date display */}
       <div className="flex justify-between items-center bg-white py-3 px-4 border border-secondary-bg rounded-2xl shadow-xs">
         <div>
@@ -70,11 +70,11 @@ export default function FeeReportTab({
             <line x1="45" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
 
             {/* Y-axis labels */}
-            <text x="5" y="24" className="text-[7px] text-text-muted fill-current font-medium">$10.0k</text>
-            <text x="5" y="54" className="text-[7px] text-text-muted fill-current font-medium">$7.5k</text>
-            <text x="5" y="84" className="text-[7px] text-text-muted fill-current font-medium">$5.0k</text>
-            <text x="5" y="114" className="text-[7px] text-text-muted fill-current font-medium">$2.5k</text>
-            <text x="5" y="144" className="text-[7px] text-text-muted fill-current font-medium">$0.0k</text>
+            <text x="5" y="24" className="text-[6px] text-text-muted fill-current font-medium">$10.0k</text>
+            <text x="5" y="54" className="text-[6px] text-text-muted fill-current font-medium">$7.5k</text>
+            <text x="5" y="84" className="text-[6px] text-text-muted fill-current font-medium">$5.0k</text>
+            <text x="5" y="114" className="text-[6px] text-text-muted fill-current font-medium">$2.5k</text>
+            <text x="5" y="144" className="text-[6px] text-text-muted fill-current font-medium">$0.0k</text>
 
             {/* Bars group */}
             {[
@@ -114,7 +114,7 @@ export default function FeeReportTab({
                     x={x_center}
                     y="152"
                     textAnchor="middle"
-                    className="text-[7px] text-text-muted fill-current font-medium"
+                    className="text-[6px] text-text-muted fill-current font-medium"
                   >
                     {item.label}
                   </text>

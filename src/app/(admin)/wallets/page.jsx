@@ -1,26 +1,9 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import Link from "next/link";
 import { toast } from "react-toastify";
-import { getInitials } from "@/lib/utils";
-import { 
-  Search, 
-  ChevronDown, 
-  Calendar, 
-  Copy, 
-  X, 
-  ArrowUpRight, 
-  Zap, 
-  Wallet,
-  History,
-  TrendingUp,
-  Settings,
-  MoreVertical,
-  Plus
-} from "lucide-react";
 
-import WalletHistoryDrawer from "@/components/wallets/WalletHistoryDrawer";
+import WalletHistoryModal from "@/components/wallets/WalletHistoryModal";
 import AdjustBalanceModal from "@/components/wallets/AdjustBalanceModal";
 import AuthorizeTransferModal from "@/components/wallets/AuthorizeTransferModal";
 import RejectTransferModal from "@/components/wallets/RejectTransferModal";
@@ -63,14 +46,13 @@ export default function WalletsRefundsPage() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   // Modals & Drawers States
   const [selectedWallet, setSelectedWallet] = useState(null); // Used for history and adjust
   const [selectedQueueItem, setSelectedQueueItem] = useState(null); // Used for authorize / reject
   const [activeModal, setActiveModal] = useState(null); // 'adjust' | 'authorize' | 'reject'
   const [drawerOpen, setDrawerOpen] = useState(false); // History drawer
-  const [openDropdownId, setOpenDropdownId] = useState(null); // Track active action popover row
 
   // Mock Database - Wallets List
   const [wallets, setWallets] = useState([
@@ -391,8 +373,8 @@ export default function WalletsRefundsPage() {
         onSubmit={handleRejectSubmit}
       />
 
-      {/* WALLET HISTORY SLIDING DRAWER (Slide 8) */}
-      <WalletHistoryDrawer
+      {/* WALLET HISTORY MODAL (Slide 8) */}
+      <WalletHistoryModal
         wallet={selectedWallet}
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}

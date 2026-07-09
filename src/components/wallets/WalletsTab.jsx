@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, MoreVertical, History, Settings } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, MoreVertical, History, Settings2 } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
+import Pagination from "@/components/ui/Pagination";
 
 export default function WalletsTab({
   wallets,
@@ -19,12 +20,25 @@ export default function WalletsTab({
   itemsPerPage
 }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest("[data-dropdown-container]")) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
 
   // Pagination config
   const paginated = wallets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
+    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
       {/* Filters controls bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
         <div className="relative flex-1">
@@ -53,13 +67,13 @@ export default function WalletsTab({
       {/* Table contents */}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-          <thead className="bg-page-bg text-text-primary text-left text-sm font-bold">
+          <thead className="bg-secondary-bg text-text-primary text-left text-sm">
             <tr>
-              <th className="px-4 py-2">Client</th>
-              <th className="px-4 py-2">Mail Address</th>
-              <th className="px-4 py-2">Current Balance</th>
-              <th className="px-4 py-2">Last Transaction</th>
-              <th className="px-4 py-2 w-10"></th>
+              <th className="px-4 py-3 font-semibold">Client</th>
+              <th className="px-4 py-3 font-semibold">Mail Address</th>
+              <th className="px-4 py-3 font-semibold">Current Balance</th>
+              <th className="px-4 py-3 font-semibold">Last Transaction</th>
+              <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-secondary-bg text-xs text-text-primary">
@@ -67,7 +81,7 @@ export default function WalletsTab({
               paginated.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-page-bg/50 transition">
                   <td className="px-4 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-md bg-primary-bg text-white flex items-center justify-center font-light">
+                    <div className="w-8 h-8 rounded-md bg-primary-bg-muted text-white flex items-center justify-center font-light">
                       {getInitials(item.client.name)}
                     </div>
                     <span>{item.client.name}</span>
@@ -78,34 +92,45 @@ export default function WalletsTab({
                     <span className="block text-text-primary">{item.lastTxDate}</span>
                     <span className="block text-[10px] text-text-muted pt-1">{item.lastTxTime}</span>
                   </td>
-                  <td className="px-4 py-4 relative">
+                  <td className="px-4 py-4" data-dropdown-container>
                     <button
-                      onClick={() => setOpenDropdownId(openDropdownId === item.id ? null : item.id)}
+                      onClick={(e) => {
+                        if (openDropdownId === item.id) {
+                          setOpenDropdownId(null);
+                        } else {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const isLastItem = idx === paginated.length - 1;
+                          const top = isLastItem ? rect.top - 80 : rect.bottom + 4;
+                          setDropdownPos({ top, left: rect.left - 100 });
+                          setOpenDropdownId(item.id);
+                        }
+                      }}
                       className="px-4 text-text-primary hover:text-text-primary rounded transition cursor-pointer"
                     >
                       <MoreVertical size={20} />
                     </button>
                     {openDropdownId === item.id && (
-                      <div className={`absolute right-6 w-32 bg-white border border-secondary-bg rounded-xl shadow-lg z-10 py-1.5 animate-scale-up ${
-                        idx >= paginated.length - 2 ? "bottom-10 origin-bottom" : "top-10 origin-top"
-                      }`}>
+                      <div
+                        className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
+                        style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                      >
                         <button
                           onClick={() => {
                             onOpenHistory(item);
                             setOpenDropdownId(null);
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-sm text-text-primary font-medium flex items-center gap-2 cursor-pointer"
                         >
-                          <History size={13} /> History
+                          <History size={16} /> History
                         </button>
                         <button
                           onClick={() => {
                             onOpenAdjust(item);
                             setOpenDropdownId(null);
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-sm text-text-primary font-medium flex items-center gap-2 cursor-pointer"
                         >
-                          <Settings size={13} /> Adjust
+                          <Settings2 size={16} /> Adjust
                         </button>
                       </div>
                     )}
@@ -127,27 +152,12 @@ export default function WalletsTab({
       </div>
 
       {/* Pagination Navigation Footer */}
-      <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-        <span className="text-[10px] text-text-muted font-medium">
-          Showing {currentPage * itemsPerPage - itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, wallets.length)} of {wallets.length}
-        </span>
-        <div className="flex items-center gap-1">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-          >
-            &larr;
-          </button>
-          <button
-            disabled={currentPage * itemsPerPage >= wallets.length}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-            className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-          >
-            &rarr;
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={wallets.length}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

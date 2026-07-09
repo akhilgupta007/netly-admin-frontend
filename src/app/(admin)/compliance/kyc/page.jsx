@@ -5,6 +5,7 @@ import { Search, ChevronDown, FileText, ChevronLeft, ChevronRight } from "lucide
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
+import Pagination from "@/components/ui/Pagination";
 
 // Custom Document Review Modal
 import KYCDocumentReviewModal from "@/components/compliance/KYCDocumentReviewModal";
@@ -200,7 +201,7 @@ export default function KYCVerificationPage() {
       </div>
 
       {/* Main Container Section */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         
         {/* Table Filters controls row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -359,27 +360,12 @@ export default function KYCVerificationPage() {
         </div>
 
         {/* Pagination Navigation Footer */}
-        <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-          <span className="text-[10px] text-text-muted font-medium">
-            Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredSubmissions.length)} of {filteredSubmissions.length}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-            >
-              &larr;
-            </button>
-            <button
-              disabled={currentPage * itemsPerPage >= filteredSubmissions.length}
-              onClick={() => setCurrentPage(prev => prev + 1)}
-              className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-            >
-              &rarr;
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredSubmissions.length}
+          onPageChange={setCurrentPage}
+        />
 
       </div>
 

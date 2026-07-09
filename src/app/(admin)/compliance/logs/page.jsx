@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { toast } from "react-toastify";
 
 // Component Separation
 import AuditLogsTab from "@/components/compliance/AuditLogsTab";
@@ -10,10 +9,6 @@ import ConsentManagementTab from "@/components/compliance/ConsentManagementTab";
 
 export default function ComplianceLogsPage() {
   const [activeTab, setActiveTab] = useState("Audit Logs");
-
-  const handleExportCSV = () => {
-    toast.success("CSV log export initialized successfully!");
-  };
 
   return (
     <div className="space-y-4 font-onest">
@@ -36,17 +31,17 @@ export default function ComplianceLogsPage() {
       </div>
 
       {/* RENDER CURRENT ACTIVE TAB COMPONENT */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         {activeTab === "Audit Logs" && (
-          <AuditLogsTab onExport={handleExportCSV} />
+          <AuditLogsTab />
         )}
 
         {activeTab === "Data Access Logs" && (
-          <DataAccessLogsTab onExport={handleExportCSV} />
+          <DataAccessLogsTab />
         )}
 
         {activeTab === "Consent Management" && (
-          <ConsentManagementTab onExport={handleExportCSV} />
+          <ConsentManagementTab />
         )}
       </div>
 

@@ -3,18 +3,11 @@
 import React, { useState } from "react";
 import { ChevronDown, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
+import { exportCSV, exportPDF } from "@/utils/exportHelper";
 
 export default function TransactionVolumeTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
   const [category, setCategory] = useState("All");
-
-  const handleExportCSV = () => {
-    toast.success("Transaction Volume report exported to CSV successfully!");
-  };
-
-  const handleExportPDF = () => {
-    toast.success("Transaction Volume report exported to PDF successfully!");
-  };
 
   const chartData = [
     { day: "Jun 21", bookings: 38, gmv: 3500 },
@@ -25,6 +18,18 @@ export default function TransactionVolumeTab() {
     { day: "Jun 26", bookings: 45, gmv: 3900 },
     { day: "Jun 27", bookings: 35, gmv: 3100 }
   ];
+
+  const handleExportCSV = () => {
+    const headers = ["Day", "Bookings", "GMV ($)"];
+    const rows = chartData.map(item => `"${item.day}",${item.bookings},${item.gmv}`);
+    exportCSV(headers, rows, `transaction_volume_${Date.now()}.csv`);
+  };
+
+  const handleExportPDF = () => {
+    const headers = ["Day", "Bookings", "GMV ($)"];
+    const rows = chartData.map(item => [item.day, item.bookings, `$${item.gmv.toFixed(2)}`]);
+    exportPDF("Transaction Volume Report", headers, rows, `transaction_volume_${Date.now()}.pdf`);
+  };
 
   return (
     <div className="animate-scale-up">
@@ -140,8 +145,8 @@ export default function TransactionVolumeTab() {
                     return (
                       <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                         <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
-                          <div style={{ height: bookingsHeight }} className="w-7 bg-[#6FB5BD] rounded-t-sm" />
-                          <div style={{ height: gmvHeight }} className="w-7 bg-[#0F1D36] rounded-t-sm" />
+                          <div style={{ height: bookingsHeight }} className="w-7 bg-primary-bg rounded-t-sm" />
+                          <div style={{ height: gmvHeight }} className="w-7 bg-text-primary rounded-t-sm" />
                         </div>
                       </div>
                     );
@@ -228,11 +233,11 @@ export default function TransactionVolumeTab() {
         {/* Legend row */}
         <div className="flex justify-center items-center gap-4 text-[10px] text-text-primary pt-2">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#6FB5BD] rounded-xs" />
+            <span className="w-2.5 h-2.5 bg-primary-bg rounded-xs" />
             <span>Bookings</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#0F1D36] rounded-xs" />
+            <span className="w-2.5 h-2.5 bg-text-primary rounded-xs" />
             <span>GMV</span>
           </div>
         </div>

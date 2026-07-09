@@ -3,18 +3,11 @@
 import React, { useState } from "react";
 import { ChevronDown, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
+import { exportCSV, exportPDF } from "@/utils/exportHelper";
 
 export default function NetRevenueTab() {
   const [chartType, setChartType] = useState("Line"); // "Bar" | "Line"
   const [category, setCategory] = useState("All");
-
-  const handleExportCSV = () => {
-    toast.success("Net Revenue report exported to CSV successfully!");
-  };
-
-  const handleExportPDF = () => {
-    toast.success("Net Revenue report exported to PDF successfully!");
-  };
 
   const chartData = [
     { day: "Jun 21", fee: 4000, commission: 5000 },
@@ -25,6 +18,18 @@ export default function NetRevenueTab() {
     { day: "Jun 26", fee: 4100, commission: 4300 },
     { day: "Jun 27", fee: 3900, commission: 5100 }
   ];
+
+  const handleExportCSV = () => {
+    const headers = ["Day", "Platform Fees ($)", "Commissions ($)"];
+    const rows = chartData.map(item => `"${item.day}",${item.fee},${item.commission}`);
+    exportCSV(headers, rows, `net_revenue_${Date.now()}.csv`);
+  };
+
+  const handleExportPDF = () => {
+    const headers = ["Day", "Platform Fees ($)", "Commissions ($)"];
+    const rows = chartData.map(item => [item.day, `$${item.fee.toFixed(2)}`, `$${item.commission.toFixed(2)}`]);
+    exportPDF("Net Revenue Report", headers, rows, `net_revenue_${Date.now()}.pdf`);
+  };
 
   return (
     <div className="animate-scale-up">
@@ -226,11 +231,11 @@ export default function NetRevenueTab() {
         {/* Legend row */}
         <div className="flex justify-center items-center gap-4 text-[10px] text-text-primary pt-2">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#6FB5BD] rounded-xs" />
+            <span className="w-2.5 h-2.5 bg-primary-bg rounded-xs" />
             <span>5% fee</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#0F1D36] rounded-xs" />
+            <span className="w-2.5 h-2.5 bg-text-primary rounded-xs" />
             <span>15% commission</span>
           </div>
         </div>

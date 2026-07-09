@@ -2,18 +2,10 @@
 
 import React, { useState } from "react";
 import { Download, FileText } from "lucide-react";
-import { toast } from "react-toastify";
+import { exportCSV, exportPDF } from "@/utils/exportHelper";
 
 export default function WalletRefundsTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
-
-  const handleExportCSV = () => {
-    toast.success("Wallet & Refund reports exported to CSV successfully!");
-  };
-
-  const handleExportPDF = () => {
-    toast.success("Wallet & Refund reports exported to PDF successfully!");
-  };
 
   const chartData = [
     { day: "Jun 21", wallet: 4800, card: 3000 },
@@ -24,6 +16,18 @@ export default function WalletRefundsTab() {
     { day: "Jun 26", wallet: 5100, card: 3900 },
     { day: "Jun 27", wallet: 4200, card: 2800 }
   ];
+
+  const handleExportCSV = () => {
+    const headers = ["Day", "Wallet Funding ($)", "Card Payments ($)"];
+    const rows = chartData.map(item => `"${item.day}",${item.wallet},${item.card}`);
+    exportCSV(headers, rows, `wallet_refunds_${Date.now()}.csv`);
+  };
+
+  const handleExportPDF = () => {
+    const headers = ["Day", "Wallet Funding ($)", "Card Payments ($)"];
+    const rows = chartData.map(item => [item.day, `$${item.wallet.toFixed(2)}`, `$${item.card.toFixed(2)}`]);
+    exportPDF("Wallet & Refunds Report", headers, rows, `wallet_refunds_${Date.now()}.pdf`);
+  };
 
   return (
     <div className="animate-scale-up">
@@ -129,8 +133,8 @@ export default function WalletRefundsTab() {
                     return (
                       <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                         <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
-                          <div style={{ height: walletHeight }} className="w-7 bg-[#6FB5BD] rounded-t-sm" />
-                          <div style={{ height: cardHeight }} className="w-7 bg-[#0F1D36] rounded-t-sm" />
+                          <div style={{ height: walletHeight }} className="w-7 bg-primary-bg rounded-t-sm" />
+                          <div style={{ height: cardHeight }} className="w-7 bg-text-primary rounded-t-sm" />
                         </div>
                       </div>
                     );
@@ -208,11 +212,11 @@ export default function WalletRefundsTab() {
         {/* Legend row */}
         <div className="flex justify-center items-center gap-4 text-[10px] text-text-primary pt-2">
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#6FB5BD] rounded-xs" />
+            <span className="w-2.5 h-2.5 bg-primary-bg rounded-xs" />
             <span>Kept as wallet credit</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#0F1D36] rounded-xs" />
+            <span className="w-2.5 h-2.5 bg-text-primary rounded-xs" />
             <span>Refunded to card</span>
           </div>
         </div>

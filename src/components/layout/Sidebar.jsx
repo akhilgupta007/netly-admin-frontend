@@ -1,8 +1,10 @@
 "use client";
 
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import LogoutModal from "./LogoutModal";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -61,6 +63,8 @@ export const navigation = [
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   return (
     <>
@@ -135,15 +139,26 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
         {/* Sidebar Footer / Log Out */}
         <div className="border-t border-secondary-bg p-4 bg-white">
-          <Link
-            href="/login"
-            className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-text-muted rounded-xl hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+          <button
+            type="button"
+            onClick={() => setLogoutOpen(true)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-text-muted rounded-xl hover:bg-red-50 hover:text-red-600 transition-all duration-200 cursor-pointer"
           >
             <LogOut size={18} />
             <span>Log Out</span>
-          </Link>
+          </button>
         </div>
       </aside>
+
+      {/* Logout warning confirmation popup modal */}
+      <LogoutModal
+        isOpen={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={() => {
+          setLogoutOpen(false);
+          router.push("/login");
+        }}
+      />
     </>
   );
 }

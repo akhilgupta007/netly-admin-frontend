@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Search, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import Pagination from "@/components/ui/Pagination";
 import T4APreviewModal from "./T4APreviewModal";
 
 const initialSlips = [
@@ -228,27 +229,12 @@ export default function T4ATaxTab() {
 
         {/* Pagination Footer */}
         {filteredSlips.length > 0 && (
-          <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-            <span className="text-[10px] text-text-muted font-medium">
-              Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredSlips.length)} of {filteredSlips.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-              >
-                &larr;
-              </button>
-              <button
-                disabled={currentPage * itemsPerPage >= filteredSlips.length}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-              >
-                &rarr;
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredSlips.length}
+            onPageChange={setCurrentPage}
+          />
         )}
 
       </div>

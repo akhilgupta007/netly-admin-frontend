@@ -30,7 +30,7 @@ export default function RejectTransferModal({ queueItem, activeTab, isOpen, onCl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl w-full max-w-lg p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
+      <div className="relative bg-white rounded-3xl w-full max-w-xl p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
         
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main">
           <h3 className="text-lg font-semibold text-text-primary">Reject Transfer</h3>
@@ -58,7 +58,7 @@ export default function RejectTransferModal({ queueItem, activeTab, isOpen, onCl
                 </Link>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-[10px]">
+                <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-extralight">
                   {getInitials(clientOrProviderName)}
                 </div>
                 <div>

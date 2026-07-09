@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, ChevronDown } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
+import Pagination from "@/components/ui/Pagination";
 
 const defaultDisputes = [
   {
@@ -163,7 +164,7 @@ export default function DisputesPage() {
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         
         {/* Filters control bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -275,27 +276,12 @@ export default function DisputesPage() {
 
         {/* Pagination Navigation Footer */}
         {filteredDisputes.length > 0 && (
-          <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-            <span className="text-[10px] text-text-muted font-medium">
-              Showing {(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, filteredDisputes.length)} of {filteredDisputes.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-              >
-                &larr;
-              </button>
-              <button
-                disabled={currentPage * itemsPerPage >= filteredDisputes.length}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-              >
-                &rarr;
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredDisputes.length}
+            onPageChange={setCurrentPage}
+          />
         )}
 
       </div>

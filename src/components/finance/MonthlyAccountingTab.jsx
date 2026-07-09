@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import { Search, ChevronDown, Download, FileText } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import Pagination from "@/components/ui/Pagination";
 
 const mockTransactions = [
   { id: "TXN00192123500007", dateTime: "June 9, 2027\n1:15 PM", client: "Logan Walker", provider: "Zoe Robinson", category: "Post-Construction Cleaning", amount: 500.00, fee: 25.00, commission: 30.00, tip: 20.00, status: "Hour Adjustment Pending" },
@@ -210,27 +211,12 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3 bg-white rounded-b-3xl">
-              <span className="text-[10px] text-text-muted font-medium">
-                Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-                >
-                  &larr;
-                </button>
-                <button
-                  disabled={currentPage * itemsPerPage >= filteredData.length}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
-                  className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-                >
-                  &rarr;
-                </button>
-              </div>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredData.length}
+              onPageChange={setCurrentPage}
+            />
           </>
         )}
 

@@ -67,7 +67,7 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-text-primary">{wallet.client.name}</h4>
-                    <p className="text-xs text-text-muted font-light">{wallet.client.email}</p>
+                    <p className="text-[10px] text-text-muted font-light">{wallet.client.email}</p>
                   </div>
                 </div>
               </div>

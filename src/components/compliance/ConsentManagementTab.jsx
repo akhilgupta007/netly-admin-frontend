@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Search, Download, Clock, Trash2, MailX } from "lucide-react";
 import { toast } from "react-toastify";
 import DeleteUserDataModal from "./DeleteUserDataModal";
+import { exportCSV } from "@/utils/exportHelper";
 
 const mockConsentRecords = [
   { name: "Amara Osei", email: "amara@gmail.com", lastUpdated: "Jan 12, 2027", dataConsent: true, dataConsentTime: "Jan 12, 2027 09:14", marketingConsent: false, marketingConsentTime: "Jan 12, 2027 09:14" },
@@ -11,10 +12,16 @@ const mockConsentRecords = [
   { name: "Yetunde Balogun", email: "yetunde@example.com", lastUpdated: "May 15, 2027", dataConsent: false, dataConsentTime: "May 15, 2027 12:00", marketingConsent: false, marketingConsentTime: "May 15, 2027 12:00" }
 ];
 
-export default function ConsentManagementTab({ onExport }) {
+export default function ConsentManagementTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [consentList, setConsentList] = useState(mockConsentRecords);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
+
+  const handleExportCSV = () => {
+    const headers = ["Name", "Email", "Last Updated", "Data Consent", "Data Consent Time", "Marketing Consent", "Marketing Consent Time"];
+    const rows = consentList.map(c => `"${c.name}","${c.email}","${c.lastUpdated}",${c.dataConsent},"${c.dataConsentTime}",${c.marketingConsent},"${c.marketingConsentTime}"`);
+    exportCSV(headers, rows, `consent_records_${Date.now()}.csv`);
+  };
 
   const matchedRecord = useMemo(() => {
     if (!searchTerm.trim()) return consentList[0] || null;
@@ -66,7 +73,7 @@ export default function ConsentManagementTab({ onExport }) {
         </div>
 
         <button
-          onClick={onExport}
+          onClick={handleExportCSV}
           className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5 self-end md:self-auto"
         >
           <Download size={13} /> Export CSV

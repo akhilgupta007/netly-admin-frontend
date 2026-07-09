@@ -24,10 +24,6 @@ export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, o
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (authReason.trim().length < 20) {
-      toast.error("Reason text must contain at least 20 characters.");
-      return;
-    }
     const val = parseFloat(authAmount);
     if (isNaN(val) || val <= 0) {
       toast.error("Please enter a valid amount.");
@@ -43,7 +39,7 @@ export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl w-full max-w-lg p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
+      <div className="relative bg-white rounded-3xl w-full max-w-xl p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
         
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main">
           <h3 className="text-lg font-semibold text-text-primary">Authorize Transfer</h3>
@@ -82,7 +78,7 @@ export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, o
             </div>
             
             <div className="bg-primary-bg-muted/15 rounded-2xl p-3 flex flex-col justify-between">
-              <span className="text-[10px] text-text-muted block">Transfer amount</span>
+              <span className="text-[10px] text-text-muted block">Wallet balance</span>
               <strong className="text-xl text-text-primary font-semibold block -mb-1">${queueItem.amount.toFixed(2)}</strong>
             </div>
           </div>
@@ -113,10 +109,9 @@ export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, o
               className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
               required
             />
-            <span className="text-[10px] text-text-muted block">Minimum 20 characters.</span>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2">
             <button
               type="button"
               onClick={onClose}

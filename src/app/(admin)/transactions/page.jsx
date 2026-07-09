@@ -2,16 +2,13 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import CardWrapper from "@/components/ui/CardWrapper";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { toast } from "react-toastify";
+import Pagination from "@/components/ui/Pagination";
 import {
   Search,
   ChevronDown,
-  Calendar,
-  Copy,
-  X,
-  Plus
+  Copy
 } from "lucide-react";
 
 // Helper to copy text to clipboard
@@ -418,7 +415,7 @@ export default function TransactionsPage() {
     <div className="space-y-6">
 
       {/* Main Transactions List Table Card */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         {/* Filter and Search controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl">
           {/* Single search bar input */}
@@ -483,17 +480,17 @@ export default function TransactionsPage() {
           <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
             <thead className="bg-secondary-bg text-text-primary text-left font-extralight">
               <tr>
-                <th className="px-4 py-3">Transaction ID</th>
-                <th className="px-4 py-3">Date & Time</th>
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">Provider</th>
-                <th className="px-4 py-3">Service</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Client Fee</th>
-                <th className="px-4 py-3">Commission</th>
-                <th className="px-4 py-3">Tip</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 text-center">Actions</th>
+                <th className="p-4">Transaction ID</th>
+                <th className="p-4">Date & Time</th>
+                <th className="p-4">Client</th>
+                <th className="p-4">Provider</th>
+                <th className="p-4">Service</th>
+                <th className="p-4">Amount</th>
+                <th className="p-4">Client Fee</th>
+                <th className="p-4">Commission</th>
+                <th className="p-4">Tip</th>
+                <th className="p-4">Status</th>
+                <th className="p-4 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-bg bg-white text-text-primary">
@@ -562,40 +559,12 @@ export default function TransactionsPage() {
 
         {/* Footer pagination navigation row matching design layout */}
         {totalPages > 0 && (
-          <div className="flex items-center justify-between border-t border-secondary-bg px-4 py-3.5 bg-white rounded-b-3xl">
-            <span className="text-[10px] text-text-muted font-medium">
-              Showing {currentPage * itemsPerPage - itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredTxs.length)} of {filteredTxs.length}
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-              >
-                &larr;
-              </button>
-              {Array.from({ length: totalPages }).map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentPage(idx + 1)}
-                  className={`w-7 h-7 rounded-lg text-[10px] font-bold transition ${
-                    currentPage === idx + 1
-                      ? "bg-primary-bg text-white"
-                      : "border border-secondary-bg hover:bg-page-bg text-text-primary"
-                  }`}
-                >
-                  {idx + 1}
-                </button>
-              ))}
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                className="w-7 h-7 flex items-center justify-center border border-secondary-bg rounded-lg hover:bg-page-bg transition disabled:opacity-50 text-[10px] font-bold"
-              >
-                &rarr;
-              </button>
-            </div>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredTxs.length}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 
