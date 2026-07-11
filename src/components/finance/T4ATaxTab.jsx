@@ -195,8 +195,8 @@ export default function T4ATaxTab() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-              <thead className="bg-secondary-bg text-text-primary text-left text-xs font-semibold">
+            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+              <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Provider</th>
                   <th className="px-4 py-3 font-semibold">Tax Year</th>
@@ -205,14 +205,14 @@ export default function T4ATaxTab() {
                   <th className="px-4 py-3 text-right pr-6 font-semibold w-32">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg">
+              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                 {paginated.map((row) => (
                   <tr key={row.id} className="hover:bg-page-bg/50 transition">
-                    <td className="px-4 py-3.5 font-medium">{row.provider}</td>
-                    <td className="px-4 py-3.5 text-text-muted">{row.taxYear}</td>
-                    <td className="px-4 py-3.5 text-text-muted">{row.generatedDate}</td>
-                    <td className="px-4 py-3.5">{row.generatedBy}</td>
-                    <td className="px-4 py-2 text-right pr-6">
+                    <td className="px-4 py-3">{row.provider}</td>
+                    <td className="px-4 py-3">{row.taxYear}</td>
+                    <td className="px-4 py-3">{row.generatedDate}</td>
+                    <td className="px-4 py-3">{row.generatedBy}</td>
+                    <td className="px-4 py-3 text-right pr-6">
                       <button
                         onClick={() => setSelectedSlip(row)}
                         className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-[10px] px-3.5 py-1 rounded-full transition cursor-pointer text-center whitespace-nowrap"

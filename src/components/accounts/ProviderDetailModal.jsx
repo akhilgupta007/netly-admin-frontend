@@ -28,16 +28,17 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4 max-h-[90vh] flex flex-col">
+      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-10 max-h-[95vh] flex flex-col font-onest">
         
         {/* Modal Header */}
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main shrink-0">
-          <h3 className="font-semibold text-text-primary">Provider Detail</h3>
+          <h3 className="text-xl font-bold text-text-primary tracking-tight">Provider Detail</h3>
           <button 
+            type="button"
             onClick={onClose} 
-            className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 cursor-pointer text-xs"
+            className="w-5 h-5 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:opacity-90 cursor-pointer transition text-xs"
           >
-            <X size={12} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -46,7 +47,7 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           
           {/* User metadata header box */}
           <div className="bg-page-bg rounded-2xl p-3 flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-xs font-light">
+            <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-light">
               {getInitials(provider.name)}
             </div>
             <div>
@@ -55,7 +56,7 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* Details layout with vertical column dividers (x-axis separators) */}
-          <div className="pb-4 space-y-4">
+          <div className="pb-4 space-y-4 border-b border-secondary-bg">
             {/* Row 1 */}
             <div className="grid grid-cols-3 divide-x divide-border-main text-xs">
               <div className="pr-4">
@@ -78,15 +79,31 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
                 <span className="text-[10px] text-text-muted block font-light">Category</span>
                 <strong className="text-text-primary font-normal block mt-1">{provider.category || "Home, Furniture, Maintenance"}</strong>
               </div>
-              <div className="pl-4">
+              <div className="px-4">
                 <span className="text-[10px] text-text-muted block font-light">City</span>
                 <strong className="text-text-primary font-normal block mt-1">{provider.city || "Accra"}</strong>
               </div>
               <div className="pl-4">
                 <span className="text-[10px] text-text-muted block font-light">Rating</span>
-                <strong className="text-text-primary font-semibold mt-0.5 flex items-center gap-1">
+                <strong className="text-text-primary font-normal mt-0.5 flex items-center gap-1">
                   <span className="text-base text-amber-500">★</span>
                   {provider.rating || "4.9"} / 5.0</strong>
+              </div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-3 divide-x divide-border-main text-xs">
+              <div className="pr-4">
+                <span className="text-[10px] text-text-muted block font-light font-onest">Cancelled Reservations</span>
+                <strong className="text-text-primary font-normal block mt-1">{provider.cancelledReservations || 10}</strong>
+              </div>
+              <div className="px-4">
+                <span className="text-[10px] text-text-muted block font-light">Number of Disputes</span>
+                <strong className="text-text-primary font-normal block mt-1">{provider.disputes || 5}</strong>
+              </div>
+              <div className="pl-4">
+                <span className="text-[10px] text-text-muted block font-light">Language</span>
+                <strong className="text-text-primary font-normal block mt-1">{provider.language || "French"}</strong>
               </div>
             </div>
           </div>
@@ -104,7 +121,7 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* Questions by Provider section */}
-          <div className="space-y-2 border border-secondary-bg rounded-2xl p-3.5 bg-page-bg/10">
+          <div className="space-y-2 border border-secondary-bg rounded-2xl p-3">
             <span className="text-[10px] text-text-muted block">Questions by provider</span>
             <div className="space-y-3">
               {providerQuestions.map((q, idx) => (
@@ -117,8 +134,8 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* Provider badges */}
-          <div className="space-y-1.5">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Provider badges</span>
+          <div className="space-y-1.5 border border-secondary-bg rounded-2xl p-3">
+            <span className="text-[10px] text-text-muted block">Provider badges</span>
             <div className="flex flex-wrap gap-1.5">
               <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                 <ShieldCheck size={11} className="shrink-0" /> Verified
@@ -133,16 +150,17 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* KYC verification status */}
-          <div className="flex justify-between items-center border-t border-secondary-bg pt-3.5 text-xs">
+          <div className="flex justify-between items-center border border-secondary-bg rounded-2xl p-3 pt-3.5 text-xs">
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-text-primary">KYC Status</span>
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${getKycClass(provider.kyc || "Verified")}`}>
+              <span className="text-text-muted">KYC Status</span>
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] ${getKycClass(provider.kyc || "Verified")}`}>
                 {provider.kyc || "Verified"}
               </span>
             </div>
             <button 
+              type="button"
               onClick={() => toast.info("Opening documents viewer...")}
-              className="text-primary-bg hover:underline text-[10px]"
+              className="text-primary-bg underline text-xs cursor-pointer"
             >
               View Documents
             </button>
@@ -152,21 +170,21 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           <div className="space-y-2 pt-2">
             <button
               onClick={() => toast.success(`KYC documents for ${provider.name} verified successfully!`)}
-              className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full bg-[#93d6db] hover:bg-[#80c5cb] text-text-primary font-bold text-xs py-3.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
             >
               View KYC Documents
             </button>
 
             <button
               onClick={() => toast.info(`Viewing Payouts reports for ${provider.name}...`)}
-              className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
             >
               <CreditCard size={14} /> View Payouts
             </button>
 
             <button
               onClick={() => toast.success(`Password reset email successfully sent to ${provider.name}!`)}
-              className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
             >
               <Key size={14} /> Reset Password
             </button>
@@ -174,14 +192,14 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
             {["Suspended", "Banned"].includes(provider.status) ? (
               <button
                 onClick={() => onReactivateTrigger(provider.id)}
-                className="w-full bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-semibold text-xs py-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 ✓ Reactivate Account
               </button>
             ) : (
               <button
                 onClick={() => onSuspendBanTrigger(provider)}
-                className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-xs py-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 🚫 Suspend/Ban Account
               </button>

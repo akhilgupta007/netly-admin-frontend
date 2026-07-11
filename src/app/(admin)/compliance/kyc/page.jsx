@@ -39,7 +39,7 @@ export default function KYCVerificationPage() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 7;
 
   // Initialize and Sync with localStorage
   useEffect(() => {
@@ -327,7 +327,7 @@ export default function KYCVerificationPage() {
                         {row.status === "Not Submitted" ? (
                           <span className="text-text-muted">-</span>
                         ) : (
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs ${getStatusClass(row.status)}`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${getStatusClass(row.status)}`}>
                             <span className="h-1 w-1 rounded-full bg-current" />
                             {row.status}
                           </span>
@@ -344,7 +344,7 @@ export default function KYCVerificationPage() {
                               setSelectedItem(row);
                               setIsModalOpen(true);
                             }}
-                            className={`inline-block text-xs px-4 py-1.5 rounded-xl transition cursor-pointer text-center font-medium border border-primary-bg-muted hover:border-primary-bg text-primary-bg`}
+                            className={`inline-block text-xs px-4 py-1.5 rounded-xl transition cursor-pointer text-center font-medium border border-primary-bg text-primary-bg`}
                           >
                             {actionText}
                           </button>

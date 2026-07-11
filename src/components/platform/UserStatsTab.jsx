@@ -302,12 +302,12 @@ export default function UserStatsTab() {
       {/* Data Table Grid card */}
       <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary text-left">
-            <thead className="bg-secondary-bg text-text-primary font-semibold">
+          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
+            <thead className="bg-secondary-bg text-text-primary text-sm">
               <tr>
                 <th
                   onClick={() => handleSort("city")}
-                  className="px-5 py-3 font-semibold w-1/4 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-1/4 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     City
@@ -316,7 +316,7 @@ export default function UserStatsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("category")}
-                  className="px-5 py-3 font-semibold w-1/4 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-1/4 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Category
@@ -325,7 +325,7 @@ export default function UserStatsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("clients")}
-                  className="px-5 py-3 font-semibold w-24 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-24 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Clients
@@ -334,7 +334,7 @@ export default function UserStatsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("providers")}
-                  className="px-5 py-3 font-semibold w-24 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-24 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Providers
@@ -343,7 +343,7 @@ export default function UserStatsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("ratio")}
-                  className="px-5 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     D/S Ratio
@@ -352,7 +352,7 @@ export default function UserStatsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("volume")}
-                  className="px-5 py-3 font-semibold w-32 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-32 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Transaction Vol.
@@ -361,7 +361,7 @@ export default function UserStatsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("gmv")}
-                  className="px-5 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     GMV
@@ -370,24 +370,24 @@ export default function UserStatsTab() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg">
+            <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
               {paginated.map((item) => (
                 <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <MapPin size={13} className="text-text-muted shrink-0" />
                       <div>
-                        <strong className="font-semibold block text-text-primary leading-none">{item.city}</strong>
-                        <span className="text-[9px] text-text-muted font-light block mt-0.5">{item.country}</span>
+                        <span className="block">{item.city}</span>
+                        <span className="text-[10px] text-text-muted block mt-0.5">{item.country}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5 font-light text-text-muted">{item.category}</td>
-                  <td className="px-5 py-3.5 text-text-primary font-medium">{item.clients}</td>
-                  <td className="px-5 py-3.5 text-text-primary font-medium">{item.providers}</td>
-                  <td className="px-5 py-3.5 font-bold text-text-primary">{item.ratio}x</td>
-                  <td className="px-5 py-3.5 text-text-primary font-medium">{item.volume}</td>
-                  <td className="px-5 py-3.5 font-bold text-text-primary">${item.gmv.toLocaleString()}</td>
+                  <td className="px-4 py-3">{item.category}</td>
+                  <td className="px-4 py-3">{item.clients}</td>
+                  <td className="px-4 py-3">{item.providers}</td>
+                  <td className="px-4 py-3">{item.ratio}x</td>
+                  <td className="px-4 py-3">{item.volume}</td>
+                  <td className="px-4 py-3">${item.gmv.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

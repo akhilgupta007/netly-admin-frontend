@@ -47,15 +47,15 @@ export default function DataAccessLogsTab() {
   }, [filteredLogs, currentPage]);
 
   const handleExportCSV = () => {
-    const headers = ["Timestamp", "Admin", "Data Type", "Record ID", "Reason"];
-    const rows = filteredLogs.map(log => `"${log.timestamp.replace(/\n/g, " ")}","${log.admin}","${log.dataType}","${log.recordId}","${log.reason}"`);
+    const headers = ["Timestamp", "Admin", "Data Type", "Record ID"];
+    const rows = filteredLogs.map(log => `"${log.timestamp.replace(/\n/g, " ")}","${log.admin}","${log.dataType}","${log.recordId}"`);
     exportCSV(headers, rows, `data_access_logs_${Date.now()}.csv`);
   };
 
   return (
-    <div className="space-y-4 p-5 animate-scale-up text-xs text-text-primary">
+    <div className="animate-scale-up text-xs text-text-primary">
       {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none p-4">
         <div className="flex items-center gap-2 max-w-md flex-1 relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -100,7 +100,7 @@ export default function DataAccessLogsTab() {
 
           <button
             onClick={handleExportCSV}
-            className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5"
+            className="bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-3 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
             <Download size={13} /> Export CSV
           </button>
@@ -119,23 +119,21 @@ export default function DataAccessLogsTab() {
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-secondary-bg text-left">
-            <thead className="bg-secondary-bg font-semibold text-text-primary">
+            <thead className="bg-secondary-bg text-text-primary text-sm">
               <tr>
-                <th className="px-4 py-3">Timestamp</th>
-                <th className="px-4 py-3">Admin</th>
-                <th className="px-4 py-3">Data Type</th>
-                <th className="px-4 py-3">Record ID</th>
-                <th className="px-4 py-3">Reason</th>
+                <th className="px-4 py-3 font-semibold">Timestamp</th>
+                <th className="px-4 py-3 font-semibold">Admin</th>
+                <th className="px-4 py-3 font-semibold">Data Type</th>
+                <th className="px-4 py-3 font-semibold">Record ID</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-secondary-bg">
               {paginated.map((log, idx) => (
-                <tr key={idx} className="hover:bg-page-bg/50 transition">
-                  <td className="px-4 py-3 whitespace-pre-line text-text-muted">{log.timestamp}</td>
-                  <td className="px-4 py-3 font-medium">{log.admin}</td>
+                <tr key={idx} className="hover:bg-page-bg/50 transition text-text-primary text-xs">
+                  <td className="px-4 py-3 whitespace-pre-line leading-relaxed">{log.timestamp}</td>
+                  <td className="px-4 py-3">{log.admin}</td>
                   <td className="px-4 py-3">{log.dataType}</td>
                   <td className="px-4 py-3">{log.recordId}</td>
-                  <td className="px-4 py-3 text-text-muted">{log.reason}</td>
                 </tr>
               ))}
             </tbody>

@@ -171,8 +171,8 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-                <thead className="bg-secondary-bg text-text-primary text-left text-xs font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Trans ID</th>
                     <th className="px-4 py-3 font-semibold">Date & Time</th>
@@ -186,19 +186,19 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
                     <th className="px-4 py-3 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginated.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3.5 text-text-primary font-medium">{item.id}</td>
-                      <td className="px-4 py-3.5 whitespace-pre-line text-text-muted leading-relaxed">{item.dateTime}</td>
-                      <td className="px-4 py-3.5 font-medium">{item.client}</td>
-                      <td className="px-4 py-3.5 font-medium">{item.provider}</td>
-                      <td className="px-4 py-3.5 text-text-muted">{item.category}</td>
-                      <td className="px-4 py-3.5 font-medium">${item.amount.toFixed(2)}</td>
-                      <td className="px-4 py-3.5 text-text-muted">${item.fee.toFixed(2)}</td>
-                      <td className="px-4 py-3.5 text-red-500 font-medium">${item.commission.toFixed(2)}</td>
-                      <td className="px-4 py-3.5 text-amber-500 font-medium">${item.tip.toFixed(2)}</td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">{item.id}</td>
+                      <td className="px-4 py-3 whitespace-pre-line leading-relaxed">{item.dateTime}</td>
+                      <td className="px-4 py-3">{item.client}</td>
+                      <td className="px-4 py-3">{item.provider}</td>
+                      <td className="px-4 py-3">{item.category}</td>
+                      <td className="px-4 py-3">${item.amount.toFixed(2)}</td>
+                      <td className="px-4 py-3">${item.fee.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-red-500 font-medium">${item.commission.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-amber-500 font-medium">${item.tip.toFixed(2)}</td>
+                      <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusBadge(item.status)}`}>
                           <span className="h-1.25 w-1.25 rounded-full bg-current" />
                           {item.status}

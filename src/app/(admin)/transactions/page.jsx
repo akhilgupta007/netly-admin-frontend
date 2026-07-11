@@ -437,7 +437,7 @@ export default function TransactionsPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-primary cursor-pointer"
+                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
               >
                 {statusOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -453,7 +453,7 @@ export default function TransactionsPage() {
               <select
                 value={filterCategory}
                 onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }}
-                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-primary cursor-pointer"
+                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
               >
                 <option value="All">Category</option>
                 {categories.slice(1).map((cat) => (
@@ -478,19 +478,18 @@ export default function TransactionsPage() {
 
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-            <thead className="bg-secondary-bg text-text-primary text-left font-extralight">
+            <thead className="bg-secondary-bg text-text-primary text-left">
               <tr>
-                <th className="p-4">Transaction ID</th>
-                <th className="p-4">Date & Time</th>
-                <th className="p-4">Client</th>
-                <th className="p-4">Provider</th>
-                <th className="p-4">Service</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4">Client Fee</th>
-                <th className="p-4">Commission</th>
-                <th className="p-4">Tip</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-center">Actions</th>
+                <th className="p-4 font-semibold">Transaction ID</th>
+                <th className="p-4 font-semibold">Booking Date</th>
+                <th className="p-4 font-semibold">Client</th>
+                <th className="p-4 font-semibold">Provider</th>
+                <th className="p-4 font-semibold">Service</th>
+                <th className="p-4 font-semibold">Total Paid</th>
+                <th className="p-4 font-semibold">Provider Payout</th>
+                <th className="p-4 font-semibold">Netly Commission</th>
+                <th className="p-4 font-semibold">Status</th>
+                <th className="p-4 font-semibold text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-bg bg-white text-text-primary">
@@ -501,7 +500,7 @@ export default function TransactionsPage() {
                   return (
                     <tr
                       key={tx.id}
-                      className="hover:bg-secondary-bg/30 transition-colors duration-150 text-xs"
+                      className="hover:bg-secondary-bg/30 transition-colors duration-150 text-sm"
                     >
                       <td className="px-4 py-3 text-text-primary">
                         <div className="flex items-center gap-1 font-medium">
@@ -514,7 +513,7 @@ export default function TransactionsPage() {
                           </button>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-xs">
                         <div>{tx.date}</div>
                         <div className="text-[10px] text-text-muted">{tx.time}</div>
                       </td>
@@ -525,10 +524,7 @@ export default function TransactionsPage() {
                       <td className="px-4 py-3">${getFee(tx.serviceAmount).toFixed(2)}</td>
                       <td className="px-4 py-3">${getCommission(tx.serviceAmount).toFixed(2)}</td>
                       <td className="px-4 py-3">
-                        {tx.tip > 0 ? `$${tx.tip.toFixed(2)}` : "---"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${colorBadge}`}>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${colorBadge}`}>
                           {tx.status === "Wallet Credited — Client Fault" ? "Wallet Credited" : tx.status === "Pending Provider Acceptance" ? "Pending Provider Accept" : tx.status === "Cancelled Pending Admin Review" ? "Cancelled Pending" : tx.status}
                         </span>
                       </td>

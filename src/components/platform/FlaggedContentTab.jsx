@@ -265,8 +265,8 @@ export default function FlaggedContentTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-                <thead className="bg-secondary-bg text-text-primary text-left font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Type</th>
                     <th className="px-4 py-3 font-semibold">Reported By</th>
@@ -275,18 +275,16 @@ export default function FlaggedContentTab() {
                     <th className="px-4 py-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginatedFlags.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3.5 text-text-primary font-medium">
-                        {item.type}
-                      </td>
-                      <td className="px-4 py-3.5 font-medium">{item.reportedBy}</td>
-                      <td className="px-4 py-3.5 text-text-muted">{item.date}</td>
-                      <td className="px-4 py-3.5 text-text-muted font-light max-w-xs md:max-w-md truncate">
+                      <td className="px-4 py-3">{item.type}</td>
+                      <td className="px-4 py-3">{item.reportedBy}</td>
+                      <td className="px-4 py-3">{item.date}</td>
+                      <td className="px-4 py-3 max-w-xs md:max-w-md truncate">
                         {item.content}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">
                         <button
                           onClick={() => {
                             setSelectedFlag(item);

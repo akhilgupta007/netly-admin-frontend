@@ -195,8 +195,8 @@ export default function ReviewsTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-                <thead className="bg-secondary-bg text-text-primary text-left font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Client</th>
                     <th className="px-4 py-3 font-semibold">Provider</th>
@@ -206,22 +206,22 @@ export default function ReviewsTab() {
                     <th className="px-4 py-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginatedReviews.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3.5 font-medium">{item.client}</td>
-                      <td className="px-4 py-3.5 font-medium">{item.provider}</td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">{item.client}</td>
+                      <td className="px-4 py-3">{item.provider}</td>
+                      <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1 text-amber-500 font-semibold">
                           <Star size={13} fill="currentColor" />
                           {item.rating.toFixed(1)}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-text-muted">{item.date}</td>
-                      <td className="px-4 py-3.5 text-text-primary leading-normal font-light max-w-sm md:max-w-xl whitespace-normal break-words">
+                      <td className="px-4 py-3">{item.date}</td>
+                      <td className="px-4 py-3 leading-normal max-w-sm md:max-w-xl whitespace-normal break-words">
                         {item.reviewText}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">
                         <button
                           onClick={() => {
                             setSelectedReview(item);

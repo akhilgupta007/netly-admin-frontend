@@ -87,47 +87,47 @@ export default function TransferQueueTab({
       {/* Table contents */}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-          <thead className="bg-page-bg text-text-muted uppercase text-left text-[10px] font-bold">
+          <thead className="bg-secondary-bg text-text-primary text-left text-sm">
             <tr>
-              <th className="px-6 py-4">Request ID</th>
-              <th className="px-6 py-4">Provider</th>
-              <th className="px-6 py-4">Refund Amount</th>
-              <th className="px-6 py-4">Linked Transaction</th>
-              <th className="px-6 py-4">Date Requested</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 w-10"></th>
+              <th className="px-4 py-3 font-semibold">Request ID</th>
+              <th className="px-4 py-3 font-semibold">Client</th>
+              <th className="px-4 py-3 font-semibold">Amount</th>
+              <th className="px-4 py-3 font-semibold">Linked Transaction</th>
+              <th className="px-4 py-3 font-semibold">Date Requested</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-xs">
+          <tbody className="bg-white divide-y divide-secondary-bg text-sm">
             {paginated.length > 0 ? (
               paginated.map((item, idx) => {
                 const statusColors = {
-                  Requested: "bg-blue-50 text-blue-600 border-blue-200",
-                  Processing: "bg-orange-50 text-orange-600 border-orange-200",
-                  Transferred: "bg-emerald-50 text-emerald-600 border-emerald-200",
-                  Error: "bg-red-50 text-red-600 border-red-200",
-                  Rejected: "bg-neutral-50 text-neutral-600 border-neutral-200"
+                  Requested: "bg-blue-50 text-blue-600",
+                  Processing: "bg-orange-50 text-orange-600",
+                  Transferred: "bg-emerald-50 text-emerald-600",
+                  Error: "bg-red-50 text-red-600",
+                  Rejected: "bg-neutral-50 text-neutral-600"
                 };
                 const statusClass = statusColors[item.status] || "bg-secondary-bg text-text-muted border-secondary-bg";
 
                 return (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                    <td className="px-6 py-4 font-bold text-text-primary flex items-center gap-1.5">
+                    <td className="px-4 py-3 text-text-primary flex items-center gap-3">
                       {item.id}
                       <button onClick={() => copyToClipboard(item.id)} className="text-text-muted hover:text-text-primary transition cursor-pointer">
-                        <Copy size={12} />
+                        <Copy size={14} />
                       </button>
                     </td>
-                    <td className="px-6 py-4 font-bold text-text-primary">{item.provider.name}</td>
-                    <td className="px-6 py-4 font-bold text-text-primary">${item.amount.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-text-muted font-light">{item.txn}</td>
-                    <td className="px-6 py-4 text-text-muted font-light">{item.date}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full border text-[10px] font-bold ${statusClass}`}>
+                    <td className="px-4 py-3 text-text-primary">{item.provider.name}</td>
+                    <td className="px-4 py-3 text-text-primary">${item.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-text-primary">{item.txn}</td>
+                    <td className="px-4 py-3 text-text-primary">{item.date}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block px-2.5 py-1 rounded-full text-xs ${statusClass}`}>
                         {item.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4" data-dropdown-container>
+                    <td className="px-4 py-3" data-dropdown-container>
                       {["Requested", "Error"].includes(item.status) && (
                         <>
                           <button
@@ -142,13 +142,13 @@ export default function TransferQueueTab({
                                 setOpenDropdownId(item.id);
                               }
                             }}
-                            className="p-1 text-text-muted hover:text-text-primary rounded transition cursor-pointer"
+                            className="p-1 text-text-primary rounded transition cursor-pointer"
                           >
-                            <MoreVertical size={16} />
+                            <MoreVertical size={18} />
                           </button>
                           {openDropdownId === item.id && (
                             <div
-                              className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
+                              className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                               style={{ top: dropdownPos.top, left: dropdownPos.left }}
                             >
                               <button

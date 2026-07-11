@@ -181,17 +181,17 @@ export default function WalletHistoryModal({ wallet, isOpen, onClose }) {
                 )}
               </tbody>
             </table>
-          </div>
 
-          {/* History Modal Pagination */}
-          {totalPages > 0 && (
-            <Pagination
-              currentPage={historyPage}
-              itemsPerPage={itemsPerPage}
-              totalItems={filteredHistory.length}
-              onPageChange={setHistoryPage}
-            />
-          )}
+            {/* History Modal Pagination */}
+            {totalPages > 0 && (
+              <Pagination
+                currentPage={historyPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredHistory.length}
+                onPageChange={setHistoryPage}
+              />
+            )}
+          </div>
 
         </div>
       </div>

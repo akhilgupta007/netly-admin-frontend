@@ -42,7 +42,7 @@ export default function WalletCreditQueueTab({
   return (
     <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
       {/* Filters controls bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-white rounded-t-3xl border-b border-secondary-bg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -87,7 +87,7 @@ export default function WalletCreditQueueTab({
       {/* Table contents */}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-          <thead className="bg-secondary-bg text-text-primary text-left text-xs">
+          <thead className="bg-secondary-bg text-text-primary text-left text-sm">
             <tr>
               <th className="px-4 py-3 font-semibold">Request ID</th>
               <th className="px-4 py-3 font-semibold">Client</th>
@@ -98,7 +98,7 @@ export default function WalletCreditQueueTab({
               <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-xs">
+          <tbody className="bg-white divide-y divide-secondary-bg text-sm">
             {paginated.length > 0 ? (
               paginated.map((item, idx) => {
                 const statusColors = {
@@ -112,22 +112,22 @@ export default function WalletCreditQueueTab({
 
                 return (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                    <td className="px-4 py-4 text-text-primary flex items-center gap-2">
+                    <td className="px-4 py-3 text-text-primary flex items-center gap-3">
                       {item.id}
                       <button onClick={() => copyToClipboard(item.id)} className="text-text-muted hover:text-text-primary transition cursor-pointer">
-                        <Copy size={12} />
+                        <Copy size={14} />
                       </button>
                     </td>
-                    <td className="px-4 py-4 text-text-primary">{item.client.name}</td>
-                    <td className="px-4 py-4 text-text-primary">${item.amount.toFixed(2)}</td>
-                    <td className="px-4 py-4 font-light">{item.txn}</td>
-                    <td className="px-4 py-4 font-light">{item.date}</td>
-                    <td className="px-4 py-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] ${statusClass}`}>
+                    <td className="px-4 py-3 text-text-primary">{item.client.name}</td>
+                    <td className="px-4 py-3 text-text-primary">${item.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3">{item.txn}</td>
+                    <td className="px-4 py-3">{item.date}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-block px-2.5 py-1 rounded-full text-xs ${statusClass}`}>
                         {item.status}
                       </span>
                     </td>
-                    <td className="px-4 py-4" data-dropdown-container>
+                    <td className="px-4 py-3" data-dropdown-container>
                       {["Requested", "Error"].includes(item.status) && (
                         <>
                           <button
@@ -142,13 +142,13 @@ export default function WalletCreditQueueTab({
                                 setOpenDropdownId(item.id);
                               }
                             }}
-                            className="p-1 text-text-muted hover:text-text-primary rounded transition cursor-pointer"
+                            className="p-1 text-text-primary rounded transition cursor-pointer"
                           >
-                            <MoreVertical size={16} />
+                            <MoreVertical size={18} />
                           </button>
                           {openDropdownId === item.id && (
                             <div
-                              className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
+                              className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                               style={{ top: dropdownPos.top, left: dropdownPos.left }}
                             >
                               <button

@@ -9,12 +9,14 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [reasonCategory, setReasonCategory] = useState("Blurry");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [zoom, setZoom] = useState(100);
 
   useEffect(() => {
     if (isOpen) {
       setIsRejectMode(false);
       setReasonCategory("Blurry");
       setRejectionReason("");
+      setZoom(100);
     }
   }, [isOpen, item]);
 
@@ -55,10 +57,10 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
       
       {/* Modal Container */}
-      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4 max-h-[95vh] flex flex-col">
+      <div className="relative bg-white rounded-3xl max-w-xl w-full p-3 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4 max-h-[95vh] flex flex-col">
         
         {/* Modal Header */}
-        <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main shrink-0">
+        <div className="flex justify-between items-center p-1 pb-2 mb-4 border-b border-border-main shrink-0">
           <h3 className="text-lg font-semibold text-text-primary">
             {isRejectMode ? "Reject Document" : "Document Review"}
           </h3>
@@ -71,7 +73,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
         </div>
 
         {/* Modal Content Scroll Area */}
-        <div className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin">
+        <div className="space-y-4 overflow-y-auto p-1 flex-1 scrollbar-thin">
           
           {/* User metadata header card */}
           <div className="bg-page-bg rounded-2xl p-3 flex items-center justify-between">
@@ -131,12 +133,12 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
           )}
 
           {/* File Attachment Name Bar */}
-          <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-3.5 flex items-center justify-between text-xs shrink-0">
-            <div className="flex items-center gap-2 text-primary-bg font-semibold">
-              <FileText size={14} />
+          <div className="bg-primary-bg-muted/20 rounded-xl p-3.5 flex items-center justify-between text-xs shrink-0">
+            <div className="flex items-center gap-2 text-text-primary">
+              <FileText size={16} color="blue" />
               <span>{item.docFile}</span>
             </div>
-            <span className="border border-blue-200 text-blue-500 bg-white px-2.5 py-0.5 rounded-lg text-[10px] font-bold">
+            <span className="border border-blue-500 text-blue-500 bg-blue-50 px-2.5 py-1 rounded-lg text-[10px]">
               {getFormatBadge(item.docType)}
             </span>
           </div>
@@ -182,48 +184,69 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
               </div>
             ) : (
               /* PDF Mock documents layout */
-              <div className="bg-gray-50 rounded-2xl p-4 border border-secondary-bg/50 flex flex-col justify-between max-h-65 relative">
+              <div className="bg-gray-50 rounded-2xl p-4 border border-secondary-bg/50 flex flex-col justify-between max-h-65 relative overflow-hidden">
                 <div className="flex items-center justify-between text-[10px] text-text-muted pb-2 border-b border-secondary-bg/50 shrink-0">
                   <span>Page 1 of 1</span>
                   <div className="flex items-center gap-2">
-                    <button type="button" className="hover:text-text-primary cursor-pointer">Zoom -</button>
-                    <span>100%</span>
-                    <button type="button" className="hover:text-text-primary cursor-pointer">Zoom +</button>
+                    <button
+                      type="button"
+                      onClick={() => setZoom(z => Math.max(z - 25, 50))}
+                      disabled={zoom <= 50}
+                      className="hover:text-text-primary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed font-medium"
+                    >
+                      Zoom -
+                    </button>
+                    <span className="w-8 text-center">{zoom}%</span>
+                    <button
+                      type="button"
+                      onClick={() => setZoom(z => Math.min(z + 25, 200))}
+                      disabled={zoom >= 200}
+                      className="hover:text-text-primary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed font-medium"
+                    >
+                      Zoom +
+                    </button>
                   </div>
                 </div>
-                <div className="flex-1 flex items-center justify-center p-3 bg-white border border-secondary-bg/30 rounded-xl shadow-xs mt-2 relative select-none">
-                  <div className="w-64 border border-border-main rounded-xl p-3 text-[10px] space-y-2.5 font-sans relative">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[8px] text-text-muted uppercase tracking-wider block font-light">Official Document</span>
-                        <strong className="text-text-primary font-semibold text-xs">{item.docType}</strong>
+                <div className="flex-1 overflow-auto p-3 bg-white border border-secondary-bg/30 rounded-xl shadow-xs mt-2 relative select-none h-44">
+                  <div className={`flex justify-center min-h-full min-w-full ${zoom > 100 ? "items-start pt-4 pb-16" : "items-center py-2"}`}>
+                    <div
+                      className={`w-64 border border-border-main rounded-xl p-3 text-[10px] space-y-2.5 font-sans relative transition-transform duration-200 ease-out shrink-0 ${
+                        zoom > 100 ? "origin-top" : "origin-center"
+                      }`}
+                      style={{ transform: `scale(${zoom / 100})` }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[8px] text-text-muted uppercase tracking-wider block font-light">Official Document</span>
+                          <strong className="text-text-primary font-semibold text-xs">{item.docType}</strong>
+                        </div>
+                        <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs">
+                          🛡️
+                        </div>
                       </div>
-                      <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs">
-                        🛡️
-                      </div>
-                    </div>
 
-                    <div className="space-y-1 text-text-primary">
-                      <div className="flex justify-between border-b border-page-bg py-0.5">
-                        <span className="text-text-muted font-light text-[8px]">Full Name</span>
-                        <span>{item.name}</span>
+                      <div className="space-y-1 text-text-primary">
+                        <div className="flex justify-between border-b border-page-bg py-0.5">
+                          <span className="text-text-muted font-light text-[8px]">Full Name</span>
+                          <span>{item.name}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-page-bg py-0.5">
+                          <span className="text-text-muted font-light text-[8px]">Document Type</span>
+                          <span>{item.docType}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-page-bg py-0.5">
+                          <span className="text-text-muted font-light text-[8px]">Issued</span>
+                          <span>May 30, 2027</span>
+                        </div>
+                        <div className="flex justify-between py-0.5">
+                          <span className="text-text-muted font-light text-[8px]">Reference</span>
+                          <span className="font-mono">DOC-KYC-08</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-page-bg py-0.5">
-                        <span className="text-text-muted font-light text-[8px]">Document Type</span>
-                        <span>{item.docType}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-page-bg py-0.5">
-                        <span className="text-text-muted font-light text-[8px]">Issued</span>
-                        <span>May 30, 2027</span>
-                      </div>
-                      <div className="flex justify-between py-0.5">
-                        <span className="text-text-muted font-light text-[8px]">Reference</span>
-                        <span className="font-mono">DOC-KYC-08</span>
-                      </div>
-                    </div>
 
-                    <div className="text-[8px] text-text-muted text-center pt-1.5 border-t border-border-main/50 uppercase tracking-widest font-light">
-                      Document Preview
+                      <div className="text-[8px] text-text-muted text-center pt-1.5 border-t border-border-main/50 uppercase tracking-widest font-light">
+                        Document Preview
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -293,7 +316,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
               ) : item.status === "Expired" ? (
                 <button
                   onClick={() => onRequestResubmission(item.id)}
-                  className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Send size={13} /> Request Resubmission
                 </button>
@@ -310,35 +333,35 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                   <div className="flex gap-2">
                     <button
                       onClick={() => onApprove(item.id)}
-                      className="flex-1 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                      className="flex-1 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
                     >
                       Override & Approve
                     </button>
                     <button
                       onClick={() => onRequestResubmission(item.id)}
-                      className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                      className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
                     >
                       Resend Resubmission Email
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
                   <button
                     onClick={() => onApprove(item.id)}
-                    className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Check size={13} /> Approve Document
                   </button>
                   <button
                     onClick={() => setIsRejectMode(true)}
-                    className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <X size={13} /> Reject Document
                   </button>
                   <button
                     onClick={() => onRequestResubmission(item.id)}
-                    className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Send size={13} /> Request Resubmission
                   </button>

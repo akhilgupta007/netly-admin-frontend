@@ -76,23 +76,23 @@ export default function WalletsTab({
               <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-xs text-text-primary">
+          <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
             {paginated.length > 0 ? (
               paginated.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                  <td className="px-4 py-3 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-md bg-primary-bg-muted text-white flex items-center justify-center font-light">
+                  <td className="px-4 py-3 flex items-center gap-1.5 mt-1">
+                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center text-[10px] pt-0.5 font-light">
                       {getInitials(item.client.name)}
                     </div>
                     <span>{item.client.name}</span>
                   </td>
-                  <td className="px-4 py-4">{item.client.email}</td>
-                  <td className="px-4 py-4">${item.balance.toFixed(2)}</td>
+                  <td className="px-4 py-3">{item.client.email}</td>
+                  <td className="px-4 py-3">${item.balance.toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <span className="block text-text-primary">{item.lastTxDate}</span>
                     <span className="block text-[10px] text-text-muted pt-1">{item.lastTxTime}</span>
                   </td>
-                  <td className="px-4 py-4" data-dropdown-container>
+                  <td className="px-4 py-3" data-dropdown-container>
                     <button
                       onClick={(e) => {
                         if (openDropdownId === item.id) {
@@ -107,11 +107,11 @@ export default function WalletsTab({
                       }}
                       className="px-4 text-text-primary hover:text-text-primary rounded transition cursor-pointer"
                     >
-                      <MoreVertical size={20} />
+                      <MoreVertical size={18} />
                     </button>
                     {openDropdownId === item.id && (
                       <div
-                        className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
+                        className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                         style={{ top: dropdownPos.top, left: dropdownPos.left }}
                       >
                         <button
@@ -119,7 +119,7 @@ export default function WalletsTab({
                             onOpenHistory(item);
                             setOpenDropdownId(null);
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-sm text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
                         >
                           <History size={16} /> History
                         </button>
@@ -128,7 +128,7 @@ export default function WalletsTab({
                             onOpenAdjust(item);
                             setOpenDropdownId(null);
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-sm text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
                         >
                           <Settings2 size={16} /> Adjust
                         </button>

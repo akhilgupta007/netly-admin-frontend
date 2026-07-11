@@ -29,55 +29,57 @@ export default function CommissionSettingsTab() {
   };
 
   return (
-    <div className="p-5 space-y-5 animate-scale-up">
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+    <div className="space-y-5 animate-scale-up">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* LEFT COLUMN: CURRENT RATES CARD */}
-        <div className="lg:col-span-3 border border-secondary-bg rounded-3xl p-5 space-y-4 shadow-2xs h-min">
-          <div className="flex justify-between items-center pb-2 border-b border-secondary-bg shrink-0">
-            <span className="text-xs font-semibold text-text-primary">Current Rates</span>
+        <div className="bg-white rounded-3xl p-4 space-y-4 hover:shadow-xs h-min">
+          <div className="flex justify-between items-center pb-2 shrink-0">
+            <span className="text-sm font-semibold text-text-primary">Current Rates</span>
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-xs px-3.5 py-1.5 rounded-full transition cursor-pointer flex items-center gap-1.5"
+              className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-sm px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5"
             >
-              <Edit3 size={12} /> Edit Rates
+              <Edit3 size={16} /> Edit Rates
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
             {/* Client platform fee */}
-            <div className="bg-page-bg/30 border border-secondary-bg rounded-2xl p-4 flex flex-col justify-between min-h-22.5">
+            <div className="bg-page-bg rounded-2xl p-4 flex flex-col justify-between">
+              <div className="text-xs text-text-primary font-medium block">Client platform fee</div>
               <div>
-                <span className="text-[10px] text-text-primary font-medium block">Client platform fee</span>
-                <strong className="text-2xl text-emerald-500 font-bold block pt-1.5">{clientFee}%</strong>
+                <strong className="text-2xl text-emerald-500 font-semibold block pt-3">{clientFee}%</strong>
+                <div className="text-[9px] text-text-muted font-light">Added to service price at checkout</div>
               </div>
-              <span className="text-[9px] text-text-muted font-light pt-2">Added to service price at checkout</span>
             </div>
 
             {/* Provider commission */}
-            <div className="bg-page-bg/30 border border-secondary-bg rounded-2xl p-4 flex flex-col justify-between min-h-22.5">
+            <div className="bg-page-bg rounded-2xl p-4 flex flex-col justify-between">
+              <div className="text-xs text-text-primary font-medium block">Provider commission</div>
               <div>
-                <span className="text-[10px] text-text-primary font-medium block">Provider commission</span>
-                <strong className="text-2xl text-red-500 font-bold block pt-1.5">{providerCommission}%</strong>
+                <strong className="text-2xl text-red-500 font-semibold block pt-3">{providerCommission}%</strong>
+                <div className="text-[9px] text-text-muted font-light">Deducted from provider gross payout</div>
               </div>
-              <span className="text-[9px] text-text-muted font-light pt-2">Deducted from provider gross payout</span>
             </div>
 
           </div>
         </div>
 
         {/* RIGHT COLUMN: RATE CHANGE HISTORY TIMELINE */}
-        <div className="lg:col-span-2 border border-secondary-bg rounded-3xl p-5 space-y-4 shadow-2xs">
-          <span className="text-xs font-semibold text-text-primary block pb-2 border-b border-secondary-bg">Rate Change History</span>
+        <div className="bg-white rounded-3xl p-4 space-y-4 hover:shadow-xs">
+          <span className="text-sm font-semibold text-text-primary block pb-2">Rate Change History</span>
           
-          <div className="space-y-4 relative pl-3.5 before:absolute before:left-1 before:top-1.5 before:bottom-1.5 before:w-0.5 before:bg-secondary-bg">
+          <div className="space-y-4 relative pl-3.5 before:absolute before:left-1.25 before:top-1.5 before:bottom-1.5 before:w-[1.5px] before:bg-primary-bg-muted divide-y divide-border-main">
             {historyLogs.map((log, idx) => (
-              <div key={idx} className="relative text-xs space-y-1">
-                <span className="absolute -left-5 top-1.25 h-2 w-2 rounded-full bg-primary-bg" />
-                <span className="text-[10px] text-text-muted font-light block">{log.date}</span>
-                <strong className="text-text-primary font-semibold block leading-tight">{log.details}</strong>
-                <p className="text-[10px] text-text-muted italic leading-normal font-light">"{log.reason}"</p>
+              <div key={idx} className="relative text-xs space-y-1 pl-2 flex gap-5">
+                <span className="absolute -left-3.5 top-0.5 h-2.5 w-2.5 rounded-full bg-primary-bg" />
+                <span className="text-text-primary block">{log.date}</span>
+                <div>
+                  <span className="text-text-primary block">{log.details}</span>
+                  <p className="text-text-primary block pb-2">"{log.reason}"</p>
+                </div>
               </div>
             ))}
           </div>

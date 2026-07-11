@@ -152,8 +152,8 @@ export default function PayoutQueueTab() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-            <thead className="bg-secondary-bg text-text-primary text-left text-xs font-semibold">
+          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+            <thead className="bg-secondary-bg text-text-primary text-left text-sm">
               <tr>
                 <th className="px-4 py-3 font-semibold">Provider</th>
                 <th className="px-4 py-3 font-semibold">Booking ID</th>
@@ -165,19 +165,19 @@ export default function PayoutQueueTab() {
                 <th className="px-4 py-3 text-right pr-6 font-semibold w-24">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg text-xs">
+            <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
               {paginated.map((item) => {
                 // Compute net payout: if completed, display Gross - Commission + Tip, else show $0.00 as per figma
                 const netValue = item.status === "Completed" ? (item.gross - item.commission + item.tip) : 0.00;
                 return (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                    <td className="px-4 py-3.5 font-medium">{item.provider}</td>
-                    <td className="px-4 py-3.5 text-text-muted">{item.bookingId}</td>
-                    <td className="px-4 py-3.5">${item.gross.toFixed(2)}</td>
-                    <td className="px-4 py-3.5 text-red-500 font-medium">${item.commission.toFixed(2)}</td>
-                    <td className="px-4 py-3.5 text-amber-500 font-medium">${item.tip.toFixed(2)}</td>
-                    <td className="px-4 py-3.5 text-emerald-500 font-medium">${netValue.toFixed(2)}</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3">{item.provider}</td>
+                    <td className="px-4 py-3">{item.bookingId}</td>
+                    <td className="px-4 py-3">${item.gross.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-red-500 font-medium">${item.commission.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-amber-500 font-medium">${item.tip.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-emerald-500 font-medium">${netValue.toFixed(2)}</td>
+                    <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusBadge(item.status)}`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-current" />
                         {item.status}

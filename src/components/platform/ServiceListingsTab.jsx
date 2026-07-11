@@ -293,8 +293,8 @@ export default function ServiceListingsTab() {
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-visible">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-                <thead className="bg-secondary-bg text-text-primary text-left font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Provider</th>
                     <th className="px-4 py-3 font-semibold">Category</th>
@@ -306,17 +306,17 @@ export default function ServiceListingsTab() {
                     <th className="px-4 py-3 font-semibold w-10">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginatedListings.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3.5 font-medium">{item.provider}</td>
-                      <td className="px-4 py-3.5 text-text-muted">{item.category}</td>
-                      <td className="px-4 py-3.5 text-text-muted font-light">{item.subCategory}</td>
-                      <td className="px-4 py-3.5 max-w-[180px] truncate text-text-primary font-medium">
+                      <td className="px-4 py-3">{item.provider}</td>
+                      <td className="px-4 py-3">{item.category}</td>
+                      <td className="px-4 py-3">{item.subCategory}</td>
+                      <td className="px-4 py-3 max-w-45 truncate font-medium">
                         {item.title}
                       </td>
-                      <td className="px-4 py-3.5 text-text-muted">{item.created}</td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">{item.created}</td>
+                      <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           item.pricing === "Hourly" ? "text-blue-500 bg-blue-50" :
                           item.pricing === "Quote based" ? "text-amber-500 bg-amber-50" :
@@ -326,7 +326,7 @@ export default function ServiceListingsTab() {
                           {item.pricing}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                           item.status === "Active" ? "text-emerald-500 bg-emerald-50" : "text-red-500 bg-red-50"
                         }`}>
@@ -334,7 +334,7 @@ export default function ServiceListingsTab() {
                           {item.status}
                         </span>
                       </td>
-                       <td className="px-4 py-3.5" data-dropdown-container>
+                      <td className="px-4 py-3" data-dropdown-container>
                         <button
                           onClick={(e) => {
                             if (activeMenuRowId === item.id) {

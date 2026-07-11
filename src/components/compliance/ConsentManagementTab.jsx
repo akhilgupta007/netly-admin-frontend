@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, Download, Clock, Trash2, MailX } from "lucide-react";
+import { Search, Download, Clock, MailX } from "lucide-react";
 import { toast } from "react-toastify";
-import DeleteUserDataModal from "./DeleteUserDataModal";
 import { exportCSV } from "@/utils/exportHelper";
 
 const mockConsentRecords = [
@@ -15,7 +14,6 @@ const mockConsentRecords = [
 export default function ConsentManagementTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [consentList, setConsentList] = useState(mockConsentRecords);
-  const [deleteModalUser, setDeleteModalUser] = useState(null);
 
   const handleExportCSV = () => {
     const headers = ["Name", "Email", "Last Updated", "Data Consent", "Data Consent Time", "Marketing Consent", "Marketing Consent Time"];
@@ -50,17 +48,10 @@ export default function ConsentManagementTab() {
     toast.success(`PII personal archive generated for ${email}. Export sent to admin email.`);
   };
 
-  const handleDeleteConfirm = (email, reason) => {
-    const updated = consentList.filter(c => c.email !== email);
-    setConsentList(updated);
-    toast.success(`User data for ${email} successfully expunged under PIPEDA deletion request.`);
-    setDeleteModalUser(null);
-  };
-
   return (
-    <div className="space-y-4 animate-scale-up">
+    <div className="animate-scale-up text-xs text-text-primary p-4">
       {/* Search Header Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white rounded-t-3xl">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -72,12 +63,6 @@ export default function ConsentManagementTab() {
           />
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5 self-end md:self-auto"
-        >
-          <Download size={13} /> Export CSV
-        </button>
       </div>
 
       {/* Main Consent Form Body */}
@@ -90,22 +75,22 @@ export default function ConsentManagementTab() {
           </div>
         </div>
       ) : (
-        <div className="p-5 space-y-5 bg-white rounded-b-3xl">
+        <div className="pt-4 space-y-5 bg-white rounded-b-3xl">
           {/* Header Info bar */}
-          <div className="bg-page-bg/40 border border-secondary-bg rounded-2xl p-3.5 text-xs text-text-primary">
-            <strong className="block text-[11px] text-text-primary font-semibold">Search a user to view their consent record</strong>
+          <div className="bg-page-bg/40 border border-secondary-bg rounded-2xl p-4 text-xs text-text-primary">
+            <div className="block text-xs text-text-primary">Search a user to view their consent record</div>
             <p className="text-[10px] text-text-muted font-light mt-0.5">Covers marketing opt-in (CASL), data processing consent, and PII rights (PIPEDA)</p>
           </div>
 
           {/* Matched user record block */}
-          <div className="border border-secondary-bg rounded-3xl p-5 space-y-5 shadow-2xs">
+          <div className="border border-secondary-bg rounded-3xl p-4 space-y-5 shadow-2xs">
             <div className="flex justify-between items-center pb-3 border-b border-secondary-bg">
               <div>
-                <h3 className="text-sm font-semibold text-text-primary">{matchedRecord.name}</h3>
+                <h3 className="text-sm text-text-primary">{matchedRecord.name}</h3>
                 <p className="text-[10px] text-text-muted font-light mt-0.5">{matchedRecord.email}</p>
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-text-muted">
-                <Clock size={12} />
+              <div className="flex items-center gap-1 text-xs text-text-muted">
+                <Clock size={16} />
                 <span>Last updated: {matchedRecord.lastUpdated}</span>
               </div>
             </div>
@@ -114,20 +99,20 @@ export default function ConsentManagementTab() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Data Processing Consent */}
               <div className="border border-secondary-bg rounded-2xl p-4 space-y-2">
-                <span className="text-[10px] text-text-muted block font-semibold">Data processing consent</span>
+                <span className="text-sm text-text-primary block">Data processing consent</span>
                 <strong className={`text-xl block ${matchedRecord.dataConsent ? "text-emerald-500" : "text-red-500"}`}>
                   {matchedRecord.dataConsent ? "Opted in" : "Opted out"}
                 </strong>
-                <span className="text-[10px] text-text-muted block font-light">Since: {matchedRecord.dataConsentTime}</span>
+                <span className="text-xs text-text-muted block font-light">Since: {matchedRecord.dataConsentTime}</span>
               </div>
 
               {/* Marketing opt-in (CASL) */}
               <div className="border border-secondary-bg rounded-2xl p-4 space-y-2">
-                <span className="text-[10px] text-text-muted block font-semibold">Marketing opt-in (CASL)</span>
+                <span className="text-sm text-text-primary block">Marketing opt-in (CASL)</span>
                 <strong className={`text-xl block ${matchedRecord.marketingConsent ? "text-emerald-500" : "text-red-500"}`}>
                   {matchedRecord.marketingConsent ? "Opted in" : "Opted out"}
                 </strong>
-                <span className="text-[10px] text-text-muted block font-light">Since: {matchedRecord.marketingConsentTime}</span>
+                <span className="text-xs text-text-muted block font-light">Since: {matchedRecord.marketingConsentTime}</span>
               </div>
             </div>
 
@@ -140,12 +125,6 @@ export default function ConsentManagementTab() {
                 <Download size={13} /> Export User Data
               </button>
               <button
-                onClick={() => setDeleteModalUser(matchedRecord)}
-                className="flex-1 min-w-37.5 bg-white border border-red-200 text-red-500 hover:bg-red-50 font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <Trash2 size={13} /> Delete User Data
-              </button>
-              <button
                 onClick={() => handleUnsubscribeUser(matchedRecord.email)}
                 className="flex-1 min-w-37.5 bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
               >
@@ -154,15 +133,6 @@ export default function ConsentManagementTab() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Delete User Data Modal overlay */}
-      {deleteModalUser && (
-        <DeleteUserDataModal
-          user={deleteModalUser}
-          onClose={() => setDeleteModalUser(null)}
-          onDeleteConfirm={handleDeleteConfirm}
-        />
       )}
     </div>
   );

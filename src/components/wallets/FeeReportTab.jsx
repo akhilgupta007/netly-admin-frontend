@@ -13,16 +13,15 @@ export default function FeeReportTab({
   return (
     <div className="space-y-4 animate-scale-up">
       {/* Header row with date display */}
-      <div className="flex justify-between items-center bg-white py-3 px-4 border border-secondary-bg rounded-2xl shadow-xs">
+      <div className="flex justify-end items-center gap-3">
         <div>
-          <span className="text-xs text-text-muted font-light">Fee report boundary range</span>
-          <strong className="text-sm font-bold text-text-primary block mt-0.5">
+          <div className="text-sm font-medium text-text-primary block mt-0.5">
             {startDate && endDate ? (
               `${startDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
             ) : (
               "July 1, 2026 - July 8, 2026"
             )}
-          </strong>
+          </div>
         </div>
         <DateRangePicker
           startDate={startDate}
@@ -35,30 +34,30 @@ export default function FeeReportTab({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white border border-secondary-bg p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <span className="text-xs text-text-primary block">Total 5% fees collected</span>
-          <strong className="text-2xl text-text-primary font-bold block mt-3">$2,625.25</strong>
+          <strong className="text-2xl text-text-primary font-semibold block mt-3">$2,625.25</strong>
           <span className="text-[10px] text-text-muted block">This week</span>
         </div>
-        <div className="bg-white border border-secondary-bg p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+        <div className="bg-white border border-secondary-bg p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <div>
             <span className="text-xs text-text-primary block">Transaction count</span>
-            <strong className="text-2xl text-text-primary font-bold block mt-3">47</strong>
+            <strong className="text-2xl text-text-primary font-semibold block mt-3">47</strong>
           </div>
           <span className="text-[10px] text-text-muted block">This week</span>
         </div>
-        <div className="bg-white border border-secondary-bg p-5 rounded-2xl flex flex-col justify-between shadow-xs">
+        <div className="bg-white border border-secondary-bg p-4 rounded-2xl flex flex-col justify-between shadow-xs">
           <div>
             <span className="text-xs text-text-primary block">Average fee per transaction</span>
-            <strong className="text-2xl text-text-primary font-bold block mt-3">$55.86</strong>
+            <strong className="text-2xl text-text-primary font-semibold block mt-3">$55.86</strong>
           </div>
           <span className="text-[10px] text-text-muted block">This week</span>
         </div>
       </div>
 
       {/* Bar Chart section */}
-      <div className="bg-white border border-secondary-bg p-6 rounded-2xl shadow-xs">
+      <div className="bg-white border border-secondary-bg p-4 rounded-2xl shadow-xs">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-semibold text-sm text-text-primary">5% Fees Collected by Day</h3>
-          <span className="text-[10px] text-text-muted font-medium">This week · USD</span>
+          <span className="text-[10px] text-text-muted font-medium pr-4">This week · USD</span>
         </div>
         <div className="relative w-full">
           <svg className="w-full" viewBox="0 0 540 180" preserveAspectRatio="none">
@@ -70,11 +69,11 @@ export default function FeeReportTab({
             <line x1="45" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
 
             {/* Y-axis labels */}
-            <text x="5" y="24" className="text-[6px] text-text-muted fill-current font-medium">$10.0k</text>
-            <text x="5" y="54" className="text-[6px] text-text-muted fill-current font-medium">$7.5k</text>
-            <text x="5" y="84" className="text-[6px] text-text-muted fill-current font-medium">$5.0k</text>
-            <text x="5" y="114" className="text-[6px] text-text-muted fill-current font-medium">$2.5k</text>
-            <text x="5" y="144" className="text-[6px] text-text-muted fill-current font-medium">$0.0k</text>
+            <text x="5" y="24" className="text-[6px] text-text-muted fill-current">$10.0k</text>
+            <text x="5" y="54" className="text-[6px] text-text-muted fill-current">$7.5k</text>
+            <text x="5" y="84" className="text-[6px] text-text-muted fill-current">$5.0k</text>
+            <text x="5" y="114" className="text-[6px] text-text-muted fill-current">$2.5k</text>
+            <text x="5" y="144" className="text-[6px] text-text-muted fill-current">$0.0k</text>
 
             {/* Bars group */}
             {[
@@ -114,7 +113,7 @@ export default function FeeReportTab({
                     x={x_center}
                     y="152"
                     textAnchor="middle"
-                    className="text-[6px] text-text-muted fill-current font-medium"
+                    className="text-[6px] text-text-muted fill-current"
                   >
                     {item.label}
                   </text>

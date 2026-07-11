@@ -233,17 +233,17 @@ export default function ServiceCategoriesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto select-none">
-            <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-              <thead className="bg-secondary-bg text-text-primary text-left font-semibold">
+            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+              <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                 <tr>
-                  <th className="px-5 py-3 font-semibold w-1/3">Category / Sub-service</th>
+                  <th className="px-4 py-3 font-semibold w-1/3">Category / Sub-service</th>
                   <th className="px-4 py-3 font-semibold text-center w-24">Photo</th>
                   <th className="px-4 py-3 font-semibold text-center w-24">Active</th>
                   <th className="px-4 py-3 font-semibold text-center w-32">Bookings (30d)</th>
-                  <th className="px-5 py-3 font-semibold text-right w-28">Actions</th>
+                  <th className="px-4 py-3 font-semibold text-right w-28">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg">
+              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                 {categories.map((cat) => {
                   const isExpanded = !!expandedCats[cat.id];
                   const isCatEditing = editingRowId === cat.id;
@@ -252,7 +252,7 @@ export default function ServiceCategoriesPage() {
                     <React.Fragment key={cat.id}>
                       {/* Parent Category Row */}
                       <tr className={`hover:bg-page-bg/40 transition-colors ${!cat.active ? "opacity-60" : ""}`}>
-                        <td className="px-5 py-3.5 flex items-center gap-2">
+                        <td className="px-4 py-3 flex items-center gap-2">
                           <button
                             onClick={() => handleToggleExpand(cat.id)}
                             className="w-5 h-5 flex items-center justify-center hover:bg-secondary-bg/60 rounded transition cursor-pointer text-text-muted"
@@ -283,15 +283,15 @@ export default function ServiceCategoriesPage() {
                               </button>
                             </div>
                           ) : (
-                            <span className="font-semibold text-text-primary">{cat.name}</span>
+                            <span className="font-semibold">{cat.name}</span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-3 text-center">
                           <div className="inline-flex w-7 h-7 bg-page-bg/40 border border-secondary-bg/50 rounded-lg items-center justify-center">
                             <ImageIcon size={13} className="text-text-muted" />
                           </div>
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-3 text-center">
                           {/* Switch toggle slider */}
                           <button
                             type="button"
@@ -307,10 +307,10 @@ export default function ServiceCategoriesPage() {
                             />
                           </button>
                         </td>
-                        <td className="px-4 py-3.5 text-center font-bold text-text-primary">
+                        <td className="px-4 py-3 text-center font-bold">
                           {cat.bookings}
                         </td>
-                        <td className="px-5 py-3.5 text-right">
+                        <td className="px-4 py-3 text-right">
                           {isCatEditing ? (
                             <button
                               className="border border-text-primary text-text-primary font-semibold text-[10px] py-1.25 px-3.5 rounded-lg select-none"
@@ -336,7 +336,7 @@ export default function ServiceCategoriesPage() {
                           <tr key={sub.id} className={`bg-white hover:bg-page-bg/30 transition-colors border-t border-secondary-bg/25 ${
                             (!sub.active || !cat.active) ? "opacity-60" : ""
                           }`}>
-                            <td className="px-5 py-3.5 flex items-center pl-10 gap-2">
+                            <td className="px-4 py-3 flex items-center pl-10 gap-2">
                               <span className="text-text-muted/40 font-light select-none mr-1">—</span>
                               {isSubEditing ? (
                                 <div className="flex items-center gap-2 animate-scale-up">
@@ -361,15 +361,15 @@ export default function ServiceCategoriesPage() {
                                   </button>
                                 </div>
                               ) : (
-                                <span className="font-light text-text-primary/95">{sub.name}</span>
+                                <span>{sub.name}</span>
                               )}
                             </td>
-                            <td className="px-4 py-3.5 text-center">
+                            <td className="px-4 py-3 text-center">
                               <div className="inline-flex w-7 h-7 bg-page-bg/40 border border-secondary-bg/50 rounded-lg items-center justify-center bg-white">
                                 <ImageIcon size={13} className="text-text-muted" />
                               </div>
                             </td>
-                            <td className="px-4 py-3.5 text-center">
+                            <td className="px-4 py-3 text-center">
                               {/* Switch toggle slider */}
                               <button
                                 type="button"
@@ -386,10 +386,10 @@ export default function ServiceCategoriesPage() {
                                 />
                               </button>
                             </td>
-                            <td className="px-4 py-3.5 text-center text-text-muted font-light">
+                            <td className="px-4 py-3 text-center">
                               {sub.bookings}
                             </td>
-                            <td className="px-5 py-3.5 text-right">
+                            <td className="px-4 py-3 text-right">
                               {isSubEditing ? (
                                 <button
                                   className="border border-text-primary text-text-primary font-semibold text-[10px] py-1.25 px-3.5 rounded-lg select-none bg-white"

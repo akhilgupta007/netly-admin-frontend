@@ -12,30 +12,45 @@ const defaultDisputes = [
     id: "D-0019",
     txnId: "TXN-00188",
     bookingId: "BK234RFDW235E",
-    client: "Kofi Mensah",
-    provider: "Yetunde Balogun",
-    category: "Post-Construction",
-    dateOpened: "Jun 22, 2027",
+    client: "Amara Osei",
+    clientEmail: "amara.osei@gmail.com",
+    provider: "Blessing Okeke",
+    providerEmail: "b.okeke@clearly.ca",
+    category: "Window Cleaning",
+    dateOpened: "Jul 5, 2027",
     status: "Under Review",
-    serviceAmount: 350.00,
-    clientFee: 17.50,
-    commission: 52.50,
-    totalCharged: 367.50,
-    description: "Full post-construction deep clean of a 4-bedroom detached house. Includes removal of dust, debris, paint splatters, and sanitisation of all surfaces.",
-    clientStatement: "The provider left after 3 hours without completing the bathrooms or the kitchen. There is still paint on the tiles and the floors were not mopped properly. I paid for a full clean and did not receive it.",
+    serviceAmount: 126.00,
+    clientFee: 6.30,
+    commission: 18.90,
+    totalCharged: 132.30,
+    description: "Provider left after 45 minutes claiming the job was done. Client states that 3 of 8 windows were not cleaned and the sills were not wiped as per the listing description.",
+    reason: "Service not completed",
+    clientStatement: "Hi, I'm really unhappy with the service today. The provider left after less than an hour and 3 of my windows are still dirty. The sills weren't even touched.",
     providerStatement: "I completed all tasks listed in the booking. The client added new rooms verbally that were not included in the original scope. I worked 5 hours and completed what was agreed at booking.",
     chat: [
-      { sender: "Kofi Mensah", role: "client", text: "I am very unhappy. The kitchen was left dirty and the main bathroom has not been cleaned at all.", time: "Jun 22, 2027 18:05" },
-      { sender: "Yetunde Balogun", role: "provider", text: "The scope at booking was 3 rooms. You asked me to do extra rooms on the day which was not agreed.", time: "Jun 22, 2027 18:05" },
-      { sender: "Kofi Mensah", role: "client", text: "The booking clearly says full house. I have screenshots of the listing description.", time: "Jun 22, 2027 18:05" },
-      { sender: "System", role: "system", text: "Dispute opened. Case assigned to review queue.", time: "Jun 22, 2027 18:05" },
-      { sender: "Yetunde Balogun", role: "provider", text: "I am happy to discuss but I fulfilled my side of the agreement as booked.", time: "Jun 22, 2027 18:05" }
+      { sender: "Amara Osei", role: "client", text: "Hi, I'm really unhappy with the service today. The provider left after less than an hour and 3 of my windows are still dirty. The sills weren't even touched.", time: "Jul 5, 2027 9:14 AM" },
+      { sender: "Amara Osei", role: "client", text: "I've uploaded photos showing the state of the windows both before and after. You can clearly see the difference – windows 4, 6 and 7 are unchanged.", time: "Jul 5, 2027 9:22 AM", file: "window_photos_comparison.jpg" },
+      { sender: "Blessing Okeke", role: "provider", text: "I completed all windows that were accessible. Windows 6 and 7 were blocked by furniture the client had not moved as required in the booking notes. I cannot be held responsible for client-side access issues.", time: "Jul 5, 2027 11:45 AM" },
+      { sender: "Blessing Okeke", role: "provider", text: "I also have a completion photo showing my work on the windows I was given access to. This is standard practice – any inaccessible areas are noted at the time of service.", time: "Jul 5, 2027 11:48 AM", file: "provider_completion_photo.jpg" },
+      { sender: "Amara Osei", role: "client", text: "The furniture was NOT blocking windows 4 and 7. The sofa is on the opposite wall. I have floor plan photos if needed. Window 6 I can accept but 4 and 7 were absolutely accessible.", time: "Jul 5, 2027 3:10 PM" },
+      { sender: "System", role: "system", text: "Admin Priya Nair has joined this conversation. All messages are now being monitored by the Netly dispute team.", time: "Jul 6, 2027 10:30 AM" },
+      { sender: "Admin - Priya Nair", role: "admin", text: "Hello Amara and Blessing. I'm Priya from the Netly disputes team. I've reviewed the evidence submitted by both parties. I have a few clarifying questions before we proceed.\n\nBlessing – can you confirm the exact time you arrived and departed? The booking was for 2 hours and our records show a 52-minute duration.", time: "Jul 6, 2027 10:31 AM" },
+      { sender: "Blessing Okeke", role: "provider", text: "I arrived at 10:05 AM and departed at 10:58 AM. The booking was originally for 2 hours but I finished in under 1 hour because access was limited. I did not charge for the full 2 hours – my time log shows 52 minutes billed.", time: "Jul 6, 2027 11:02 AM" },
+      { sender: "Amara Osei", role: "client", text: "Priya, thank you for getting involved. I just want a fair resolution. I'm happy with a partial refund for the windows that weren't done – I don't want to penalize the provider for the whole booking, just the incomplete part.", time: "Jul 6, 2027 11:20 AM" },
+      { sender: "Admin - Priya Nair", role: "admin", text: "Thank you both for clarifying. Amara, that's a reasonable position. Blessing, given that 2 of 8 windows were unambiguously accessible (based on your own photos, which show the room layout), would you be open to a 25% partial refund? That would be $31.50 returned to Amara's wallet.", time: "Jul 6, 2027 2:45 PM" }
     ],
     timeline: [
-      { event: "Booking marked Completed", time: "June 10, 2026 - 09:45 AM" },
-      { event: "Dispute opened by client", time: "June 10, 2026 - 09:45 AM" },
-      { event: "Status set to Open - in queue", time: "June 10, 2026 - 09:45 AM" },
-      { event: "Status -> Under Review", time: "June 10, 2026 - 09:45 AM" }
+      { event: "Service Request Submitted", time: "June 10, 2026 • 09:45 AM" },
+      { event: "Negotiation Started", time: "June 10, 2026 • 09:52 AM" },
+      { event: "Custom Offer Sent", time: "June 10, 2026 • 10:08 AM" },
+      { event: "Offer Accepted", time: "June 10, 2026 • 10:15 AM" },
+      { event: "Payment Completed", time: "June 10, 2026 • 10:15 AM" },
+      { event: "Booking Confirmed", time: "June 10, 2026 • 10:15 AM" },
+      { event: "Service Started", time: "June 10, 2026 • 10:15 AM" },
+      { event: "Provider Marked Completed", time: "June 10, 2026 • 10:15 AM" },
+      { event: "Dispute opened by client", time: "June 10, 2026 • 09:45 AM" },
+      { event: "Status set to Open — in queue", time: "June 10, 2026 • 09:45 AM" },
+      { event: "Status → Under Review", time: "June 10, 2026 • 09:45 AM" }
     ]
   },
   { id: "D-01270", txnId: "TXN00192123456809", bookingId: "BK234RFDW235L", client: "Patricia Thomas", provider: "Meek Nowise", category: "Carpet Shampooing", dateOpened: "Nov 20, 2028", status: "Under Review" },
@@ -59,7 +74,7 @@ export default function DisputesPage() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 7;
 
   // Sync state with localStorage
   useEffect(() => {
@@ -73,7 +88,17 @@ export default function DisputesPage() {
           setDisputes(defaultDisputes);
           localStorage.setItem("netly_disputes", JSON.stringify(defaultDisputes));
         } else {
-          setDisputes(parsed);
+          const updatedParsed = parsed.map(d => {
+            if (d.id === "D-0019" && (!d.reason || d.timeline?.length < 5)) {
+              return {
+                ...d,
+                ...defaultDisputes[0]
+              };
+            }
+            return d;
+          });
+          setDisputes(updatedParsed);
+          localStorage.setItem("netly_disputes", JSON.stringify(updatedParsed));
         }
       } catch (err) {
         localStorage.removeItem("netly_disputes");
@@ -156,9 +181,9 @@ export default function DisputesPage() {
           { label: "Under Review", count: counts.UnderReview },
           { label: "Resolved", count: counts.Resolved }
         ].map((card, idx) => (
-          <div key={idx} className="bg-white rounded-2xl border border-secondary-bg p-4 flex flex-col justify-between min-h-22.5 shadow-2xs hover:shadow-xs transition">
-            <span className="text-[10px] text-text-muted font-medium uppercase tracking-wider">{card.label}</span>
-            <strong className="text-2xl text-text-primary font-semibold block pt-2">{card.count}</strong>
+          <div key={idx} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-22.5 hover:shadow-xs transition">
+            <span className="text-sm text-text-primary">{card.label}</span>
+            <strong className="text-2xl text-text-primary font-semibold block pt-3">{card.count}</strong>
           </div>
         ))}
       </div>
@@ -241,19 +266,19 @@ export default function DisputesPage() {
                   <th className="px-4 py-2 w-20 text-right pr-6 font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-xs text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                 {paginated.map((row) => (
                   <tr key={row.id} className="hover:bg-page-bg/50 transition">
-                    <td className="px-4 py-4 font-semibold text-text-primary">{row.id}</td>
-                    <td className="px-4 py-4 text-text-muted font-mono">{row.txnId}</td>
-                    <td className="px-4 py-4 text-text-muted font-mono">{row.bookingId}</td>
-                    <td className="px-4 py-4">{row.client}</td>
-                    <td className="px-4 py-4">{row.provider}</td>
-                    <td className="px-4 py-4">{row.category}</td>
-                    <td className="px-4 py-4 text-text-muted">{row.dateOpened}</td>
+                    <td className="px-4 py-3">{row.id}</td>
+                    <td className="px-4 py-3 font-mono">{row.txnId}</td>
+                    <td className="px-4 py-3 font-mono">{row.bookingId}</td>
+                    <td className="px-4 py-3">{row.client}</td>
+                    <td className="px-4 py-3">{row.provider}</td>
+                    <td className="px-4 py-3">{row.category}</td>
+                    <td className="px-4 py-3">{row.dateOpened}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusClass(row.status)}`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                        <span className="h-1 w-1 rounded-full bg-current" />
                         {row.status}
                       </span>
                     </td>
@@ -262,7 +287,7 @@ export default function DisputesPage() {
                         onClick={() => {
                           router.push(`/compliance/disputes/${row.id}`);
                         }}
-                        className="inline-block border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-[10px] px-3.5 py-1 rounded-full transition cursor-pointer text-center"
+                        className="inline-block border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-medium px-3.5 py-1 rounded-lg transition cursor-pointer text-center"
                       >
                         View
                       </button>

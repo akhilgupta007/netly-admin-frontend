@@ -118,25 +118,25 @@ export default function UnmetDemandTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary text-left">
-                <thead className="bg-secondary-bg text-text-primary font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
+                <thead className="bg-secondary-bg text-text-primary text-sm">
                   <tr>
-                    <th className="px-5 py-3 font-semibold w-1/4">City</th>
-                    <th className="px-5 py-3 font-semibold w-1/3">Category</th>
-                    <th className="px-5 py-3 font-semibold text-center w-32">No Result Searches</th>
-                    <th className="px-5 py-3 font-semibold text-center w-32">Last Search</th>
+                    <th className="px-4 py-3 font-semibold w-1/4">City</th>
+                    <th className="px-4 py-3 font-semibold w-1/3">Category</th>
+                    <th className="px-4 py-3 font-semibold text-center w-32">No Result Searches</th>
+                    <th className="px-4 py-3 font-semibold text-center w-32">Last Search</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginated.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-5 py-3.5 flex items-center gap-2">
+                      <td className="px-4 py-3 flex items-center gap-2">
                         <MapPin size={13} className="text-text-muted shrink-0" />
-                        <span className="font-semibold text-text-primary">{item.city}</span>
+                        <span>{item.city}</span>
                       </td>
-                      <td className="px-5 py-3.5 font-light text-text-muted">{item.category}</td>
-                      <td className="px-5 py-3.5 text-center font-semibold text-text-primary">{item.count}</td>
-                      <td className="px-5 py-3.5 text-center text-text-muted font-light">{item.date}</td>
+                      <td className="px-4 py-3">{item.category}</td>
+                      <td className="px-4 py-3 text-center">{item.count}</td>
+                      <td className="px-4 py-3 text-center">{item.date}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -319,8 +319,8 @@ export default function FoundingPartnersPage() {
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-visible">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-                <thead className="bg-secondary-bg text-text-primary text-left font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Email Address</th>
@@ -329,13 +329,13 @@ export default function FoundingPartnersPage() {
                     <th className="px-4 py-3 font-semibold w-10">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginatedPartners.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                      <td className="px-4 py-3.5 text-text-muted font-light">{item.email}</td>
-                      <td className="px-4 py-3.5 text-text-muted">{item.date}</td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">{item.name}</td>
+                      <td className="px-4 py-3">{item.email}</td>
+                      <td className="px-4 py-3">{item.date}</td>
+                      <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                           item.status === "Active" ? "text-emerald-500 bg-emerald-50" :
                           item.status === "Invited" ? "text-blue-500 bg-blue-50" :
@@ -346,7 +346,7 @@ export default function FoundingPartnersPage() {
                           {item.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5" data-dropdown-container>
+                      <td className="px-4 py-3" data-dropdown-container>
                         <button
                           onClick={(e) => {
                             if (activeMenuRowId === item.id) {

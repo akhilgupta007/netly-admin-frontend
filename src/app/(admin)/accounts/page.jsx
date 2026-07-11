@@ -11,6 +11,7 @@ import ProvidersTab from "@/components/accounts/ProvidersTab";
 import SuspendBanModal from "@/components/accounts/SuspendBanModal";
 import ClientDetailModal from "@/components/accounts/ClientDetailModal";
 import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
+import InviteUserModal from "@/components/accounts/InviteUserModal";
 
 const defaultClients = [
   { id: "CL-01", name: "Amara Osei", email: "amara@gmail.com", joinDate: "May 22, 2027", otp: "Verified", bookings: 14, wallet: 247.50, status: "Active" },
@@ -44,7 +45,7 @@ export default function AccountsPage() {
   // Filter settings
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [filterOTP, setFilterOTP] = useState("All");
+  const [filterKYC, setFilterKYC] = useState("All");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
@@ -58,6 +59,7 @@ export default function AccountsPage() {
   // Modal display targets
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [modalType, setModalType] = useState(null); // 'viewClient' | 'viewProvider' | 'suspendBan'
+  const [inviteUserOpen, setInviteUserOpen] = useState(false);
 
   // Pagination states
   const [clientPage, setClientPage] = useState(1);
@@ -107,16 +109,15 @@ export default function AccountsPage() {
       const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           c.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchStatus = filterStatus === "All" || c.status === filterStatus;
-      const matchOTP = filterOTP === "All" || c.otp === filterOTP;
 
       let matchRange = true;
       if (startDate && endDate) {
         const joinDate = new Date(c.joinDate);
         matchRange = joinDate >= startDate && joinDate <= endDate;
       }
-      return matchSearch && matchStatus && matchOTP && matchRange;
+      return matchSearch && matchStatus && matchRange;
     });
-  }, [clients, searchTerm, filterStatus, filterOTP, startDate, endDate]);
+  }, [clients, searchTerm, filterStatus, startDate, endDate]);
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -124,7 +125,7 @@ export default function AccountsPage() {
                           p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           p.city.toLowerCase().includes(searchTerm.toLowerCase());
       const matchStatus = filterStatus === "All" || p.status === filterStatus;
-      const matchKYC = filterOTP === "All" || p.kyc === filterOTP; // Match KYC for providers under OTP filter state
+      const matchKYC = filterKYC === "All" || p.kyc === filterKYC;
 
       let matchRange = true;
       if (startDate && endDate) {
@@ -133,7 +134,7 @@ export default function AccountsPage() {
       }
       return matchSearch && matchStatus && matchKYC && matchRange;
     });
-  }, [providers, searchTerm, filterStatus, filterOTP, startDate, endDate]);
+  }, [providers, searchTerm, filterStatus, filterKYC, startDate, endDate]);
 
   // Pagination calculation slices
   const currentClients = useMemo(() => {
@@ -187,6 +188,51 @@ export default function AccountsPage() {
     setSelectedAccount(null);
   };
 
+  const handleInviteUser = (data) => {
+    const formattedDate = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    const generatedName = data.email
+      .split("@")[0]
+      .split(/[._-]/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+    if (data.type === "Client") {
+      const newClient = {
+        id: `CL-${String(clients.length + 1).padStart(2, "0")}`,
+        name: generatedName,
+        email: data.email,
+        joinDate: formattedDate,
+        otp: "Verified",
+        bookings: 0,
+        wallet: 0.00,
+        status: "Active"
+      };
+      const updated = [newClient, ...clients];
+      saveClients(updated);
+      toast.success(`Client invite sent successfully to ${data.email}!`);
+    } else {
+      const newProvider = {
+        id: `PR-${String(providers.length + 1).padStart(2, "0")}`,
+        name: generatedName,
+        email: data.email,
+        city: "Boston", // default city
+        rating: "5.0",
+        joinDate: formattedDate,
+        kyc: "Verified",
+        badges: ["Provider Pro"],
+        status: "Active"
+      };
+      const updated = [newProvider, ...providers];
+      saveProviders(updated);
+      toast.success(`Provider invite sent successfully to ${data.email}!`);
+    }
+  };
+
   // Status color codes helper
   const getStatusClass = (status) => {
     switch (status) {
@@ -200,18 +246,6 @@ export default function AccountsPage() {
         return "bg-orange-50 text-orange-600";
       default:
         return "bg-secondary-bg text-text-muted";
-    }
-  };
-
-  // OTP/KYC status helper
-  const getOtpClass = (otp) => {
-    switch (otp) {
-      case "Verified":
-        return "text-emerald-500 bg-emerald-50";
-      case "Pending":
-        return "text-amber-500 bg-amber-50";
-      default:
-        return "text-red-500 bg-red-50";
     }
   };
 
@@ -232,7 +266,7 @@ export default function AccountsPage() {
               setProviderPage(1);
               setSearchTerm("");
               setFilterStatus("All");
-              setFilterOTP("All");
+              setFilterKYC("All");
               setStartDate(null);
               setEndDate(null);
             }}
@@ -254,8 +288,6 @@ export default function AccountsPage() {
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}
           onStatusChange={setFilterStatus}
-          filterOTP={filterOTP}
-          onOTPChange={setFilterOTP}
           startDate={startDate}
           endDate={endDate}
           onDateChange={(start, end) => {
@@ -266,7 +298,6 @@ export default function AccountsPage() {
           setCurrentPage={setClientPage}
           itemsPerPage={itemsPerPage}
           getStatusClass={getStatusClass}
-          getOtpClass={getOtpClass}
           onViewClient={(client) => {
             setSelectedAccount(client);
             setModalType("viewClient");
@@ -275,6 +306,7 @@ export default function AccountsPage() {
             setSelectedAccount(client);
             setModalType("suspendBan");
           }}
+          onInviteClick={() => setInviteUserOpen(true)}
         />
       ) : (
         <ProvidersTab
@@ -283,8 +315,8 @@ export default function AccountsPage() {
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}
           onStatusChange={setFilterStatus}
-          filterOTP={filterOTP}
-          onOTPChange={setFilterOTP}
+          filterKYC={filterKYC}
+          onKYCChange={setFilterKYC}
           startDate={startDate}
           endDate={endDate}
           onDateChange={(start, end) => {
@@ -295,7 +327,6 @@ export default function AccountsPage() {
           setCurrentPage={setProviderPage}
           itemsPerPage={itemsPerPage}
           getStatusClass={getStatusClass}
-          getOtpClass={getOtpClass}
           onViewProvider={(provider) => {
             setSelectedAccount(provider);
             setModalType("viewProvider");
@@ -310,6 +341,7 @@ export default function AccountsPage() {
             setSelectedAccount(provider);
             setModalType("suspendBan");
           }}
+          onInviteClick={() => setInviteUserOpen(true)}
         />
       )}
 
@@ -347,6 +379,14 @@ export default function AccountsPage() {
           onReactivateTrigger={handleReactivateSubmit}
         />
       )}
+
+      {/* 4. Invite User Modal */}
+      <InviteUserModal
+        isOpen={inviteUserOpen}
+        onClose={() => setInviteUserOpen(false)}
+        onInvite={handleInviteUser}
+        defaultType={activeTab === "Clients" ? "Client" : "Provider"}
+      />
 
     </div>
   );

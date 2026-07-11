@@ -268,7 +268,7 @@ export default function AdminUsersTab() {
 
             <button
               onClick={() => setInviteOpen(true)}
-              className="bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer select-none flex items-center gap-1.5 shadow-2xs h-9.5 shrink-0"
+              className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer select-none flex items-center gap-1.5 shadow-2xs h-9.5 shrink-0"
             >
               + Invite Admin
             </button>
@@ -287,8 +287,8 @@ export default function AdminUsersTab() {
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-visible">
-              <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary">
-                <thead className="bg-secondary-bg text-text-primary text-left font-semibold">
+              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Email Address</th>
@@ -298,16 +298,16 @@ export default function AdminUsersTab() {
                     <th className="px-4 py-3 font-semibold w-10">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg">
+                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
                   {paginatedAdmins.map((item, index) => {
                     const displayUpwards = index > 0 && (index === paginatedAdmins.length - 1 || (index >= 3 && paginatedAdmins.length > 3));
 
                     return (
                       <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                        <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                        <td className="px-4 py-3.5 text-text-muted font-light">{item.email}</td>
-                        <td className="px-4 py-3.5 text-text-primary font-medium">{item.role}</td>
-                        <td className="px-4 py-3.5 text-text-muted leading-relaxed font-light">
+                        <td className="px-4 py-3">{item.name}</td>
+                        <td className="px-4 py-3">{item.email}</td>
+                        <td className="px-4 py-3">{item.role}</td>
+                        <td className="px-4 py-3">
                           {item.lastLogin.includes(" ") ? (
                             <>
                               <div>{item.lastLogin.split(" ").slice(0, 3).join(" ")}</div>
@@ -319,7 +319,7 @@ export default function AdminUsersTab() {
                             item.lastLogin
                           )}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                             item.twoFA === "Enabled" ? "text-emerald-500 bg-emerald-50" :
                             item.twoFA === "Setup Pending" ? "text-amber-500 bg-amber-50" :
@@ -328,7 +328,7 @@ export default function AdminUsersTab() {
                             {item.twoFA}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="px-4 py-3 text-center">
                           {/*Sofia Kim as Super Admin shouldn't have edit/revoke capabilities in Screenshot 1*/}
                           {item.role !== "Super Admin" ? (
                             <div data-dropdown-container>

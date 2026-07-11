@@ -121,12 +121,12 @@ export default function SearchTermTrendsTab() {
       {/* Grid Content wrapper */}
       <div className="bg-white border border-secondary-bg rounded-b-3xl overflow-hidden shadow-2xs">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-xs text-text-primary text-left">
-            <thead className="bg-secondary-bg text-text-primary font-semibold">
+          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
+            <thead className="bg-secondary-bg text-text-primary text-sm">
               <tr>
                 <th
                   onClick={() => handleSort("term")}
-                  className="px-5 py-3 font-semibold w-1/3 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-1/3 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Search Term
@@ -135,7 +135,7 @@ export default function SearchTermTrendsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("count")}
-                  className="px-5 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Count
@@ -144,7 +144,7 @@ export default function SearchTermTrendsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("change")}
-                  className="px-5 py-3 font-semibold w-40 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-40 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Week-Week Change
@@ -153,7 +153,7 @@ export default function SearchTermTrendsTab() {
                 </th>
                 <th
                   onClick={() => handleSort("matched")}
-                  className="px-5 py-3 font-semibold w-44 cursor-pointer hover:bg-page-bg/60 select-none"
+                  className="px-4 py-3 font-semibold w-44 cursor-pointer hover:bg-page-bg/60 select-none"
                 >
                   <div className="flex items-center gap-1">
                     Has Matching Category
@@ -162,12 +162,12 @@ export default function SearchTermTrendsTab() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg">
+            <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
               {paginated.map((item) => (
                 <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                  <td className="px-5 py-3.5 font-medium text-text-primary">{item.term}</td>
-                  <td className="px-5 py-3.5 text-text-primary font-medium">{item.count}</td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3">{item.term}</td>
+                  <td className="px-4 py-3">{item.count}</td>
+                  <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1 font-semibold ${
                       item.isPositive ? "text-emerald-500" : "text-rose-500"
                     }`}>
@@ -175,7 +175,7 @@ export default function SearchTermTrendsTab() {
                       {item.change} %
                     </span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3">
                     <span className={`font-semibold ${
                       item.matched ? "text-emerald-500" : "text-rose-500"
                     }`}>

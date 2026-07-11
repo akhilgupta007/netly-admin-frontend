@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, ChevronDown, MoreVertical, Eye, Ban } from "lucide-react";
+import { Search, ChevronDown, MoreVertical, Eye, Ban, Plus } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
@@ -12,8 +12,6 @@ export default function ClientsTab({
   onSearchChange,
   filterStatus,
   onStatusChange,
-  filterOTP,
-  onOTPChange,
   startDate,
   endDate,
   onDateChange,
@@ -21,9 +19,9 @@ export default function ClientsTab({
   setCurrentPage,
   itemsPerPage,
   getStatusClass,
-  getOtpClass,
   onViewClient,
-  onSuspendBan
+  onSuspendBan,
+  onInviteClick
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -82,23 +80,6 @@ export default function ClientsTab({
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>
 
-          {/* OTP Dropdown */}
-          <div className="relative">
-            <select
-              value={filterOTP}
-              onChange={(e) => {
-                onOTPChange(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
-            >
-              <option value="All">OTP</option>
-              <option value="Verified">Verified</option>
-              <option value="Pending">Pending</option>
-              <option value="Unverified">Unverified</option>
-            </select>
-            <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
-          </div>
 
           {/* Date Range Picker */}
           <DateRangePicker
@@ -110,6 +91,14 @@ export default function ClientsTab({
             }}
           />
 
+          {/* Invite User Button */}
+          <button
+            onClick={onInviteClick}
+            className="h-10 px-4 py-2 bg-primary-bg-muted hover:bg-primary-bg text-text-primary font-semibold text-xs rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Plus size={16} /> Invite User
+          </button>
+
         </div>
       </div>
 
@@ -118,20 +107,19 @@ export default function ClientsTab({
         <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
           <thead className="bg-secondary-bg text-text-primary text-left text-sm">
             <tr>
-              <th className="px-4 py-2 font-semibold">Name</th>
-              <th className="px-4 py-2 font-semibold">Email Address</th>
-              <th className="px-4 py-2 font-semibold">Join Date</th>
-              <th className="px-4 py-2 text-center font-semibold">OTP</th>
-              <th className="px-4 py-2 text-center font-semibold">Bookings</th>
-              <th className="px-4 py-2 text-left font-semibold">Wallet</th>
-              <th className="px-4 py-2 text-left font-semibold">Status</th>
-              <th className="px-4 py-2 w-10"></th>
+              <th className="px-4 py-3 font-semibold">Name</th>
+              <th className="px-4 py-3 font-semibold">Email Address</th>
+              <th className="px-4 py-3 font-semibold">Join Date</th>
+              <th className="px-4 py-3 font-semibold">Bookings</th>
+              <th className="px-4 py-3 font-semibold">Wallet</th>
+              <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 w-10"></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-text-muted font-light">
+                <td colSpan={7} className="px-6 py-12 text-center text-text-muted font-light">
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
                     <span>No clients found matching filter criteria.</span>
@@ -144,28 +132,22 @@ export default function ClientsTab({
                   key={client.id}
                   className="hover:bg-page-bg/50 transition"
                 >
-                  <td className="px-4 py-3 flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-light">
+                  <td className="px-4 py-3 flex items-center gap-1.5">
+                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-light pt-0.5">
                       {getInitials(client.name)}
                     </div>
                     <span className="text-text-primary">{client.name}</span>
                   </td>
-                  <td className="px-4 py-4">{client.email}</td>
-                  <td className="px-4 py-4">{client.joinDate}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getOtpClass(client.otp)}`}>
-                      <span className="h-1 w-1 rounded-full bg-current" />
-                      {client.otp}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-center text-text-primary">{client.bookings}</td>
-                  <td className="px-4 py-4 text-text-primary">${client.wallet.toFixed(2)}</td>
+                  <td className="px-4 py-3">{client.email}</td>
+                  <td className="px-4 py-3">{client.joinDate}</td>
+                  <td className="px-4 py-3 text-text-primary">{client.bookings}</td>
+                  <td className="px-4 py-3 text-text-primary">${client.wallet.toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs ${getStatusClass(client.status)}`}>
                       {client.status}
                     </span>
                   </td>
-                  <td className="px-4 py-4" onClick={(e) => e.stopPropagation()} data-dropdown-container>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()} data-dropdown-container>
                     <button
                       onClick={(e) => {
                         if (openMenuId === client.id) {
@@ -178,7 +160,7 @@ export default function ClientsTab({
                           setOpenMenuId(client.id);
                         }
                       }}
-                      className="px-4 text-text-primary hover:text-text-primary rounded transition cursor-pointer"
+                      className="pr-4 text-text-primary hover:text-text-primary rounded transition cursor-pointer"
                     >
                       <MoreVertical size={20} />
                     </button>
