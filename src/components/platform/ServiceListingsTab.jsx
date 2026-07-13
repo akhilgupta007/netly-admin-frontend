@@ -119,7 +119,7 @@ export default function ServiceListingsTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 8;
 
   // Active action dropdown row ID
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
@@ -230,7 +230,7 @@ export default function ServiceListingsTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="md:min-w-sm border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
@@ -312,14 +312,14 @@ export default function ServiceListingsTab() {
                       <td className="px-4 py-3">{item.provider}</td>
                       <td className="px-4 py-3">{item.category}</td>
                       <td className="px-4 py-3">{item.subCategory}</td>
-                      <td className="px-4 py-3 max-w-45 truncate font-medium">
+                      <td className="px-4 py-3 text-wrap">
                         {item.title}
                       </td>
-                      <td className="px-4 py-3">{item.created}</td>
+                      <td className="px-4 py-3 text-nowrap">{item.created}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                           item.pricing === "Hourly" ? "text-blue-500 bg-blue-50" :
-                          item.pricing === "Quote based" ? "text-amber-500 bg-amber-50" :
+                          item.pricing === "Quote based" || item.pricing === "Fixed priced" ? "text-amber-500 bg-amber-50" :
                           item.pricing === "Per Item" ? "text-purple-500 bg-purple-50" :
                           "text-emerald-500 bg-emerald-50"
                         }`}>
@@ -347,9 +347,9 @@ export default function ServiceListingsTab() {
                               setActiveMenuRowId(item.id);
                             }
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-page-bg transition cursor-pointer text-text-muted hover:text-text-primary"
+                          className="flex items-center justify-center rounded-full hover:bg-page-bg transition cursor-pointer text-text-primary"
                         >
-                          <MoreHorizontal size={14} />
+                          <MoreHorizontal size={16} />
                         </button>
 
                         {/* Actions overlay menu list */}

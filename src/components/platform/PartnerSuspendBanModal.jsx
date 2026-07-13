@@ -46,24 +46,19 @@ export default function PartnerSuspendBanModal({ partner, isOpen, onClose, onSub
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs">
           
           {/* User profile preview block card */}
-          <div className="bg-page-bg/40 rounded-2xl p-4 flex items-center gap-3 border border-secondary-bg/50">
-            <div className="w-8 h-8 rounded-xl bg-[#6FB5BD] text-white flex items-center justify-center font-bold text-xs select-none">
-              {partner.name.charAt(0)}
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold text-text-primary">{partner.name}</h4>
-              <p className="text-[10px] text-text-muted font-light mt-0.5">{partner.email}</p>
-            </div>
+          <div className="rounded-xl p-3 border border-border-main">
+              <h4 className="text-xs text-text-primary">{partner.name}</h4>
+              <p className="text-[10px] mt-2 text-text-muted">{partner.email}</p>
           </div>
 
           {/* Action selection */}
@@ -81,10 +76,10 @@ export default function PartnerSuspendBanModal({ partner, isOpen, onClose, onSub
                     className="sr-only"
                   />
                   <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition ${
-                    actionType === type ? "border-[#6FB5BD]" : "border-text-muted/30"
+                    actionType === type ? "border-primary-bg" : "border-text-muted/30"
                   }`}>
                     {actionType === type && (
-                      <div className="w-3 h-3 rounded-full bg-[#6FB5BD]" />
+                      <div className="w-3 h-3 rounded-full bg-primary-bg" />
                     )}
                   </div>
                   {type}
@@ -103,7 +98,7 @@ export default function PartnerSuspendBanModal({ partner, isOpen, onClose, onSub
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="7"
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
                 required
               />
             </div>
@@ -118,7 +113,7 @@ export default function PartnerSuspendBanModal({ partner, isOpen, onClose, onSub
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Provide a clear reason for this action..."
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
             />
             <span className="text-[10px] text-text-muted block mt-0.5">
               Minimum 20 characters. This action is recorded in compliance logs.
@@ -135,7 +130,7 @@ export default function PartnerSuspendBanModal({ partner, isOpen, onClose, onSub
                 className="sr-only"
               />
               <div className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition ${
-                notifyEmail ? "border-[#6FB5BD] bg-[#6FB5BD] text-white" : "border-text-muted/30"
+                notifyEmail ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30"
               }`}>
                 {notifyEmail && <span className="text-[10px] font-bold">✓</span>}
               </div>
@@ -148,13 +143,13 @@ export default function PartnerSuspendBanModal({ partner, isOpen, onClose, onSub
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs"
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Confirm {actionType === "Suspend (Temporary)" ? "Suspension" : "Ban"}
             </button>

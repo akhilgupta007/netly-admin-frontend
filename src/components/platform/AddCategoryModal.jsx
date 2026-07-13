@@ -76,22 +76,22 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
         
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
-          <h3 className="text-sm font-semibold text-text-primary">Add Category</h3>
+          <h3 className="font-semibold text-text-primary">Add Category</h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs text-text-primary font-onest">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
           
           {/* Category name input */}
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">
+            <label className="text-xs text-text-primary block">
               Category name <span className="text-red-500">*</span>
             </label>
             <input
@@ -101,34 +101,34 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
               placeholder="e.g., furniture..."
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-secondary-bg text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
             <span className="text-[10px] text-text-muted block mt-0.5">Max 60 characters</span>
           </div>
 
           {/* Description */}
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">Description</label>
+            <label className="text-xs text-text-primary block">Description</label>
             <textarea
               placeholder="Optional"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60 resize-none"
+              className="w-full bg-white border border-secondary-bg text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60 resize-none"
             />
           </div>
 
           {/* Drag & drop upload box */}
           <div className="space-y-1.5">
-            <label className="text-xs text-text-primary block font-medium">Upload Image</label>
+            <label className="text-xs text-text-primary block">Upload Image</label>
             <div
               onDragEnter={handleDrag}
               onDragOver={handleDrag}
               onDragLeave={handleDrag}
               onDrop={handleDrop}
               onClick={triggerBrowse}
-              className={`border-2 border-dashed rounded-2xl p-6 text-center space-y-2 hover:bg-page-bg/40 transition cursor-pointer select-none relative ${
-                dragActive ? "border-[#6FB5BD] bg-[#6FB5BD]/5" : "border-secondary-bg bg-white"
+              className={`border-2 border-dashed rounded-lg p-6 text-center space-y-2 hover:bg-page-bg/40 transition cursor-pointer select-none relative ${
+                dragActive ? "border-primary-bg bg-primary-bg/5" : "border-secondary-bg bg-white"
               }`}
             >
               <input
@@ -141,8 +141,8 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
               
               {selectedFile ? (
                 <div className="flex flex-col items-center justify-center text-center space-y-1">
-                  <FileImage size={24} className="text-[#6FB5BD]" />
-                  <span className="text-xs font-semibold text-text-primary max-w-[250px] truncate block">
+                  <FileImage size={24} className="text-primary-bg" />
+                  <span className="text-xs font-semibold text-text-primary max-w-62.5 truncate block">
                     {selectedFile.name}
                   </span>
                   <span className="text-[10px] text-text-muted font-light">
@@ -158,7 +158,7 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
                     Upload image
                   </strong>
                   <span className="text-[10px] text-text-muted font-light block">
-                    Drag & drop a file here or <span className="text-[#6FB5BD] font-medium underline">Browse</span>
+                    Drag & drop a file here or <span className="text-primary-bg font-medium underline">Browse</span>
                   </span>
                   <span className="text-[9px] text-text-muted/75 font-light block">
                     .jpg, .png (max 2 GB)
@@ -173,13 +173,13 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+              className="flex-1 bg-secondary-bg hover:bg-page-bg text-text-primary font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs"
+              className="flex-1 bg-primary-bg hover:bg-primary-bg-muted text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center shadow-2xs"
             >
               Add Category
             </button>

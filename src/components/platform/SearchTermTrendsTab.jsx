@@ -96,107 +96,105 @@ export default function SearchTermTrendsTab() {
     <div className="animate-scale-up font-onest text-xs text-text-primary">
       
       {/* Toggle switch filtering header */}
-      <div className="flex justify-end bg-white p-4 border border-secondary-bg rounded-t-3xl shadow-2xs">
+      <div className="flex justify-end select-none p-4">
         <div className="flex items-center gap-2.5 select-none">
-          <span className="text-[10px] text-text-muted font-light">Terms with no Matching Category</span>
-          <button
-            type="button"
-            onClick={() => {
-              setOnlyUnmatched(!onlyUnmatched);
-              setCurrentPage(1);
-            }}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              onlyUnmatched ? "bg-[#6FB5BD]" : "bg-secondary-bg"
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
-                onlyUnmatched ? "translate-x-4" : "translate-x-0"
+          <div className="p-2 border border-border-main rounded-full flex items-center gap-2">
+            <span className="text-xs text-text-muted font-light">Terms with no Matching Category</span>
+            <button
+              type="button"
+              onClick={() => {
+                setOnlyUnmatched(!onlyUnmatched);
+                setCurrentPage(1);
+              }}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                onlyUnmatched ? "bg-primary-bg-muted" : "bg-secondary-bg"
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                  onlyUnmatched ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Grid Content wrapper */}
-      <div className="bg-white border border-secondary-bg rounded-b-3xl overflow-hidden shadow-2xs">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
-            <thead className="bg-secondary-bg text-text-primary text-sm">
-              <tr>
-                <th
-                  onClick={() => handleSort("term")}
-                  className="px-4 py-3 font-semibold w-1/3 cursor-pointer hover:bg-page-bg/60 select-none"
-                >
-                  <div className="flex items-center gap-1">
-                    Search Term
-                    {renderSortIcon("term")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("count")}
-                  className="px-4 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
-                >
-                  <div className="flex items-center gap-1">
-                    Count
-                    {renderSortIcon("count")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("change")}
-                  className="px-4 py-3 font-semibold w-40 cursor-pointer hover:bg-page-bg/60 select-none"
-                >
-                  <div className="flex items-center gap-1">
-                    Week-Week Change
-                    {renderSortIcon("change")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("matched")}
-                  className="px-4 py-3 font-semibold w-44 cursor-pointer hover:bg-page-bg/60 select-none"
-                >
-                  <div className="flex items-center gap-1">
-                    Has Matching Category
-                    {renderSortIcon("matched")}
-                  </div>
-                </th>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-secondary-bg text-left">
+          <thead className="bg-secondary-bg text-text-primary text-sm font-bold">
+            <tr>
+              <th
+                onClick={() => handleSort("term")}
+                className="px-4 py-3 font-semibold w-1/3 cursor-pointer hover:bg-page-bg/60 select-none"
+              >
+                <div className="flex items-center gap-1">
+                  Search Term
+                  {renderSortIcon("term")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("count")}
+                className="px-4 py-3 font-semibold w-28 cursor-pointer hover:bg-page-bg/60 select-none"
+              >
+                <div className="flex items-center gap-1">
+                  Count
+                  {renderSortIcon("count")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("change")}
+                className="px-4 py-3 font-semibold w-40 cursor-pointer hover:bg-page-bg/60 select-none"
+              >
+                <div className="flex items-center gap-1">
+                  Week-Week Change
+                  {renderSortIcon("change")}
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("matched")}
+                className="px-4 py-3 font-semibold w-44 cursor-pointer hover:bg-page-bg/60 select-none"
+              >
+                <div className="flex items-center gap-1">
+                  Has Matching Category
+                  {renderSortIcon("matched")}
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+            {paginated.map((item) => (
+              <tr key={item.id} className="hover:bg-page-bg/50 transition">
+                <td className="px-4 py-3">{item.term}</td>
+                <td className="px-4 py-3">{item.count}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1 ${
+                    item.isPositive ? "text-emerald-500" : "text-rose-500"
+                  }`}>
+                    {item.isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {item.change} %
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`${
+                    item.matched ? "text-emerald-500" : "text-rose-500"
+                  }`}>
+                    {item.matched ? "Yes" : "No"}
+                  </span>
+                </td>
               </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
-              {paginated.map((item) => (
-                <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                  <td className="px-4 py-3">{item.term}</td>
-                  <td className="px-4 py-3">{item.count}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center gap-1 font-semibold ${
-                      item.isPositive ? "text-emerald-500" : "text-rose-500"
-                    }`}>
-                      {item.isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                      {item.change} %
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`font-semibold ${
-                      item.matched ? "text-emerald-500" : "text-rose-500"
-                    }`}>
-                      {item.matched ? "Yes" : "No"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination controls */}
-        <Pagination
-          currentPage={currentPage}
-          itemsPerPage={itemsPerPage}
-          totalItems={sorted.length}
-          onPageChange={setCurrentPage}
-        />
+            ))}
+          </tbody>
+        </table>
       </div>
 
+      {/* Pagination controls */}
+      <Pagination
+        currentPage={currentPage}
+        itemsPerPage={itemsPerPage}
+        totalItems={sorted.length}
+        onPageChange={setCurrentPage}
+      />
     </div>
   );
 }

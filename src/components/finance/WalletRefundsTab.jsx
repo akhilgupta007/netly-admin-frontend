@@ -32,7 +32,7 @@ export default function WalletRefundsTab() {
   return (
     <div className="animate-scale-up">
       {/* Filters row bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2.5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5">
         <div className="border border-border-main rounded-full px-4 py-1.5 text-xs text-text-muted bg-white flex items-center gap-1.5 h-8.5">
           <span>01/07/26 - 08/07/26</span>
         </div>
@@ -40,13 +40,13 @@ export default function WalletRefundsTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
-            className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5"
+            className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
             <Download size={13} /> Export CSV
           </button>
           <button
             onClick={handleExportPDF}
-            className="bg-white border border-border-main hover:bg-page-bg text-text-primary font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5"
+            className="bg-white border border-text-primary hover:bg-page-bg text-text-primary font-semibold text-xs py-2.5 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
             <FileText size={13} /> Export PDF
           </button>
@@ -55,59 +55,59 @@ export default function WalletRefundsTab() {
 
       {/* Grid cards row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-secondary-bg rounded-3xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] text-text-muted block">Total wallet credits</span>
-          <strong className="text-2xl text-text-primary font-bold block">$9,800.00</strong>
-          <span className="text-[9px] text-text-muted block">Jun 18-24</span>
+        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
+          <span className="text-xs text-text-primary block">Total wallet credits</span>
+          <strong className="text-2xl text-text-primary font-semibold block mt-3">$9,800.00</strong>
+          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
         </div>
 
-        <div className="bg-white border border-secondary-bg rounded-3xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] text-text-muted block">Total card refunds</span>
-          <strong className="text-2xl text-text-primary font-bold block">$7,120.00</strong>
-          <span className="text-[9px] text-text-muted block">Jun 18-24</span>
+        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
+          <span className="text-xs text-text-primary block">Total card refunds</span>
+          <strong className="text-2xl text-text-primary font-semibold block mt-3">$7,120.00</strong>
+          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
         </div>
 
-        <div className="bg-white border border-secondary-bg rounded-3xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] text-text-muted block">Refund rate</span>
-          <strong className="text-2xl text-text-primary font-bold block">42.1%</strong>
-          <span className="text-[9px] text-text-muted block">Jun 18-24</span>
+        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
+          <span className="text-xs text-text-primary block">Refund rate</span>
+          <strong className="text-2xl text-text-primary font-semibold block mt-3">42.1%</strong>
+          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
         </div>
 
-        <div className="bg-white border border-secondary-bg rounded-3xl p-5 shadow-2xs space-y-2">
-          <span className="text-[10px] text-text-muted block">Retention rate</span>
-          <strong className="text-2xl text-text-primary font-bold block">57.9%</strong>
-          <span className="text-[9px] text-text-muted block">Jun 18-24</span>
+        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
+          <span className="text-xs text-text-primary block">Retention rate</span>
+          <strong className="text-2xl text-text-primary font-semibold block mt-3">57.9%</strong>
+          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
         </div>
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white border border-secondary-bg rounded-3xl p-5 shadow-2xs space-y-4 mt-4">
-        <div className="flex justify-between items-center pb-3 border-b border-page-bg">
-          <div>
-            <h3 className="text-xs font-semibold text-text-primary">Wallet Credits Retained vs Refunded to Card</h3>
+      <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow space-y-4 mt-4">
+        <div className="flex justify-between items-center pb-3">
+          <h3 className="text-xs font-semibold text-text-primary">Wallet Credits Retained vs Refunded to Card</h3>
+          <div className="flex items-center gap-2">
             <span className="text-[9px] text-text-muted block">This week · USD</span>
-          </div>
-          <div className="flex border border-secondary-bg rounded-lg p-0.5 text-[10px] bg-page-bg/50">
-            <button
-              onClick={() => setChartType("Bar")}
-              className={`px-3 py-1 rounded-md font-semibold transition ${chartType === "Bar" ? "bg-white text-text-primary shadow-2xs" : "text-text-muted"}`}
-            >
-              Bar
-            </button>
-            <button
-              onClick={() => setChartType("Line")}
-              className={`px-3 py-1 rounded-md font-semibold transition ${chartType === "Line" ? "bg-white text-text-primary shadow-2xs" : "text-text-muted"}`}
-            >
-              Line
-            </button>
+            <div className="flex bg-primary-bg-muted/20 rounded-lg p-0.5 text-[10px]">
+              <button
+                onClick={() => setChartType("Bar")}
+                className={`px-2 py-1 rounded-md font-medium transition ${chartType === "Bar" ? "bg-white text-text-primary shadow-2xs" : "text-text-muted"}`}
+              >
+                Bar
+              </button>
+              <button
+                onClick={() => setChartType("Line")}
+                className={`px-3 py-1 rounded-md font-medium transition ${chartType === "Line" ? "bg-white text-text-primary shadow-2xs" : "text-text-muted"}`}
+              >
+                Line
+              </button>
+            </div>
           </div>
         </div>
 
         {/* HTML/CSS-based Responsive Chart Area */}
-        <div className="pt-4">
-          <div className="flex items-stretch h-48 relative">
+        <div className="pt-4 px-10">
+          <div className="flex items-stretch h-64 relative">
             {/* Left Y Axis column */}
-            <div className="w-10 flex flex-col justify-between text-[9px] text-text-muted pb-1 select-none">
+            <div className="w-12 flex flex-col justify-between text-sm text-text-muted pb-1 select-none">
               <span>$10.0k</span>
               <span>$7.5k</span>
               <span>$5.0k</span>
@@ -133,8 +133,8 @@ export default function WalletRefundsTab() {
                     return (
                       <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                         <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
-                          <div style={{ height: walletHeight }} className="w-7 bg-primary-bg rounded-t-sm" />
-                          <div style={{ height: cardHeight }} className="w-7 bg-text-primary rounded-t-sm" />
+                          <div style={{ height: walletHeight }} className="w-14 bg-primary-bg rounded-t-md" />
+                          <div style={{ height: cardHeight }} className="w-14 bg-text-primary rounded-t-md" />
                         </div>
                       </div>
                     );
@@ -198,10 +198,10 @@ export default function WalletRefundsTab() {
           </div>
 
           {/* X Axis days label row aligned exactly under the middle graph area */}
-          <div className="flex pl-10 pr-2 mt-2">
+          <div className="flex pl-12 pr-2 mt-2">
             <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
               {chartData.map((d, index) => (
-                <span key={index} className="w-0 overflow-visible text-center whitespace-nowrap flex justify-center text-[9px] text-text-muted font-light">
+                <span key={index} className="w-0 overflow-visible text-center whitespace-nowrap flex justify-center text-sm text-text-muted font-light">
                   {d.day}
                 </span>
               ))}
@@ -210,12 +210,12 @@ export default function WalletRefundsTab() {
         </div>
 
         {/* Legend row */}
-        <div className="flex justify-center items-center gap-4 text-[10px] text-text-primary pt-2">
-          <div className="flex items-center gap-1.5">
+        <div className="flex justify-center items-center gap-4 text-xs text-text-primary pt-2">
+          <div className="flex items-center text-primary-bg gap-1.5">
             <span className="w-2.5 h-2.5 bg-primary-bg rounded-xs" />
             <span>Kept as wallet credit</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 text-text-primary">
             <span className="w-2.5 h-2.5 bg-text-primary rounded-xs" />
             <span>Refunded to card</span>
           </div>

@@ -168,7 +168,7 @@ export default function ReviewsTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="md:min-w-sm border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
@@ -212,13 +212,13 @@ export default function ReviewsTab() {
                       <td className="px-4 py-3">{item.client}</td>
                       <td className="px-4 py-3">{item.provider}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 text-amber-500 font-semibold">
-                          <Star size={13} fill="currentColor" />
+                        <span className="inline-flex items-center gap-1">
+                          <Star size={13} className="fill-amber-500 text-amber-500" />
                           {item.rating.toFixed(1)}
                         </span>
                       </td>
                       <td className="px-4 py-3">{item.date}</td>
-                      <td className="px-4 py-3 leading-normal max-w-sm md:max-w-xl whitespace-normal break-words">
+                      <td className="px-4 py-3 leading-normal max-w-sm md:max-w-xl whitespace-normal wrap-break-word">
                         {item.reviewText}
                       </td>
                       <td className="px-4 py-3">
@@ -227,7 +227,7 @@ export default function ReviewsTab() {
                             setSelectedReview(item);
                             setRemoveOpen(true);
                           }}
-                          className="border border-red-500 text-red-500 hover:bg-red-50 font-semibold text-[10px] py-1.5 px-4 rounded-full transition cursor-pointer select-none"
+                          className="border border-red-500 text-red-500 hover:bg-red-50 font-medium py-1.5 px-4 rounded-lg transition cursor-pointer select-none"
                         >
                           Remove
                         </button>

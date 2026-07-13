@@ -17,34 +17,33 @@ export default function DeactivateListingModal({ listing, isOpen, onClose, onDea
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
       <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
-          <h3 className="text-sm font-semibold text-text-primary">Deactivate Listing</h3>
+          <h3 className="font-semibold text-text-primary">Deactivate Listing</h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs">
           {/* Listing preview card */}
-          <div className="bg-page-bg/40 rounded-2xl p-4 space-y-1 border border-secondary-bg/50">
-            <strong className="font-semibold block text-text-primary">{listing.provider}</strong>
+          <div className="bg-page-bg rounded-2xl p-3 space-y-2 border border-secondary-bg/50">
+            <div className="block text-text-primary">{listing.provider}</div>
             <span className="text-[10px] text-text-muted font-light block mt-0.5">{listing.title}</span>
           </div>
 
           {/* Reason field */}
           <div className="space-y-1">
             <label className="text-xs text-text-primary block">
-              Reason <span className="text-red-500">*</span>
+              Reason
             </label>
             <textarea
-              required
               rows={4}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -58,13 +57,13 @@ export default function DeactivateListingModal({ listing, isOpen, onClose, onDea
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs"
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center shadow-2xs"
             >
               Yes, Deactivate
             </button>

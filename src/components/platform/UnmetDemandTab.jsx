@@ -65,12 +65,12 @@ export default function UnmetDemandTab() {
   };
 
   return (
-    <div className="space-y-4 animate-scale-up font-onest text-xs text-text-primary">
+    <div className="animate-scale-up font-onest text-xs text-text-primary">
       
-      {/* Search and Filters Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 border border-secondary-bg rounded-3xl shadow-2xs">
+      {/* Controls Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 select-none p-4">
         
-        <div className="flex flex-1 max-w-md relative">
+        <div className="flex items-center gap-2 max-w-md flex-1 relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
             type="text"
@@ -84,7 +84,7 @@ export default function UnmetDemandTab() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
@@ -97,62 +97,58 @@ export default function UnmetDemandTab() {
 
           <button
             onClick={handleExportCSV}
-            className="bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer select-none flex items-center gap-1.5 shadow-2xs h-9.5 shrink-0"
+            className="bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-3 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
-            <Download size={13} />
-            Export CSV
+            <Download size={13} /> Export CSV
           </button>
         </div>
       </div>
 
-      {/* Grid Content wrapper */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-4 text-center space-y-4 select-none bg-white">
-            <img src="/empty.png" alt="No unmet demand" className="w-16 h-16 object-contain opacity-75 animate-pulse" />
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-text-primary">No search data available yet</h3>
-              <p className="text-xs text-text-muted font-light">Data populates once the app is live</p>
-            </div>
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
+          <img src="/empty.png" alt="No unmet demand" className="w-16 h-16 object-contain opacity-75" />
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold text-text-primary">No search data available yet</h3>
+            <p className="text-xs text-text-muted font-light">Data populates once the app is live</p>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
-                <thead className="bg-secondary-bg text-text-primary text-sm">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold w-1/4">City</th>
-                    <th className="px-4 py-3 font-semibold w-1/3">Category</th>
-                    <th className="px-4 py-3 font-semibold text-center w-32">No Result Searches</th>
-                    <th className="px-4 py-3 font-semibold text-center w-32">Last Search</th>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-secondary-bg text-left">
+              <thead className="bg-secondary-bg text-text-primary text-sm font-bold">
+                <tr>
+                  <th className="px-4 py-3 font-semibold w-1/4">City</th>
+                  <th className="px-4 py-3 font-semibold w-1/3">Category</th>
+                  <th className="px-4 py-3 font-semibold text-center w-32">No Result Searches</th>
+                  <th className="px-4 py-3 font-semibold text-center w-32">Last Search</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+                {paginated.map((item) => (
+                  <tr key={item.id} className="hover:bg-page-bg/50 transition">
+                    <td className="px-4 py-3 flex items-center gap-2">
+                      <MapPin size={13} className="text-text-muted shrink-0" />
+                      <span>{item.city}</span>
+                    </td>
+                    <td className="px-4 py-3">{item.category}</td>
+                    <td className="px-4 py-3 text-center">{item.count}</td>
+                    <td className="px-4 py-3 text-center">{item.date}</td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
-                  {paginated.map((item) => (
-                    <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3 flex items-center gap-2">
-                        <MapPin size={13} className="text-text-muted shrink-0" />
-                        <span>{item.city}</span>
-                      </td>
-                      <td className="px-4 py-3">{item.category}</td>
-                      <td className="px-4 py-3 text-center">{item.count}</td>
-                      <td className="px-4 py-3 text-center">{item.date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-            {/* Pagination controls */}
-            <Pagination
-              currentPage={currentPage}
-              itemsPerPage={itemsPerPage}
-              totalItems={filtered.length}
-              onPageChange={setCurrentPage}
-            />
-          </>
-        )}
-      </div>
+          {/* Pagination controls */}
+          <Pagination
+            currentPage={currentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filtered.length}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
 
     </div>
   );

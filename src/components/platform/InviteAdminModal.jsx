@@ -42,14 +42,14 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs text-text-primary font-onest">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
           
           {/* Email input */}
           <div className="space-y-1">
@@ -62,7 +62,7 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
               placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
           </div>
 
@@ -76,7 +76,7 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
                 required
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
               >
                 <option value="Finance Admin">Finance Admin</option>
                 <option value="Compliance Admin">Compliance Admin</option>
@@ -90,7 +90,7 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
           {/* Full width button */}
           <button
             type="submit"
-            className="w-full bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs mt-2"
+            className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2"
           >
             Send Invite
           </button>

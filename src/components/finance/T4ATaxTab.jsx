@@ -88,11 +88,11 @@ export default function T4ATaxTab() {
       
       {/* Generate T4A Slips Form Panel (Slide 2) */}
       <form onSubmit={handleGenerateT4A} className="bg-white border border-secondary-bg rounded-3xl p-5 space-y-4 shadow-2xs">
-        <div className="flex justify-between items-center pb-2 border-b border-secondary-bg">
-          <span className="text-xs font-semibold text-text-primary">Generate T4A Slips</span>
+        <div className="flex justify-between items-center pb-2">
+          <span className="text-sm font-semibold text-text-primary">Generate T4A Slips</span>
           <button
             type="submit"
-            className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer"
+            className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 px-10 rounded-lg transition cursor-pointer"
           >
             Generate T4A
           </button>
@@ -100,7 +100,7 @@ export default function T4ATaxTab() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-xs text-text-primary block">Tax year <span className="text-red-500">*</span></label>
             <div className="relative">
               <select
@@ -118,7 +118,7 @@ export default function T4ATaxTab() {
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-2">
             <label className="text-xs text-text-primary block">Provider (optional)</label>
             <input
               type="text"
@@ -215,7 +215,7 @@ export default function T4ATaxTab() {
                     <td className="px-4 py-3 text-right pr-6">
                       <button
                         onClick={() => setSelectedSlip(row)}
-                        className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-[10px] px-3.5 py-1 rounded-full transition cursor-pointer text-center whitespace-nowrap"
+                        className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-xs px-3.5 py-1 rounded-lg transition cursor-pointer text-center whitespace-nowrap"
                       >
                         Preview & Download
                       </button>

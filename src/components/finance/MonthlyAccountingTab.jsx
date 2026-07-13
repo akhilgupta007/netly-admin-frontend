@@ -66,7 +66,7 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
   return (
     <div className="animate-scale-up">
       {/* Top Filter block (Slide 2 top filter bar) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 py-2.5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
             <select
@@ -103,13 +103,13 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
         <div className="flex items-center gap-2">
           <button
             onClick={onExportCSV}
-            className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5"
+            className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
             <Download size={13} /> Export CSV
           </button>
           <button
             onClick={onExportPDF}
-            className="bg-white border border-border-main hover:bg-page-bg text-text-primary font-semibold text-xs py-2 px-4 rounded-full transition cursor-pointer flex items-center gap-1.5"
+            className="bg-white border border-text-primary hover:bg-page-bg text-text-primary font-semibold text-xs py-2.5 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
             <FileText size={13} /> Export PDF
           </button>
@@ -117,7 +117,7 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
       </div>
 
       {/* Primary table area card (Slide 2 card container) */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
+      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden hover:shadow-xs transition-shadow">
         
         {/* Table inline header (Search & Category filters) */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-secondary-bg">
@@ -186,7 +186,7 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
                     <th className="px-4 py-3 font-semibold">Status</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+                <tbody className="bg-white divide-y divide-secondary-bg text-xs text-text-primary">
                   {paginated.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
                       <td className="px-4 py-3">{item.id}</td>
@@ -196,10 +196,10 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
                       <td className="px-4 py-3">{item.category}</td>
                       <td className="px-4 py-3">${item.amount.toFixed(2)}</td>
                       <td className="px-4 py-3">${item.fee.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-red-500 font-medium">${item.commission.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-amber-500 font-medium">${item.tip.toFixed(2)}</td>
+                      <td className="px-4 py-3">${item.commission.toFixed(2)}</td>
+                      <td className="px-4 py-3">${item.tip.toFixed(2)}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusBadge(item.status)}`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] ${getStatusBadge(item.status)}`}>
                           <span className="h-1.25 w-1.25 rounded-full bg-current" />
                           {item.status}
                         </span>

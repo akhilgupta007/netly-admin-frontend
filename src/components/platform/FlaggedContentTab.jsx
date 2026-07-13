@@ -90,7 +90,7 @@ export default function FlaggedContentTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 8;
 
   // Selected entities for modals
   const [selectedFlag, setSelectedFlag] = useState(null);
@@ -217,7 +217,7 @@ export default function FlaggedContentTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="md:min-w-sm border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
@@ -290,7 +290,7 @@ export default function FlaggedContentTab() {
                             setSelectedFlag(item);
                             setReviewModalOpen(true);
                           }}
-                          className="border border-[#6FB5BD] hover:bg-[#6FB5BD]/5 text-[#6FB5BD] font-semibold text-[10px] py-1.5 px-4 rounded-full transition cursor-pointer select-none"
+                          className="border border-primary-bg hover:bg-primary-bg/5 text-primary-bg py-1.5 px-3 rounded-lg transition cursor-pointer select-none"
                         >
                           Review
                         </button>

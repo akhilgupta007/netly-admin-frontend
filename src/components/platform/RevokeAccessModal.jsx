@@ -16,24 +16,24 @@ export default function RevokeAccessModal({ user, isOpen, onClose, onRevoke }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <div className="p-5 space-y-4 text-xs text-text-primary font-onest">
+        <div className="p-4 space-y-4 text-xs text-text-primary font-onest">
           {/* User details card */}
-          <div className="bg-page-bg/40 rounded-2xl p-4 space-y-1 border border-secondary-bg/50">
-            <strong className="font-semibold block text-text-primary">{user.name}</strong>
-            <span className="text-[10px] text-text-muted font-light block mt-0.5">{user.email}</span>
+          <div className="rounded-xl p-3 border border-border-main">
+              <h4 className="text-xs font-semibold text-text-primary">{user.name}</h4>
+              <p className="text-[10px] text-text-muted font-light mt-0.5">{user.email}</p>
           </div>
 
           {/* Warning banner block */}
           <div className="bg-amber-50/50 border border-amber-200/60 rounded-2xl p-4 space-y-2">
-            <strong className="font-semibold text-amber-700 block">This action will:</strong>
-            <ul className="list-disc pl-4 space-y-1 text-text-muted font-light text-[10px] leading-relaxed">
+            <div className="text-text-primary block">This action will:</div>
+            <ul className="list-disc pl-4 space-y-0.5 text-text-muted font-light text-[10px] leading-relaxed">
               <li>Disable their Authentication account</li>
               <li>Remove their admin role claim</li>
               <li>Log to audit logs</li>
@@ -43,7 +43,7 @@ export default function RevokeAccessModal({ user, isOpen, onClose, onRevoke }) {
           {/* Full-width solid red revoke button */}
           <button
             onClick={() => onRevoke(user)}
-            className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs mt-2"
+            className="w-full bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2"
           >
             Confirm Revoke Access
           </button>

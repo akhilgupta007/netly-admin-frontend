@@ -29,8 +29,8 @@ export default function MarketIntelligencePage() {
         ))}
       </div>
 
-      {/* Render sub-tab content */}
-      <div>
+      {/* Render sub-tab content inside standard card wrapper */}
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         {activeTab === "Unmet Demand" && <UnmetDemandTab />}
         {activeTab === "Search Term Trends" && <SearchTermTrendsTab />}
         {activeTab === "User Stats" && <UserStatsTab />}

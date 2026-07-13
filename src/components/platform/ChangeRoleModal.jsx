@@ -25,22 +25,22 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
         
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
-          <h3 className="text-sm font-semibold text-text-primary">Change Role</h3>
+          <h3 className="text-base font-semibold text-text-primary">Change Role</h3>
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs text-text-primary font-onest">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
           {/* User details card */}
-          <div className="bg-page-bg/40 rounded-2xl p-4 space-y-1 border border-secondary-bg/50">
-            <strong className="font-semibold block text-text-primary">{user.name}</strong>
-            <span className="text-[10px] text-text-muted font-light block mt-0.5">{user.email}</span>
+          <div className="rounded-xl p-3 border border-border-main">
+              <h4 className="text-xs text-text-primary">{user.name}</h4>
+              <p className="text-[10px] mt-2 text-text-muted">{user.email}</p>
           </div>
 
           {/* Role select */}
@@ -53,7 +53,7 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
                 required
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
               >
                 <option value="Finance Admin">Finance Admin</option>
                 <option value="Compliance Admin">Compliance Admin</option>
@@ -67,7 +67,7 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
           {/* Full-width action button */}
           <button
             type="submit"
-            className="w-full bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs mt-2"
+            className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2"
           >
             Change Role
           </button>

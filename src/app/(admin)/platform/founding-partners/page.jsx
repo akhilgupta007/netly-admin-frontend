@@ -147,7 +147,7 @@ export default function FoundingPartnersPage() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 8;
 
   // selected entities for modal actions
   const [selectedPartner, setSelectedPartner] = useState(null);
@@ -241,26 +241,26 @@ export default function FoundingPartnersPage() {
   return (
     <div className="space-y-4 font-onest animate-scale-up">
 
-      {/* Summary Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary Stat Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {[
           { title: "Total Sign Ups", count: statsTotal > 0 ? statsTotal : "-" },
           { title: "Invited", count: statsTotal > 0 ? statsInvited : "-" },
           { title: "Activated", count: statsTotal > 0 ? statsActivated : "-" },
           { title: "Declined", count: statsTotal > 0 ? statsDeclined : "-" }
         ].map((card, i) => (
-          <div key={i} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-5 flex flex-col justify-between h-28 select-none">
-            <span className="text-[10px] text-text-muted font-medium">{card.title}</span>
-            <span className="text-2xl font-bold text-text-primary mt-auto">{card.count}</span>
+          <div key={i} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-22.5 hover:shadow-xs transition select-none">
+            <span className="text-sm text-text-primary">{card.title}</span>
+            <strong className="text-2xl text-text-primary font-semibold block pt-3">{card.count}</strong>
           </div>
         ))}
       </div>
 
-      {/* Table Card wrapper */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
+      {/* Main Table Container Box */}
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         
-        {/* Filters Header bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-secondary-bg">
+        {/* Filters control bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -271,7 +271,7 @@ export default function FoundingPartnersPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
@@ -283,7 +283,7 @@ export default function FoundingPartnersPage() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
                 <option value="Active">Active</option>
@@ -320,7 +320,7 @@ export default function FoundingPartnersPage() {
           <>
             <div className="overflow-x-auto overflow-y-visible">
               <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+                <thead className="bg-secondary-bg text-text-primary text-left text-sm font-bold">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Email Address</th>
@@ -342,7 +342,7 @@ export default function FoundingPartnersPage() {
                           item.status === "Declined" ? "text-text-muted bg-page-bg" :
                           "text-red-500 bg-red-50"
                         }`}>
-                          <span className="h-1.25 w-1.25 rounded-full bg-current" />
+                          <span className="h-1 w-1 rounded-full bg-current" />
                           {item.status}
                         </span>
                       </td>
@@ -359,9 +359,9 @@ export default function FoundingPartnersPage() {
                               setActiveMenuRowId(item.id);
                             }
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-page-bg transition cursor-pointer text-text-muted hover:text-text-primary"
+                          className="flex items-center justify-center rounded-full hover:bg-page-bg transition cursor-pointer text-text-primary"
                         >
-                          <MoreHorizontal size={14} />
+                          <MoreHorizontal size={16} />
                         </button>
 
                         {/* Actions context menu overlay */}

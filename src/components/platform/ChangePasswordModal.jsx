@@ -54,14 +54,14 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs text-text-primary font-onest">
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
           
           {/* Current password */}
           <div className="space-y-1">
@@ -72,7 +72,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
                 required
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 pr-10 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 pr-10 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
               />
               <button
                 type="button"
@@ -93,7 +93,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
               placeholder="Min. 12 characters"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
           </div>
 
@@ -106,7 +106,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
               placeholder="Repeat new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
           </div>
 
@@ -136,13 +136,13 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center shadow-2xs"
+              className="flex-1 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Update Password
             </button>

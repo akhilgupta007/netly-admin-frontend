@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, ChevronDown, MoreHorizontal, Edit3, Trash2 } from "lucide-react";
+import { Search, ChevronDown, MoreHorizontal, Edit3, Trash2, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
@@ -94,7 +94,6 @@ export default function AdminUsersTab() {
   // Dropdown row control state
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const dropdownRef = useRef(null);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -201,29 +200,31 @@ export default function AdminUsersTab() {
   );
 
   return (
-    <div className="space-y-4 animate-scale-up text-xs text-text-primary">
+    <div className="space-y-4 font-onest animate-scale-up text-xs text-text-primary">
 
-      {/* Summary Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Summary Stat Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {[
           { title: "Finance", count: statsFinance, sub: "Manages the transactions, refunds, etc." },
           { title: "Compliance", count: statsCompliance, sub: "Manages the KYC, disputes, audit logs, etc." },
           { title: "Support", count: statsSupport, sub: "Manages accounts, disputes, etc." },
           { title: "Moderator", count: statsModerator, sub: "Manages content, service categories, etc." }
         ].map((card, i) => (
-          <div key={i} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-5 flex flex-col justify-between h-28 select-none">
-            <span className="text-[10px] text-text-muted font-medium">{card.title}</span>
-            <span className="text-2xl font-bold text-text-primary mt-2">{card.count}</span>
-            <span className="text-[9px] text-text-muted font-light mt-auto block truncate">{card.sub}</span>
+          <div key={i} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-28 hover:shadow-xs transition select-none">
+            <div>
+              <span className="text-sm text-text-primary">{card.title}</span>
+              <strong className="text-2xl text-text-primary font-semibold block pt-1">{card.count}</strong>
+            </div>
+            <span className="text-[10px] text-text-muted font-light mt-2 block truncate">{card.sub}</span>
           </div>
         ))}
       </div>
 
-      {/* Table Card wrapper */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
+      {/* Main Table Container Box */}
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
         
-        {/* Filters Header bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-secondary-bg">
+        {/* Filters control bar */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -234,7 +235,7 @@ export default function AdminUsersTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
@@ -268,9 +269,9 @@ export default function AdminUsersTab() {
 
             <button
               onClick={() => setInviteOpen(true)}
-              className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer select-none flex items-center gap-1.5 shadow-2xs h-9.5 shrink-0"
+              className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 px-4 rounded-lg transition cursor-pointer select-none flex items-center gap-1.5 h-9.5 shrink-0"
             >
-              + Invite Admin
+              <Plus size={18} /> Invite Admin
             </button>
           </div>
         </div>
@@ -320,18 +321,19 @@ export default function AdminUsersTab() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${
                             item.twoFA === "Enabled" ? "text-emerald-500 bg-emerald-50" :
                             item.twoFA === "Setup Pending" ? "text-amber-500 bg-amber-50" :
                             "text-red-500 bg-red-50"
                           }`}>
+                            <span className="h-1 w-1 rounded-full bg-current" />
                             {item.twoFA}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          {/*Sofia Kim as Super Admin shouldn't have edit/revoke capabilities in Screenshot 1*/}
+                        <td className="px-4 py-3" data-dropdown-container>
+                          {/* Sofia Kim as Super Admin shouldn't have edit/revoke capabilities in Screenshot 1 */}
                           {item.role !== "Super Admin" ? (
-                            <div data-dropdown-container>
+                            <div className="relative inline-block">
                               <button
                                 onClick={(e) => {
                                   if (activeMenuRowId === item.id) {
@@ -340,19 +342,19 @@ export default function AdminUsersTab() {
                                     const rect = e.currentTarget.getBoundingClientRect();
                                     const isLastItem = index === paginatedAdmins.length - 1;
                                     const top = isLastItem ? rect.top - 80 : rect.bottom + 4;
-                                    setDropdownPos({ top, left: rect.left - 100 });
+                                    setDropdownPos({ top, left: rect.left - 120 });
                                     setActiveMenuRowId(item.id);
                                   }
                                 }}
-                                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-page-bg transition cursor-pointer text-text-muted hover:text-text-primary mx-auto"
+                                className="flex items-center justify-center rounded-full hover:bg-page-bg transition cursor-pointer text-text-primary"
                               >
-                                <MoreHorizontal size={14} />
+                                <MoreHorizontal size={16} />
                               </button>
 
                               {/* Actions overlay menu list */}
                               {activeMenuRowId === item.id && (
                                 <div
-                                  className="fixed w-32 bg-white border border-secondary-bg rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
+                                  className="fixed w-30 bg-white border border-secondary-bg rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
                                   style={{ top: dropdownPos.top, left: dropdownPos.left }}
                                 >
                                   <button
@@ -382,7 +384,7 @@ export default function AdminUsersTab() {
                             <span className="text-[10px] text-text-muted select-none font-light">—</span>
                           )}
                         </td>
-                    </tr>
+                      </tr>
                   );
                 })}
               </tbody>

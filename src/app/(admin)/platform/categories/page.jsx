@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Image as ImageIcon, ChevronRight, ChevronDown, PlusCircle, Check } from "lucide-react";
+import { Image as ImageIcon, ChevronRight, ChevronDown, PlusCircle, Check, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import AddCategoryModal from "@/components/platform/AddCategoryModal";
 import AddSubServiceModal from "@/components/platform/AddSubServiceModal";
@@ -42,7 +42,7 @@ const initialCategories = [
 
 export default function ServiceCategoriesPage() {
   const [categories, setCategories] = useState([]);
-  
+
   // Accordion open/close map
   const [expandedCats, setExpandedCats] = useState({ "CAT-001": true });
 
@@ -50,7 +50,7 @@ export default function ServiceCategoriesPage() {
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [subServiceModalOpen, setSubServiceModalOpen] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
-  
+
   // Pending deactivation entity state
   const [pendingDeactivation, setPendingDeactivation] = useState(null);
 
@@ -204,25 +204,24 @@ export default function ServiceCategoriesPage() {
   return (
     <div className="space-y-4 font-onest animate-scale-up">
 
-      {/* Top Header Controls bar */}
       <div className="flex justify-end items-center gap-2">
         <button
           onClick={() => setSubServiceModalOpen(true)}
-          className="border border-[#6FB5BD] hover:bg-[#6FB5BD]/5 text-[#6FB5BD] font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer select-none flex items-center gap-1.5 bg-white"
+          className="border border-border-main hover:bg-secondary-bg text-primary-bg font-medium text-sm py-2 px-4 rounded-lg transition cursor-pointer select-none flex items-center gap-1.5 bg-white"
         >
-          + Add Sub Service
+          <Plus size={16} /> Add Sub Service
         </button>
         <button
           onClick={() => setCategoryModalOpen(true)}
-          className="bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-semibold text-xs py-2 px-4 rounded-xl transition cursor-pointer select-none flex items-center gap-1.5 shadow-2xs"
+          className="bg-primary-bg hover:bg-primary-bg-muted text-white font-medium text-sm py-2 px-4 rounded-lg transition cursor-pointer select-none flex items-center gap-1.5 shadow-2xs"
         >
-          + Add Category
+          <Plus size={16} /> Add Category
         </button>
       </div>
 
       {/* Accordion Table Card */}
       <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
-        
+
         {categories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-4 text-center space-y-4 select-none bg-white">
             <img src="/empty.png" alt="No categories" className="w-16 h-16 object-contain opacity-75 animate-pulse" />
@@ -255,7 +254,7 @@ export default function ServiceCategoriesPage() {
                         <td className="px-4 py-3 flex items-center gap-2">
                           <button
                             onClick={() => handleToggleExpand(cat.id)}
-                            className="w-5 h-5 flex items-center justify-center hover:bg-secondary-bg/60 rounded transition cursor-pointer text-text-muted"
+                            className="flex items-center justify-center hover:bg-secondary-bg/60 rounded transition cursor-pointer text-text-muted"
                           >
                             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </button>
@@ -271,13 +270,13 @@ export default function ServiceCategoriesPage() {
                               />
                               <button
                                 onClick={() => handleSaveRename(cat, true, null)}
-                                className="text-[#6FB5BD] hover:underline font-semibold cursor-pointer text-[10px]"
+                                className="text-primary-bg font-semibold cursor-pointer"
                               >
                                 Save
                               </button>
                               <button
                                 onClick={() => setEditingRowId(null)}
-                                className="text-text-muted hover:underline font-semibold cursor-pointer text-[10px]"
+                                className="text-text-muted font-semibold cursor-pointer"
                               >
                                 Cancel
                               </button>
@@ -287,8 +286,8 @@ export default function ServiceCategoriesPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <div className="inline-flex w-7 h-7 bg-page-bg/40 border border-secondary-bg/50 rounded-lg items-center justify-center">
-                            <ImageIcon size={13} className="text-text-muted" />
+                          <div className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center">
+                            <ImageIcon size={18} className="text-text-muted" />
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -296,31 +295,30 @@ export default function ServiceCategoriesPage() {
                           <button
                             type="button"
                             onClick={() => handleToggleClick(cat, true, null)}
-                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              cat.active ? "bg-[#6FB5BD]" : "bg-secondary-bg"
-                            }`}
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${cat.active ? "bg-primary-bg-muted" : "bg-secondary-bg"
+                              }`}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
-                                cat.active ? "translate-x-4" : "translate-x-0"
-                              }`}
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${cat.active ? "translate-x-4" : "translate-x-0"
+                                }`}
                             />
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-center font-bold">
+                        <td className="px-4 py-3 text-center font-semibold text-lg">
                           {cat.bookings}
                         </td>
                         <td className="px-4 py-3 text-right">
                           {isCatEditing ? (
                             <button
-                              className="border border-text-primary text-text-primary font-semibold text-[10px] py-1.25 px-3.5 rounded-lg select-none"
+                              className="border border-text-primary text-text-primary font-medium py-1.25 px-3.5 rounded-xl select-none bg-white"
                             >
                               Edit
                             </button>
                           ) : (
                             <button
+                              disabled={!cat.active}
                               onClick={() => startEditing(cat)}
-                              className="border border-secondary-bg hover:bg-page-bg text-text-muted hover:text-text-primary font-semibold text-[10px] py-1.25 px-3.5 rounded-lg transition cursor-pointer select-none"
+                              className="border border-primary-bg hover:bg-primary-bg-muted/20 text-primary-bg font-medium py-1.25 px-3.5 rounded-xl transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
                             >
                               Edit
                             </button>
@@ -333,11 +331,10 @@ export default function ServiceCategoriesPage() {
                         const isSubEditing = editingRowId === sub.id;
 
                         return (
-                          <tr key={sub.id} className={`bg-white hover:bg-page-bg/30 transition-colors border-t border-secondary-bg/25 ${
-                            (!sub.active || !cat.active) ? "opacity-60" : ""
-                          }`}>
+                          <tr key={sub.id} className={`bg-page-bg/70 hover:bg-page-bg transition-colors border-t border-secondary-bg/25 ${(!sub.active || !cat.active) ? "opacity-60" : ""
+                            }`}>
                             <td className="px-4 py-3 flex items-center pl-10 gap-2">
-                              <span className="text-text-muted/40 font-light select-none mr-1">—</span>
+                              <span className="font-light select-none mr-1">—</span>
                               {isSubEditing ? (
                                 <div className="flex items-center gap-2 animate-scale-up">
                                   <input
@@ -349,13 +346,13 @@ export default function ServiceCategoriesPage() {
                                   />
                                   <button
                                     onClick={() => handleSaveRename(sub, false, cat.id)}
-                                    className="text-[#6FB5BD] hover:underline font-semibold cursor-pointer text-[10px]"
+                                    className="text-primary-bg font-semibold cursor-pointer"
                                   >
                                     Save
                                   </button>
                                   <button
                                     onClick={() => setEditingRowId(null)}
-                                    className="text-text-muted hover:underline font-semibold cursor-pointer text-[10px]"
+                                    className="text-text-muted font-semibold cursor-pointer"
                                   >
                                     Cancel
                                   </button>
@@ -365,8 +362,8 @@ export default function ServiceCategoriesPage() {
                               )}
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <div className="inline-flex w-7 h-7 bg-page-bg/40 border border-secondary-bg/50 rounded-lg items-center justify-center bg-white">
-                                <ImageIcon size={13} className="text-text-muted" />
+                              <div className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center">
+                                <ImageIcon size={18} className="text-text-muted" />
                               </div>
                             </td>
                             <td className="px-4 py-3 text-center">
@@ -375,14 +372,12 @@ export default function ServiceCategoriesPage() {
                                 type="button"
                                 disabled={!cat.active}
                                 onClick={() => handleToggleClick(sub, false, cat.id)}
-                                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                  sub.active && cat.active ? "bg-[#6FB5BD]" : "bg-secondary-bg"
-                                } ${!cat.active ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                                className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${sub.active && cat.active ? "bg-primary-bg-muted" : "bg-secondary-bg"
+                                  } ${!cat.active ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                               >
                                 <span
-                                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
-                                    sub.active && cat.active ? "translate-x-4" : "translate-x-0"
-                                  }`}
+                                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${sub.active && cat.active ? "translate-x-4" : "translate-x-0"
+                                    }`}
                                 />
                               </button>
                             </td>
@@ -392,7 +387,7 @@ export default function ServiceCategoriesPage() {
                             <td className="px-4 py-3 text-right">
                               {isSubEditing ? (
                                 <button
-                                  className="border border-text-primary text-text-primary font-semibold text-[10px] py-1.25 px-3.5 rounded-lg select-none bg-white"
+                                  className="border border-text-primary text-text-primary font-medium py-1.25 px-3.5 rounded-xl select-none bg-white"
                                 >
                                   Edit
                                 </button>
@@ -400,7 +395,7 @@ export default function ServiceCategoriesPage() {
                                 <button
                                   disabled={!cat.active}
                                   onClick={() => startEditing(sub)}
-                                  className="border border-secondary-bg hover:bg-page-bg text-text-muted hover:text-text-primary font-semibold text-[10px] py-1.25 px-3.5 rounded-lg transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
+                                  className="border border-primary-bg hover:bg-primary-bg-muted/20 text-primary-bg font-medium py-1.25 px-3.5 rounded-xl transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
                                 >
                                   Edit
                                 </button>
