@@ -34,6 +34,12 @@ const parseTxDate = (dateStr) => {
 };
 
 export default function TransactionsPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Filters & Page state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -412,10 +418,8 @@ export default function TransactionsPage() {
 
 
   return (
-    <div className="space-y-6">
-
-      {/* Main Transactions List Table Card */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      // Main Transactions List Table Card
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
         {/* Filter and Search controls bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl">
           {/* Single search bar input */}
@@ -476,7 +480,7 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-b-3xl">
           <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
             <thead className="bg-secondary-bg text-text-primary text-left">
               <tr>
@@ -539,10 +543,18 @@ export default function TransactionsPage() {
                     </tr>
                   );
                 })
+              ) : isLoading ? (
+                <tr>
+                  <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
+                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
+                      <span className="text-xs text-text-muted animate-pulse">Loading Transactions Data...</span>
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 <tr>
                   <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
-                    <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
                       <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
                       <span>No transactions found matching search filter criteria.</span>
                     </div>
@@ -563,8 +575,5 @@ export default function TransactionsPage() {
           />
         )}
       </div>
-
-
-    </div>
   );
 }

@@ -72,14 +72,14 @@ export default function ProfileSettingsTab() {
   };
 
   return (
-    <div className="space-y-6 animate-scale-up text-xs text-text-primary font-onest">
+    <div className="space-y-4 animate-scale-up text-xs text-text-primary font-onest">
       
       {/* Profile Settings Card */}
-      <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-6 space-y-6 relative">
+      <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-4 space-y-4 relative">
         <h3 className="text-sm font-semibold text-text-primary">Profile Settings</h3>
 
         {/* Avatar block */}
-        <div className="relative w-14 h-14 bg-[#6FB5BD]/10 border border-[#6FB5BD]/20 rounded-full flex items-center justify-center font-bold text-lg text-[#6FB5BD] select-none hover:opacity-95 cursor-pointer">
+        <div className="relative w-14 h-14 text-white rounded-full flex items-center justify-center font-medium text-lg bg-primary-bg-muted select-none hover:opacity-95 cursor-pointer">
           {firstName.charAt(0)}{lastName.charAt(0)}
           <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-secondary-bg rounded-full flex items-center justify-center text-text-muted hover:text-text-primary transition shadow-2xs">
             <Edit2 size={9} />
@@ -90,7 +90,7 @@ export default function ProfileSettingsTab() {
         <div className="space-y-4 max-w-4xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-text-primary block font-medium">First Name</label>
+              <label className="text-xs text-text-muted block">First Name</label>
               <input
                 type="text"
                 required
@@ -100,7 +100,7 @@ export default function ProfileSettingsTab() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-text-primary block font-medium">Last Name</label>
+              <label className="text-xs text-text-muted block">Last Name</label>
               <input
                 type="text"
                 required
@@ -112,7 +112,7 @@ export default function ProfileSettingsTab() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">Job Title</label>
+            <label className="text-xs text-text-muted block">Job Title</label>
             <input
               type="text"
               disabled
@@ -123,7 +123,7 @@ export default function ProfileSettingsTab() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-text-primary block font-medium">Email Address</label>
+              <label className="text-xs text-text-muted block">Email Address</label>
               <input
                 type="email"
                 required
@@ -133,7 +133,7 @@ export default function ProfileSettingsTab() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-text-primary block font-medium">Phone Number</label>
+              <label className="text-xs text-text-muted block">Phone Number</label>
               <input
                 type="text"
                 required
@@ -145,7 +145,7 @@ export default function ProfileSettingsTab() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">Password</label>
+            <label className="text-xs text-text-muted block">Password</label>
             <input
               type="password"
               disabled
@@ -155,7 +155,7 @@ export default function ProfileSettingsTab() {
             <button
               type="button"
               onClick={() => setPasswordModalOpen(true)}
-              className="text-[#6FB5BD] hover:underline font-semibold cursor-pointer text-[10px] block mt-1.5"
+              className="text-primary-bg hover:underline cursor-pointer text-[10px] block mt-1.5"
             >
               Change Password
             </button>
@@ -166,7 +166,7 @@ export default function ProfileSettingsTab() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-semibold text-xs py-2.5 px-5 rounded-xl transition cursor-pointer shadow-2xs"
+            className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-3 px-5 rounded-lg transition cursor-pointer"
           >
             Save Changes
           </button>
@@ -174,12 +174,12 @@ export default function ProfileSettingsTab() {
       </form>
 
       {/* Security configuration card */}
-      <form onSubmit={handleSaveSecurity} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-6 space-y-5 relative">
+      <form onSubmit={handleSaveSecurity} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-4 space-y-5 relative">
         <h3 className="text-sm font-semibold text-text-primary">Security configuration</h3>
 
         {/* Session Timeout */}
-        <div className="space-y-1.5 max-w-md">
-          <label className="text-xs text-text-primary block font-medium">Session timeout (minutes)</label>
+        <div className="space-y-1.5 p-3 border border-border-main rounded-xl w-full">
+          <label className="text-xs text-text-primary block">Session timeout (minutes)</label>
           <div className="flex items-center">
             <input
               type="number"
@@ -198,10 +198,10 @@ export default function ProfileSettingsTab() {
         </div>
 
         {/* 2FA switch toggle */}
-        <div className="flex items-center justify-between py-4 border-t border-b border-secondary-bg/40 max-w-4xl">
+        <div className="flex items-center justify-between p-3 border border-border-main rounded-xl w-full">
           <div className="space-y-0.5">
-            <strong className="text-xs font-semibold text-text-primary block">Force 2FA for all admin users</strong>
-            <span className="text-[10px] text-text-muted font-light block">
+            <div className="text-xs text-text-primary block">Force 2FA for all admin users</div>
+            <span className="text-[10px] mt-2 text-text-muted font-light block">
               Enabled by default. Cannot be disabled per platform security policy.
             </span>
           </div>
@@ -213,7 +213,7 @@ export default function ProfileSettingsTab() {
               type="button"
               onClick={() => setForce2FA(!force2FA)}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                force2FA ? "bg-[#6FB5BD]" : "bg-secondary-bg"
+                force2FA ? "bg-primary-bg" : "bg-secondary-bg"
               }`}
             >
               <span
@@ -226,7 +226,7 @@ export default function ProfileSettingsTab() {
         </div>
 
         {/* Warn banner block */}
-        <div className="bg-amber-50/45 border border-amber-200/50 rounded-2xl p-4 flex items-start gap-2.5 max-w-4xl text-[10px] text-amber-800 font-light">
+        <div className="bg-amber-50/45 border border-amber-200/50 rounded-xl p-4 flex items-start gap-2.5 w-full text-[10px] text-amber-800 font-light">
           <AlertCircle size={15} className="text-amber-600/80 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             All admin actions are logged to audit_logs. IP addresses are captured per session. Logs are immutable.
@@ -237,7 +237,7 @@ export default function ProfileSettingsTab() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="bg-[#6FB5BD] hover:bg-[#5da0a8] text-white font-semibold text-xs py-2.5 px-5 rounded-xl transition cursor-pointer shadow-2xs"
+            className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-3 px-5 rounded-lg transition cursor-pointer"
           >
             Save Settings
           </button>

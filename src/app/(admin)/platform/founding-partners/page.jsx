@@ -7,6 +7,7 @@ import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import PartnerDetailModal from "@/components/platform/PartnerDetailModal";
 import PartnerSuspendBanModal from "@/components/platform/PartnerSuspendBanModal";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 // Initial Mock Partners list matching Screenshot 1 values
 const initialPartners = [
@@ -178,6 +179,12 @@ export default function FoundingPartnersPage() {
     }
   }, []);
 
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const savePartners = (updatedList) => {
     setPartners(updatedList);
     localStorage.setItem("netly_founding_partners", JSON.stringify(updatedList));
@@ -249,15 +256,16 @@ export default function FoundingPartnersPage() {
           { title: "Activated", count: statsTotal > 0 ? statsActivated : "-" },
           { title: "Declined", count: statsTotal > 0 ? statsDeclined : "-" }
         ].map((card, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-22.5 hover:shadow-xs transition select-none">
-            <span className="text-sm text-text-primary">{card.title}</span>
-            <strong className="text-2xl text-text-primary font-semibold block pt-3">{card.count}</strong>
-          </div>
+          <CardWrapper
+            key={i}
+            name={card.title}
+            value={card.count}
+          />
         ))}
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
         
         {/* Filters control bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -307,9 +315,12 @@ export default function FoundingPartnersPage() {
           </div>
         </div>
 
-        {/* Dynamic content area */}
-        {filteredPartners.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
+            <span className="text-xs text-text-muted animate-pulse font-light">Loading Founding Partners Data...</span>
+          </div>
+        ) : filteredPartners.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-text-primary">No founding partners signups yet</h3>
@@ -318,7 +329,7 @@ export default function FoundingPartnersPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto overflow-y-visible">
+            <div className="overflow-x-auto overflow-y-visible rounded-b-3xl">
               <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
                 <thead className="bg-secondary-bg text-text-primary text-left text-sm font-bold">
                   <tr>

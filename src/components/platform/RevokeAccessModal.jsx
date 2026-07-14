@@ -19,7 +19,8 @@ export default function RevokeAccessModal({ user, isOpen, onClose, onRevoke }) {
             className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
             <X size={12} strokeWidth={2.5} />
-          </button>
+          </button>`` 1x v,
+          
         </div>
 
         {/* Modal Form */}

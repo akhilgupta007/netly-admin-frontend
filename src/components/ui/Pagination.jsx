@@ -8,7 +8,7 @@ export default function Pagination({ currentPage, itemsPerPage, totalItems, onPa
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   return (
-    <div className="flex items-center justify-between border-t border-secondary-bg px-5 py-3 bg-white select-none">
+    <div className="flex items-center justify-between border-t border-secondary-bg px-5 py-3 bg-white select-none rounded-b-3xl">
       <span className="text-[10px] text-text-muted font-medium">
         Showing {totalItems === 0 ? 0 : startItem}-{endItem} of {totalItems}
       </span>

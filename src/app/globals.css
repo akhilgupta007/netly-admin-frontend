@@ -15,6 +15,9 @@
   --color-text-muted: #909090;
   --color-border-main: #E4ECEC;
 
+  /* Custom Spacing */
+  --spacing-100: 25rem;
+
   /* Font */
   --font-onest: var(--font-onest-var);
 }

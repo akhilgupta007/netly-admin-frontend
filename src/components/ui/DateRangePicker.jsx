@@ -3,12 +3,14 @@
 import React, { useState } from "react";
 import { Calendar } from "lucide-react";
 
-export default function DateRangePicker({ startDate, endDate, onChange }) {
+export default function DateRangePicker({ startDate, endDate, onChange, isWeekView }) {
   const [tempStartDate, setTempStartDate] = useState(startDate);
   const [tempEndDate, setTempEndDate] = useState(endDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showMonthYearSelector, setShowMonthYearSelector] = useState(false);
-  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date(2027, 4, 1)); // Default to May 2027
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(
+    startDate ? new Date(startDate) : new Date(2026, 6, 1)
+  );
 
   // Sync temp dates with applied dates when opening calendar
   const toggleCalendar = () => {
@@ -16,19 +18,41 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
       setTempStartDate(startDate);
       setTempEndDate(endDate);
       setShowMonthYearSelector(false);
+      if (startDate) {
+        setCurrentCalendarDate(new Date(startDate));
+      }
     }
     setCalendarOpen(!calendarOpen);
   };
 
   const handleApply = () => {
-    onChange(tempStartDate, tempEndDate);
+    if (tempStartDate) {
+      if (isWeekView) {
+        const end = new Date(tempStartDate);
+        end.setDate(end.getDate() + 6);
+        onChange(tempStartDate, end);
+      } else {
+        const end = tempEndDate || tempStartDate;
+        onChange(tempStartDate, end);
+      }
+    } else {
+      onChange(null, null);
+    }
     setCalendarOpen(false);
   };
 
   const handleReset = () => {
-    setTempStartDate(null);
-    setTempEndDate(null);
-    onChange(null, null);
+    if (isWeekView) {
+      const defaultStart = new Date(2026, 6, 1);
+      const defaultEnd = new Date(2026, 6, 7);
+      setTempStartDate(defaultStart);
+      setTempEndDate(defaultEnd);
+      onChange(defaultStart, defaultEnd);
+    } else {
+      setTempStartDate(null);
+      setTempEndDate(null);
+      onChange(null, null);
+    }
     setCalendarOpen(false);
   };
 
@@ -178,23 +202,46 @@ export default function DateRangePicker({ startDate, endDate, onChange }) {
                   const isEnd = tempEndDate && thisDate.toDateString() === tempEndDate.toDateString();
                   const isBetween = tempStartDate && tempEndDate && thisDate > tempStartDate && thisDate < tempEndDate;
                   
+                  const today = new Date();
+                  today.setHours(23, 59, 59, 999);
+                  
+                  let isFuture = thisDate > today;
+                  if (isWeekView) {
+                    const end = new Date(thisDate);
+                    end.setDate(end.getDate() + 6);
+                    if (end > today) {
+                      isFuture = true;
+                    }
+                  }
+
                   return (
                     <button
                       key={dayNumber}
+                      disabled={isFuture}
                       onClick={() => {
-                        if (!tempStartDate || (tempStartDate && tempEndDate)) {
+                        if (isFuture) return;
+                        if (isWeekView) {
+                          const end = new Date(thisDate);
+                          end.setDate(end.getDate() + 6);
                           setTempStartDate(thisDate);
-                          setTempEndDate(null);
-                        } else if (tempStartDate && !tempEndDate) {
-                          if (thisDate < tempStartDate) {
+                          setTempEndDate(end);
+                        } else {
+                          if (!tempStartDate || (tempStartDate && tempEndDate)) {
                             setTempStartDate(thisDate);
-                          } else {
-                            setTempEndDate(thisDate);
+                            setTempEndDate(null);
+                          } else if (tempStartDate && !tempEndDate) {
+                            if (thisDate < tempStartDate) {
+                              setTempStartDate(thisDate);
+                            } else {
+                              setTempEndDate(thisDate);
+                            }
                           }
                         }
                       }}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-medium cursor-pointer transition ${
-                        isStart || isEnd
+                        isFuture
+                          ? "opacity-30 cursor-not-allowed pointer-events-none text-text-muted/40"
+                          : isStart || isEnd
                           ? "bg-primary-bg text-white font-bold animate-scale-up"
                           : isBetween
                           ? "bg-primary-bg/10 text-primary-bg rounded-none"

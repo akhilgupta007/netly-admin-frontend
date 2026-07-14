@@ -4,20 +4,35 @@ import React, { useState } from "react";
 import { ChevronDown, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
+import DateRangePicker from "@/components/ui/DateRangePicker";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 export default function TransactionVolumeTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
   const [category, setCategory] = useState("All");
+  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
+  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
 
-  const chartData = [
-    { day: "Jun 21", bookings: 38, gmv: 3500 },
-    { day: "Jun 22", bookings: 48, gmv: 4200 },
-    { day: "Jun 23", bookings: 32, gmv: 2800 },
-    { day: "Jun 24", bookings: 55, gmv: 5100 },
-    { day: "Jun 25", bookings: 68, gmv: 6200 },
-    { day: "Jun 26", bookings: 45, gmv: 3900 },
-    { day: "Jun 27", bookings: 35, gmv: 3100 }
-  ];
+  const getChartData = () => {
+    const data = [];
+    const baseVal = category === "All" ? 1 : 0.4;
+    const mockPatterns = [3500, 4200, 2800, 5100, 6200, 3900, 3100];
+    const mockBookings = [38, 48, 32, 55, 68, 45, 35];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      data.push({
+        dayName,
+        fullDate,
+        bookings: Math.round(mockBookings[i] * baseVal),
+        gmv: Math.round(mockPatterns[i] * baseVal)
+      });
+    }
+    return data;
+  };
+  const chartData = getChartData();
 
   const handleExportCSV = () => {
     const headers = ["Day", "Bookings", "GMV ($)"];
@@ -31,8 +46,22 @@ export default function TransactionVolumeTab() {
     exportPDF("Transaction Volume Report", headers, rows, `transaction_volume_${Date.now()}.pdf`);
   };
 
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+        <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-scale-up">
+    <div className="animate-scale-up font-onest">
       {/* Filters row bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5">
         <div className="flex items-center gap-2 flex-wrap">
@@ -51,9 +80,15 @@ export default function TransactionVolumeTab() {
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>
 
-          <div className="border border-border-main rounded-full px-4 py-1.5 text-xs text-text-muted bg-white flex items-center gap-1.5">
-            <span>01/07/26 - 08/07/26</span>
-          </div>
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+            }}
+            isWeekView={true}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -74,23 +109,21 @@ export default function TransactionVolumeTab() {
 
       {/* Grid cards row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-secondary-bg rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Total bookings</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">365</strong>
-          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
-        </div>
-
-        <div className="bg-white border border-secondary-bg rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">GMV (period)</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$44,900.00</strong>
-          <span className="text-[10px] text-text-muted block">Gross merchandise value</span>
-        </div>
-
-        <div className="bg-white border border-secondary-bg rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Average booking value</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$126.12</strong>
-          <span className="text-[10px] text-text-muted block">Per transaction</span>
-        </div>
+        <CardWrapper
+          name="Total bookings"
+          value="365"
+          note="Jun 18-24"
+        />
+        <CardWrapper
+          name="GMV (period)"
+          value="$44,900.00"
+          note="Gross merchandise value"
+        />
+        <CardWrapper
+          name="Average booking value"
+          value="$126.12"
+          note="Per transaction"
+        />
       </div>
 
       {/* Daily Bookings & GMV Chart Section */}
@@ -222,9 +255,10 @@ export default function TransactionVolumeTab() {
           <div className="flex pl-10 pr-14 mt-2">
             <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
               {chartData.map((d, index) => (
-                <span key={index} className="w-0 overflow-visible text-center whitespace-nowrap flex justify-center text-sm text-text-muted font-light">
-                  {d.day}
-                </span>
+                <div key={index} className="w-0 overflow-visible text-center flex flex-col items-center justify-center shrink-0">
+                  <span className="text-xs text-text-primary">{d.dayName}</span>
+                  <span className="text-[10px] text-text-muted whitespace-nowrap leading-none mt-0.5">{d.fullDate}</span>
+                </div>
               ))}
             </div>
           </div>

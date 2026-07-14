@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import CardWrapper from "@/components/ui/CardWrapper";
+import DateRangePicker from "@/components/ui/DateRangePicker";
 import {
   Calendar,
   X,
@@ -16,16 +17,26 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Banner visibility state
   const [showBanner, setShowBanner] = useState(true);
 
   // Time filter state
   const [timeFilter, setTimeFilter] = useState("This week");
 
+  // Custom date range state
+  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
+  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
+
   // Chart type state (Bar or Line)
   const [chartType, setChartType] = useState("Bar");
 
-  // Mock data for weekly chart
+  // Mock data for weekly chart - unaffected by the filters
   const chartData = [
     { label: "Mon", outbound: 5400, retained: 3700 },
     { label: "Tue", outbound: 6600, retained: 4800 },
@@ -38,42 +49,94 @@ export default function DashboardPage() {
 
   const maxVal = 10000;
 
+  // Get values based on current timeFilter and custom date range if "Custom"
+  const getDynamicStats = () => {
+    let multiplier = 1;
+    let note = "This week";
+
+    if (timeFilter === "Today") {
+      multiplier = 0.15;
+      note = "Today";
+    } else if (timeFilter === "This week") {
+      multiplier = 1;
+      note = "This week";
+    } else if (timeFilter === "This month") {
+      multiplier = 4.2;
+      note = "This month";
+    } else if (timeFilter === "Custom") {
+      if (startDate && endDate) {
+        const diffDays = Math.max(1, Math.round(Math.abs((endDate - startDate) / (24 * 60 * 60 * 1000)))) || 7;
+        multiplier = diffDays / 7;
+        note = `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      } else {
+        multiplier = 1;
+        note = "Custom range";
+      }
+    }
+
+    return {
+      // Operations
+      bookings: Math.round(1284 * multiplier).toLocaleString(),
+      completionRate: "94.2%",
+      openDisputes: "7",
+      walletCreditsPending: "3",
+      refundRequests: Math.max(1, Math.round(11 * multiplier)).toLocaleString(),
+      kycDocsInQueue: "23",
+      
+      // Money
+      gmv: `$${(48291.00 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      revenue: `$${(9820.45 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      fees: `$${(2414.55 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      liability: "$31,847.20", // balance: no trend
+      
+      // Accounts
+      newClients: Math.round(284 * multiplier).toLocaleString(),
+      newProviders: Math.round(61 * multiplier).toLocaleString(),
+      suspended: "14",
+      unresolvedDisputes: "7",
+      
+      note
+    };
+  };
+
+  const dynamicStats = getDynamicStats();
+
   // Operations metrics data
   const operationsCards = [
     {
       name: "Bookings",
-      value: "1,284",
-      note: "This week",
+      value: dynamicStats.bookings,
+      note: dynamicStats.note,
       icon: Calendar,
     },
     {
       name: "Completion rate",
-      value: "94.2%",
+      value: dynamicStats.completionRate,
       note: "Completed + canceled",
       icon: CheckCircle,
     },
     {
       name: "Open disputes",
-      value: "7",
+      value: dynamicStats.openDisputes,
       note: "Tap to review",
       icon: AlertTriangle,
       href: "/compliance/disputes",
     },
     {
       name: "Wallet credits pending",
-      value: "3",
+      value: dynamicStats.walletCreditsPending,
       note: "Awaiting approval",
       icon: Clock,
     },
     {
       name: "Refund requests",
-      value: "11",
+      value: dynamicStats.refundRequests,
       note: "Awaiting approval",
       icon: Clock,
     },
     {
       name: "KYC docs in queue",
-      value: "23",
+      value: dynamicStats.kycDocsInQueue,
       note: "Identity verification",
       icon: ShieldCheck,
       href: "/compliance/kyc",
@@ -84,25 +147,25 @@ export default function DashboardPage() {
   const moneyCards = [
     {
       name: "Gross Merchandise Value",
-      value: "$48,291.00",
-      note: "This week",
+      value: dynamicStats.gmv,
+      note: dynamicStats.note,
       icon: ShieldCheck,
     },
     {
       name: "NETLY net revenue",
-      value: "$9,820.45",
+      value: dynamicStats.revenue,
       note: "5% + 15% commission",
       icon: ShieldCheck,
     },
     {
       name: "Non-refundable 5% fees",
-      value: "$2,414.55",
+      value: dynamicStats.fees,
       note: "Total collected",
       icon: ShieldCheck,
     },
     {
       name: "Client wallet balance",
-      value: "$31,847.20",
+      value: dynamicStats.liability,
       note: "Live liability - no trend",
       icon: ShieldCheck,
     },
@@ -112,30 +175,38 @@ export default function DashboardPage() {
   const accountsCards = [
     {
       name: "New clients",
-      value: "284",
-      note: "This week",
+      value: dynamicStats.newClients,
+      note: dynamicStats.note,
       icon: ShieldCheck,
     },
     {
       name: "New providers",
-      value: "61",
-      note: "This week",
+      value: dynamicStats.newProviders,
+      note: dynamicStats.note,
       icon: ShieldCheck,
     },
     {
       name: "Suspended accounts",
-      value: "14",
+      value: dynamicStats.suspended,
       note: "Tap to manage",
       icon: ShieldCheck,
     },
     {
       name: "Unresolved disputes",
-      value: "7",
+      value: dynamicStats.unresolvedDisputes,
       note: "Compliance visibility",
       href: "/compliance/disputes",
       icon: ShieldCheck,
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[480px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+        <span className="text-xs text-text-muted animate-pulse font-light">Loading Dashboard Data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -184,7 +255,17 @@ export default function DashboardPage() {
       )}
 
       {/* Title / Time filter bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
+        {timeFilter === "Custom" && (
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+            }}
+          />
+        )}
         {/* Time filters matching mockup selector */}
         <div className="inline-flex bg-white border border-secondary-bg p-2 rounded-xl self-start gap-2">
           {["Today", "This week", "This month", "Custom"].map((tab) => (

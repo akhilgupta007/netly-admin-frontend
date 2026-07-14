@@ -9,6 +9,7 @@ import Pagination from "@/components/ui/Pagination";
 
 // Custom Document Review Modal
 import KYCDocumentReviewModal from "@/components/compliance/KYCDocumentReviewModal";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 const defaultKycSubmissions = [
   { id: "KYC-01", name: "Leonard Thomas", docType: "ID", docFile: "ID_Leonard_Thomas.jpg", submittedDate: "October 29, 2027", status: "Pending", email: "leonard@thomas.com", phone: "+233 24 123 4567", joined: "Oct 12, 2027" },
@@ -37,9 +38,13 @@ export default function KYCVerificationPage() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Initialize and Sync with localStorage
   useEffect(() => {
@@ -193,15 +198,16 @@ export default function KYCVerificationPage() {
           { label: "Not Submitted", count: counts.NotSubmitted },
           { label: "Expired", count: counts.Expired }
         ].map((card, idx) => (
-          <div key={idx} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-22.5 hover:shadow-xs transition">
-            <span className="text-xs text-text-primary font-medium">{card.label}</span>
-            <strong className="text-2xl text-text-primary font-semibold block pt-2">{card.count}</strong>
-          </div>
+          <CardWrapper
+            key={idx}
+            name={card.label}
+            value={card.count}
+          />
         ))}
       </div>
 
       {/* Main Container Section */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
         
         {/* Table Filters controls row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -274,7 +280,7 @@ export default function KYCVerificationPage() {
         </div>
 
         {/* Table Records Grid */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-b-3xl">
           <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
             <thead className="bg-secondary-bg text-text-primary text-left text-sm">
               <tr>
@@ -286,12 +292,20 @@ export default function KYCVerificationPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
-              {paginated.length === 0 ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
-                    <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
+                      <span className="text-xs text-text-muted animate-pulse font-light">Loading KYC Data...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : paginated.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
+                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
                       <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
-                      <span>No KYC submissions found matching filter criteria.</span>
+                      <span>No KYC submissions found matching criteria.</span>
                     </div>
                   </td>
                 </tr>

@@ -7,15 +7,15 @@ import Pagination from "@/components/ui/Pagination";
 import { exportCSV } from "@/utils/exportHelper";
 
 const mockAuditLogs = [
-  { timestamp: "June 2, 2027\n12:45 PM", admin: "contact@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr12", justification: "Incomplete documentation submitted.", ipAddress: "192.168.1.21" },
-  { timestamp: "May 31, 2027\n09:00 AM", admin: "finance@netly.io", action: "Pending Approval", targetEntity: "Provider", targetId: "pr10", justification: "Additional verification required.", ipAddress: "192.168.1.19" },
-  { timestamp: "May 29, 2027\n01:25 PM", admin: "support@netly.io", action: "Rejected", targetEntity: "User", targetId: "pr8", justification: "Documents did not match provided information.", ipAddress: "192.168.1.17" },
-  { timestamp: "May 26, 2027\n11:00 AM", admin: "info@netly.io", action: "KYC Approved", targetEntity: "Admin", targetId: "pr5", justification: "Documents verified against utility bill.", ipAddress: "192.168.1.14" },
-  { timestamp: "May 27, 2027\n04:50 PM", admin: "contact@netly.io", action: "Pending Approval", targetEntity: "User", targetId: "pr6", justification: "Awaiting additional documents.", ipAddress: "192.168.1.15" },
-  { timestamp: "June 1, 2027\n05:15 PM", admin: "info@netly.io", action: "KYC Approved", targetEntity: "User", targetId: "pr11", justification: "Documents verified against employment records.", ipAddress: "192.168.1.20" },
-  { timestamp: "May 25, 2027\n02:45 PM", admin: "finance@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr4", justification: "Insufficient documentation submitted.", ipAddress: "192.168.1.13" },
-  { timestamp: "May 28, 2027\n10:10 AM", admin: "admin@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr7", justification: "Documents verified against driver's license.", ipAddress: "192.168.1.16" },
-  { timestamp: "May 24, 2027\n12:30 PM", admin: "hr@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr3", justification: "Documents verified against passport database.", ipAddress: "192.168.1.12" }
+  { timestamp: "June 2, 2026\n12:45 PM", admin: "contact@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr12", justification: "Incomplete documentation submitted.", ipAddress: "192.168.1.21" },
+  { timestamp: "May 31, 2026\n09:00 AM", admin: "finance@netly.io", action: "Pending Approval", targetEntity: "Provider", targetId: "pr10", justification: "Additional verification required.", ipAddress: "192.168.1.19" },
+  { timestamp: "May 29, 2026\n01:25 PM", admin: "support@netly.io", action: "Rejected", targetEntity: "User", targetId: "pr8", justification: "Documents did not match provided information.", ipAddress: "192.168.1.17" },
+  { timestamp: "May 26, 2026\n11:00 AM", admin: "info@netly.io", action: "KYC Approved", targetEntity: "Admin", targetId: "pr5", justification: "Documents verified against utility bill.", ipAddress: "192.168.1.14" },
+  { timestamp: "May 27, 2026\n04:50 PM", admin: "contact@netly.io", action: "Pending Approval", targetEntity: "User", targetId: "pr6", justification: "Awaiting additional documents.", ipAddress: "192.168.1.15" },
+  { timestamp: "June 1, 2026\n05:15 PM", admin: "info@netly.io", action: "KYC Approved", targetEntity: "User", targetId: "pr11", justification: "Documents verified against employment records.", ipAddress: "192.168.1.20" },
+  { timestamp: "May 25, 2026\n02:45 PM", admin: "finance@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr4", justification: "Insufficient documentation submitted.", ipAddress: "192.168.1.13" },
+  { timestamp: "May 28, 2026\n10:10 AM", admin: "admin@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr7", justification: "Documents verified against driver's license.", ipAddress: "192.168.1.16" },
+  { timestamp: "May 24, 2026\n12:30 PM", admin: "hr@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr3", justification: "Documents verified against passport database.", ipAddress: "192.168.1.12" }
 ];
 
 export default function AuditLogsTab() {
@@ -24,6 +24,11 @@ export default function AuditLogsTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
   const itemsPerPage = 7;
 
   const filteredLogs = useMemo(() => {
@@ -35,7 +40,22 @@ export default function AuditLogsTab() {
 
       const matchAction = filterAction === "All" || log.action === filterAction;
 
-      return matchSearch && matchAction;
+      let matchDate = true;
+      if (startDate || endDate) {
+        const logDate = new Date(log.timestamp.split("\n")[0]);
+        const compareDate = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
+        
+        if (startDate) {
+          const startCompare = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          if (compareDate < startCompare) matchDate = false;
+        }
+        if (endDate) {
+          const endCompare = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          if (compareDate > endCompare) matchDate = false;
+        }
+      }
+
+      return matchSearch && matchAction && matchDate;
     });
   }, [searchTerm, filterAction, startDate, endDate]);
 
@@ -108,8 +128,12 @@ export default function AuditLogsTab() {
       </div>
 
       {/* Logs Table grid */}
-      {filteredLogs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
+          <span className="text-xs text-text-muted animate-pulse font-light">Loading Audit Logs Data...</span>
+        </div>
+      ) : filteredLogs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
           <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-text-primary">No logs found</h3>

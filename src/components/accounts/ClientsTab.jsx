@@ -25,6 +25,11 @@ export default function ClientsTab({
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -42,7 +47,7 @@ export default function ClientsTab({
   const paginated = clients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
       {/* Filters controls bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
         <div className="relative flex-1">
@@ -103,7 +108,7 @@ export default function ClientsTab({
       </div>
 
       {/* Table Content Section */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-b-3xl">
         <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
           <thead className="bg-secondary-bg text-text-primary text-left text-sm">
             <tr>
@@ -117,10 +122,18 @@ export default function ClientsTab({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
-            {paginated.length === 0 ? (
+            {isLoading ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-text-muted font-light">
-                  <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
+                    <span className="text-xs text-text-muted animate-pulse font-light">Loading Clients Data...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : paginated.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center text-text-muted font-light">
+                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
                     <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
                     <span>No clients found matching filter criteria.</span>
                   </div>

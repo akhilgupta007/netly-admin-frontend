@@ -8,6 +8,7 @@ import Pagination from "@/components/ui/Pagination";
 import InviteAdminModal from "@/components/platform/InviteAdminModal";
 import ChangeRoleModal from "@/components/platform/ChangeRoleModal";
 import RevokeAccessModal from "@/components/platform/RevokeAccessModal";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 // Initial Mock Admins list matching Screenshot 1
 const initialAdmins = [
@@ -114,6 +115,12 @@ export default function AdminUsersTab() {
     }
   }, []);
 
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const saveAdmins = (updatedList) => {
     setAdmins(updatedList);
     localStorage.setItem("netly_admin_users", JSON.stringify(updatedList));
@@ -210,18 +217,17 @@ export default function AdminUsersTab() {
           { title: "Support", count: statsSupport, sub: "Manages accounts, disputes, etc." },
           { title: "Moderator", count: statsModerator, sub: "Manages content, service categories, etc." }
         ].map((card, i) => (
-          <div key={i} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-28 hover:shadow-xs transition select-none">
-            <div>
-              <span className="text-sm text-text-primary">{card.title}</span>
-              <strong className="text-2xl text-text-primary font-semibold block pt-1">{card.count}</strong>
-            </div>
-            <span className="text-[10px] text-text-muted font-light mt-2 block truncate">{card.sub}</span>
-          </div>
+          <CardWrapper
+            key={i}
+            name={card.title}
+            value={card.count}
+            note={card.sub}
+          />
         ))}
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
         
         {/* Filters control bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -277,8 +283,12 @@ export default function AdminUsersTab() {
         </div>
 
         {/* Table data list */}
-        {filteredAdmins.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
+            <span className="text-xs text-text-muted animate-pulse font-light">Loading Admin Users Data...</span>
+          </div>
+        ) : filteredAdmins.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75 animate-pulse" />
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-text-primary">No Admin Users Found</h3>
@@ -287,7 +297,7 @@ export default function AdminUsersTab() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto overflow-y-visible">
+            <div className="overflow-x-auto overflow-y-visible rounded-b-3xl">
               <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
                 <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>

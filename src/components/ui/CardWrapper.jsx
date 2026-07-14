@@ -19,7 +19,7 @@ export default function CardWrapper({
       {...linkProps}
       {...props}
       className={cn(
-        "bg-white rounded-2xl p-4 hover:shadow-sm transition-all duration-200 border border-secondary-bg",
+        "bg-white rounded-2xl p-4 hover:shadow-xs transition-all duration-200 border border-secondary-bg",
         href && "block group cursor-pointer hover:border-primary-bg",
         className
       )}
@@ -30,7 +30,7 @@ export default function CardWrapper({
             <Icon size={18} />
           </div>
         )}
-        <span className={cn("text-sm", Icon ? "text-text-primary font-medium" : "font-medium text-text-muted")}>
+        <span className="text-sm text-text-primary font-medium">
           {name}
         </span>
       </div>

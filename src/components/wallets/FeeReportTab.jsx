@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 export default function FeeReportTab({
   startDate,
@@ -9,6 +10,19 @@ export default function FeeReportTab({
   onDateChange
 }) {
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+        <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 animate-scale-up">
@@ -19,7 +33,7 @@ export default function FeeReportTab({
             {startDate && endDate ? (
               `${startDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
             ) : (
-              "July 1, 2026 - July 8, 2026"
+              "July 1, 2026 - July 7, 2026"
             )}
           </div>
         </div>
@@ -27,30 +41,27 @@ export default function FeeReportTab({
           startDate={startDate}
           endDate={endDate}
           onChange={onDateChange}
+          isWeekView={true}
         />
       </div>
 
       {/* Metric cards layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-secondary-bg p-4 rounded-2xl flex flex-col justify-between shadow-xs">
-          <span className="text-xs text-text-primary block">Total 5% fees collected</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$2,625.25</strong>
-          <span className="text-[10px] text-text-muted block">This week</span>
-        </div>
-        <div className="bg-white border border-secondary-bg p-4 rounded-2xl flex flex-col justify-between shadow-xs">
-          <div>
-            <span className="text-xs text-text-primary block">Transaction count</span>
-            <strong className="text-2xl text-text-primary font-semibold block mt-3">47</strong>
-          </div>
-          <span className="text-[10px] text-text-muted block">This week</span>
-        </div>
-        <div className="bg-white border border-secondary-bg p-4 rounded-2xl flex flex-col justify-between shadow-xs">
-          <div>
-            <span className="text-xs text-text-primary block">Average fee per transaction</span>
-            <strong className="text-2xl text-text-primary font-semibold block mt-3">$55.86</strong>
-          </div>
-          <span className="text-[10px] text-text-muted block">This week</span>
-        </div>
+        <CardWrapper
+          name="Total 5% fees collected"
+          value="$2,625.25"
+          note="This week"
+        />
+        <CardWrapper
+          name="Transaction count"
+          value="47"
+          note="This week"
+        />
+        <CardWrapper
+          name="Average fee per transaction"
+          value="$55.86"
+          note="This week"
+        />
       </div>
 
       {/* Bar Chart section */}
@@ -76,15 +87,21 @@ export default function FeeReportTab({
             <text x="5" y="144" className="text-[6px] text-text-muted fill-current">$0.0k</text>
 
             {/* Bars group */}
-            {[
-              { label: "Mon", val: 4000 },
-              { label: "Tue", val: 8200 },
-              { label: "Wed", val: 4800 },
-              { label: "Thu", val: 6900 },
-              { label: "Fri", val: 3200 },
-              { label: "Sat", val: 6000 },
-              { label: "Sun", val: 8000 }
-            ].map((item, index) => {
+            {(() => {
+              const baseStart = startDate || new Date(2026, 6, 1);
+              const staticValues = [4000, 8200, 4800, 6900, 3200, 6000, 8000];
+              return Array.from({ length: 7 }).map((_, index) => {
+                const d = new Date(baseStart);
+                d.setDate(baseStart.getDate() + index);
+                const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+                const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                return {
+                  dayName,
+                  fullDate,
+                  val: staticValues[index]
+                };
+              });
+            })().map((item, index) => {
               const x_center = 75 + index * 65;
               const barHeight = (item.val / 10000) * 120;
               return (
@@ -113,9 +130,10 @@ export default function FeeReportTab({
                     x={x_center}
                     y="152"
                     textAnchor="middle"
-                    className="text-[6px] text-text-muted fill-current"
+                    className="text-[6px] fill-current"
                   >
-                    {item.label}
+                    <tspan x={x_center} dy="0" className="text-text-primary fill-current">{item.dayName}</tspan>
+                    <tspan x={x_center} dy="8" className="text-[5px] text-text-muted fill-current">{item.fullDate}</tspan>
                   </text>
                 </g>
               );

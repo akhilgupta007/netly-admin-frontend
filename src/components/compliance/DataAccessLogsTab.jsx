@@ -7,15 +7,15 @@ import Pagination from "@/components/ui/Pagination";
 import { exportCSV } from "@/utils/exportHelper";
 
 const mockDataAccessLogs = [
-  { timestamp: "May 22, 2027\n03:20 PM", admin: "admin@netly.io", dataType: "KYC Document", recordId: "kyc-01", reason: "Document review for KYC approval workflow" },
-  { timestamp: "May 23, 2027\n10:15 AM", admin: "support@netly.io", dataType: "Tax Return", recordId: "tax-01", reason: "Annual tax documentation submission" },
-  { timestamp: "May 24, 2027\n01:45 PM", admin: "hr@netly.io", dataType: "Employment Verification", recordId: "emp-01", reason: "Verification of employment status for onboarding" },
-  { timestamp: "May 25, 2027\n09:30 AM", admin: "legal@netly.io", dataType: "Contract Agreement", recordId: "contract-01", reason: "Review of the new partnership contract" },
-  { timestamp: "May 26, 2027\n02:00 PM", admin: "finance@netly.io", dataType: "Invoice", recordId: "inv-01", reason: "Invoice submission for services rendered" },
-  { timestamp: "May 27, 2027\n11:00 AM", admin: "marketing@netly.io", dataType: "Ad Campaign Proposal", recordId: "ad-01", reason: "Proposal for the upcoming ad campaign review" },
-  { timestamp: "May 28, 2027\n03:55 PM", admin: "dev@netly.io", dataType: "Software Update", recordId: "update-01", reason: "Documentation for the latest software update" },
-  { timestamp: "May 29, 2027\n04:30 PM", admin: "quality@netly.io", dataType: "Quality Assurance Report", recordId: "qa-01", reason: "Report on quality checks and testing outcomes" },
-  { timestamp: "June 15, 2027\n10:00 AM", admin: "dev@netly.io", dataType: "Development Update", recordId: "dev-02", reason: "Overview of recent feature developments and bug fixes" }
+  { timestamp: "May 22, 2026\n03:20 PM", admin: "admin@netly.io", dataType: "KYC Document", recordId: "kyc-01", reason: "Document review for KYC approval workflow" },
+  { timestamp: "May 23, 2026\n10:15 AM", admin: "support@netly.io", dataType: "Tax Return", recordId: "tax-01", reason: "Annual tax documentation submission" },
+  { timestamp: "May 24, 2026\n01:45 PM", admin: "hr@netly.io", dataType: "Employment Verification", recordId: "emp-01", reason: "Verification of employment status for onboarding" },
+  { timestamp: "May 25, 2026\n09:30 AM", admin: "legal@netly.io", dataType: "Contract Agreement", recordId: "contract-01", reason: "Review of the new partnership contract" },
+  { timestamp: "May 26, 2026\n02:00 PM", admin: "finance@netly.io", dataType: "Invoice", recordId: "inv-01", reason: "Invoice submission for services rendered" },
+  { timestamp: "May 27, 2026\n11:00 AM", admin: "marketing@netly.io", dataType: "Ad Campaign Proposal", recordId: "ad-01", reason: "Proposal for the upcoming ad campaign review" },
+  { timestamp: "May 28, 2026\n03:55 PM", admin: "dev@netly.io", dataType: "Software Update", recordId: "update-01", reason: "Documentation for the latest software update" },
+  { timestamp: "May 29, 2026\n04:30 PM", admin: "quality@netly.io", dataType: "Quality Assurance Report", recordId: "qa-01", reason: "Report on quality checks and testing outcomes" },
+  { timestamp: "June 15, 2026\n10:00 AM", admin: "dev@netly.io", dataType: "Development Update", recordId: "dev-02", reason: "Overview of recent feature developments and bug fixes" }
 ];
 
 export default function DataAccessLogsTab() {
@@ -24,6 +24,11 @@ export default function DataAccessLogsTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
   const itemsPerPage = 7;
 
   const filteredLogs = useMemo(() => {
@@ -35,7 +40,22 @@ export default function DataAccessLogsTab() {
 
       const matchDataType = filterDataType === "All" || log.dataType === filterDataType;
 
-      return matchSearch && matchDataType;
+      let matchDate = true;
+      if (startDate || endDate) {
+        const logDate = new Date(log.timestamp.split("\n")[0]);
+        const compareDate = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
+        
+        if (startDate) {
+          const startCompare = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          if (compareDate < startCompare) matchDate = false;
+        }
+        if (endDate) {
+          const endCompare = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          if (compareDate > endCompare) matchDate = false;
+        }
+      }
+
+      return matchSearch && matchDataType && matchDate;
     });
   }, [searchTerm, filterDataType, startDate, endDate]);
 
@@ -108,8 +128,12 @@ export default function DataAccessLogsTab() {
       </div>
 
       {/* Logs Table grid */}
-      {filteredLogs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
+          <span className="text-xs text-text-muted animate-pulse font-light">Loading Data Access Logs Data...</span>
+        </div>
+      ) : filteredLogs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
           <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-text-primary">No logs found</h3>

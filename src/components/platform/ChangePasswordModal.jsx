@@ -65,7 +65,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
           
           {/* Current password */}
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">Current Password</label>
+            <label className="text-xs text-text-muted block">Current Password</label>
             <div className="relative">
               <input
                 type={showCurrent ? "text" : "password"}
@@ -86,32 +86,32 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
 
           {/* New password */}
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">New Password</label>
+            <label className="text-xs text-text-muted block">New Password</label>
             <input
               type="password"
               required
               placeholder="Min. 12 characters"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
           {/* Confirm new password */}
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block font-medium">Confirm New Password</label>
+            <label className="text-xs text-text-muted block">Confirm New Password</label>
             <input
               type="password"
               required
               placeholder="Repeat new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
           {/* Password strength checkers row */}
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-1.5">
             {[
               { label: "Uppercase", active: hasUppercase },
               { label: "Lowercase", active: hasLowercase },
@@ -120,10 +120,10 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
             ].map((rule, idx) => (
               <span
                 key={idx}
-                className={`px-2.5 py-0.5 rounded-full text-[9px] font-semibold border transition duration-150 select-none ${
+                className={`px-2.5 py-1 rounded-full text-[10px] border transition duration-150 select-none border-border-main ${
                   rule.active
-                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                    : "bg-page-bg text-text-muted border-secondary-bg/60"
+                    ? "bg-primary-bg-muted text-white"
+                    : "text-primary-bg"
                 }`}
               >
                 {rule.label}
@@ -136,7 +136,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-page-bg hover:bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
+              className="flex-1 hover:bg-page-bg bg-secondary-bg text-text-primary font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
             >
               Cancel
             </button>

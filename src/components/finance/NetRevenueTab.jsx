@@ -4,20 +4,35 @@ import React, { useState } from "react";
 import { ChevronDown, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
+import DateRangePicker from "@/components/ui/DateRangePicker";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 export default function NetRevenueTab() {
   const [chartType, setChartType] = useState("Line"); // "Bar" | "Line"
   const [category, setCategory] = useState("All");
+  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
+  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
 
-  const chartData = [
-    { day: "Jun 21", fee: 4000, commission: 5000 },
-    { day: "Jun 22", fee: 4200, commission: 3800 },
-    { day: "Jun 23", fee: 3800, commission: 5500 },
-    { day: "Jun 24", fee: 5200, commission: 3200 },
-    { day: "Jun 25", fee: 6500, commission: 2500 },
-    { day: "Jun 26", fee: 4100, commission: 4300 },
-    { day: "Jun 27", fee: 3900, commission: 5100 }
-  ];
+  const getChartData = () => {
+    const data = [];
+    const baseVal = category === "All" ? 1 : 0.4;
+    const mockFees = [4000, 4200, 3800, 5200, 6500, 4100, 3900];
+    const mockCommissions = [5000, 3800, 5500, 3200, 2500, 4300, 5100];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      data.push({
+        dayName,
+        fullDate,
+        fee: Math.round(mockFees[i] * baseVal),
+        commission: Math.round(mockCommissions[i] * baseVal)
+      });
+    }
+    return data;
+  };
+  const chartData = getChartData();
 
   const handleExportCSV = () => {
     const headers = ["Day", "Platform Fees ($)", "Commissions ($)"];
@@ -31,8 +46,22 @@ export default function NetRevenueTab() {
     exportPDF("Net Revenue Report", headers, rows, `net_revenue_${Date.now()}.pdf`);
   };
 
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+        <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-scale-up">
+    <div className="animate-scale-up font-onest">
       {/* Filters row bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5">
         <div className="flex items-center gap-2 flex-wrap">
@@ -51,9 +80,15 @@ export default function NetRevenueTab() {
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>
 
-          <div className="border border-border-main rounded-full px-4 py-1.5 text-xs text-text-muted bg-white flex items-center gap-1.5">
-            <span>01/07/26 - 08/07/26</span>
-          </div>
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+            }}
+            isWeekView={true}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -74,29 +109,26 @@ export default function NetRevenueTab() {
 
       {/* Grid cards row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Total fees</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$2,245.00</strong>
-          <span className="text-[10px] text-text-muted block">5% fee</span>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Total commissions</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$6,735.00</strong>
-          <span className="text-[10px] text-text-muted block">15% commission</span>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Net revenue</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$8,980.00</strong>
-          <span className="text-[10px] text-text-muted block">Combined Value</span>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Average net revenue</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$25.22</strong>
-          <span className="text-[10px] text-text-muted block">Per Booking</span>
-        </div>
+        <CardWrapper
+          name="Total fees"
+          value="$2,245.00"
+          note="5% fee"
+        />
+        <CardWrapper
+          name="Total commissions"
+          value="$6,735.00"
+          note="15% commission"
+        />
+        <CardWrapper
+          name="Net revenue"
+          value="$8,980.00"
+          note="Combined Value"
+        />
+        <CardWrapper
+          name="Average net revenue"
+          value="$25.22"
+          note="Per Booking"
+        />
       </div>
 
       {/* 5% Fee vs 15% Commission Daily Chart Section */}
@@ -229,9 +261,10 @@ export default function NetRevenueTab() {
           <div className="flex pl-10 pr-14 mt-2">
             <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
               {chartData.map((d, index) => (
-                <span key={index} className="w-0 overflow-visible text-center whitespace-nowrap flex justify-center text-sm text-text-muted font-light">
-                  {d.day}
-                </span>
+                <div key={index} className="w-0 overflow-visible text-center flex flex-col items-center justify-center shrink-0">
+                  <span className="text-xs text-text-primary">{d.dayName}</span>
+                  <span className="text-[10px] text-text-muted whitespace-nowrap leading-none mt-0.5">{d.fullDate}</span>
+                </div>
               ))}
             </div>
           </div>

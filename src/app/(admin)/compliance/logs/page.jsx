@@ -31,7 +31,7 @@ export default function ComplianceLogsPage() {
       </div>
 
       {/* RENDER CURRENT ACTIVE TAB COMPONENT */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
         {activeTab === "Audit Logs" && (
           <AuditLogsTab />
         )}

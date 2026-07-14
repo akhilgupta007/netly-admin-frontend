@@ -7,6 +7,7 @@ import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import HoldPayoutModal from "./HoldPayoutModal";
 import ViewPayoutDetailsModal from "./ViewPayoutDetailsModal";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 const initialPayouts = [
   { id: "1", provider: "Oliver Jones", email: "oliver.jones@email.com", initials: "LT", walletBalance: 500.50, walletStatus: "Ready for payout", completedBookings: 22, lastPayoutDate: "Jul 13, 2027", status: "Pending", statusDesc: "Waiting for Friday payout", transferredAmount: null },
@@ -114,63 +115,48 @@ export default function PayoutQueueTab() {
     );
   }, [filteredPayouts, currentPage]);
 
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
 
 
   return (
     <div className="space-y-4 animate-scale-up">
-      {/* Top teal banner and KPI cards */}
-      <div className="bg-[#E6F4F6] p-4 rounded-3xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
-        <div className="bg-white rounded-2xl p-4 flex flex-col justify-between hover:shadow-xs transition h-32">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#EAF6F7] text-primary-bg rounded-full shrink-0 flex items-center justify-center">
-              <Calendar size={18} />
-            </div>
-            <span className="text-sm text-text-primary">Expected Friday Payout</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-semibold text-text-primary">$18,540.25</span>
-            <span className="text-[10px] text-text-muted block mt-1">Based on current provider wallet balances.</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-4 flex flex-col justify-between hover:shadow-xs transition h-32">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#EAF6F7] text-primary-bg rounded-full shrink-0 flex items-center justify-center">
-              <Users size={18} />
-            </div>
-            <span className="text-sm text-text-primary">Providers Ready</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-semibold text-text-primary">128</span>
-            <span className="text-[10px] text-text-muted block mt-1">Providers with earnings available for payout.</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-4 flex flex-col justify-between hover:shadow-xs transition h-32">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#EAF6F7] text-primary-bg rounded-full shrink-0 flex items-center justify-center">
-              <AlertCircle size={18} />
-            </div>
-            <span className="text-sm text-text-primary">Failed Last Run</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-semibold text-text-primary">3</span>
-            <span className="text-[10px] text-text-muted block mt-1">Awaiting manual review.</span>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-4 flex flex-col justify-between hover:shadow-xs transition h-32">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#EAF6F7] text-primary-bg rounded-full shrink-0 flex items-center justify-center">
-              <Clock size={18} />
-            </div>
-            <span className="text-sm text-text-primary">Next Payout</span>
-          </div>
-          <div className="mt-2">
-            <span className="text-2xl font-semibold text-text-primary">Friday, Jul 11, 2027</span>
-            <span className="text-[10px] text-text-muted block mt-1">Weekly payout schedule.</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
+        <CardWrapper
+          name="Expected Friday Payout"
+          value="$18,540.25"
+          note="Based on current provider wallet balances."
+          icon={Calendar}
+          className="h-32"
+        />
+        <CardWrapper
+          name="Providers Ready"
+          value="128"
+          note="Providers with earnings available for payout."
+          icon={Users}
+          className="h-32"
+        />
+        <CardWrapper
+          name="Failed Last Run"
+          value="3"
+          note="Awaiting manual review."
+          icon={AlertCircle}
+          className="h-32"
+        />
+        <CardWrapper
+          name="Next Payout"
+          value="Friday, Jul 11, 2027"
+          note="Weekly payout schedule."
+          icon={Clock}
+          className="h-32"
+        />
       </div>
 
-      <div className="border border-secondary-bg rounded-3xl overflow-hidden bg-white shadow-2xs">
+      <div className="border border-secondary-bg rounded-3xl overflow-visible bg-white shadow-2xs relative z-20">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border-b border-secondary-bg">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -215,8 +201,12 @@ export default function PayoutQueueTab() {
           </div>
         </div>
 
-        {filteredPayouts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
+            <span className="text-xs text-text-muted animate-pulse font-light">Loading Payout Queue Data...</span>
+          </div>
+        ) : filteredPayouts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-text-primary">No Payout Records</h3>
@@ -224,7 +214,7 @@ export default function PayoutQueueTab() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-b-3xl">
             <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
               <thead className="bg-secondary-bg text-text-primary text-sm">
                 <tr>

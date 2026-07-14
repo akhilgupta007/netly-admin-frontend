@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronDown } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
-import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 const defaultDisputes = [
   {
@@ -75,6 +75,11 @@ export default function DisputesPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 7;
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sync state with localStorage
   useEffect(() => {
@@ -181,15 +186,16 @@ export default function DisputesPage() {
           { label: "Under Review", count: counts.UnderReview },
           { label: "Resolved", count: counts.Resolved }
         ].map((card, idx) => (
-          <div key={idx} className="bg-white rounded-2xl p-4 flex flex-col justify-between min-h-22.5 hover:shadow-xs transition">
-            <span className="text-sm text-text-primary">{card.label}</span>
-            <strong className="text-2xl text-text-primary font-semibold block pt-3">{card.count}</strong>
-          </div>
+          <CardWrapper
+            key={idx}
+            name={card.label}
+            value={card.count}
+          />
         ))}
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
         
         {/* Filters control bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -242,8 +248,12 @@ export default function DisputesPage() {
         </div>
 
         {/* Disputes Grid Table (or leak empty container if counts empty) */}
-        {filteredDisputes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
+            <span className="text-xs text-text-muted animate-pulse font-light">Loading Disputes Data...</span>
+          </div>
+        ) : filteredDisputes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
             <img src="/empty.png" alt="No data" className="w-24 h-24 object-contain opacity-80" />
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-text-primary">No Open Disputes</h3>
@@ -251,7 +261,7 @@ export default function DisputesPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-b-3xl">
             <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
               <thead className="bg-secondary-bg text-text-primary text-left text-sm font-bold">
                 <tr>

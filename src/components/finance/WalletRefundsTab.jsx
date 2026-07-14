@@ -3,19 +3,33 @@
 import React, { useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
+import DateRangePicker from "@/components/ui/DateRangePicker";
+import CardWrapper from "@/components/ui/CardWrapper";
 
 export default function WalletRefundsTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
+  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
+  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
 
-  const chartData = [
-    { day: "Jun 21", wallet: 4800, card: 3000 },
-    { day: "Jun 22", wallet: 5800, card: 3800 },
-    { day: "Jun 23", wallet: 4400, card: 2500 },
-    { day: "Jun 24", wallet: 7100, card: 5200 },
-    { day: "Jun 25", wallet: 8500, card: 6800 },
-    { day: "Jun 26", wallet: 5100, card: 3900 },
-    { day: "Jun 27", wallet: 4200, card: 2800 }
-  ];
+  const getChartData = () => {
+    const data = [];
+    const mockWallet = [4800, 5800, 4400, 7100, 8500, 5100, 4200];
+    const mockCard = [3000, 3800, 2500, 5200, 6800, 3900, 2800];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+      const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      data.push({
+        dayName,
+        fullDate,
+        wallet: mockWallet[i],
+        card: mockCard[i]
+      });
+    }
+    return data;
+  };
+  const chartData = getChartData();
 
   const handleExportCSV = () => {
     const headers = ["Day", "Wallet Funding ($)", "Card Payments ($)"];
@@ -29,13 +43,33 @@ export default function WalletRefundsTab() {
     exportPDF("Wallet & Refunds Report", headers, rows, `wallet_refunds_${Date.now()}.pdf`);
   };
 
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+        <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-scale-up">
+    <div className="animate-scale-up font-onest">
       {/* Filters row bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5">
-        <div className="border border-border-main rounded-full px-4 py-1.5 text-xs text-text-muted bg-white flex items-center gap-1.5 h-8.5">
-          <span>01/07/26 - 08/07/26</span>
-        </div>
+        <DateRangePicker
+          startDate={startDate}
+          endDate={endDate}
+          onChange={(start, end) => {
+            setStartDate(start);
+            setEndDate(end);
+          }}
+          isWeekView={true}
+        />
 
         <div className="flex items-center gap-2">
           <button
@@ -55,29 +89,26 @@ export default function WalletRefundsTab() {
 
       {/* Grid cards row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Total wallet credits</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$9,800.00</strong>
-          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Total card refunds</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">$7,120.00</strong>
-          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Refund rate</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">42.1%</strong>
-          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
-        </div>
-
-        <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow">
-          <span className="text-xs text-text-primary block">Retention rate</span>
-          <strong className="text-2xl text-text-primary font-semibold block mt-3">57.9%</strong>
-          <span className="text-[10px] text-text-muted block">Jun 18-24</span>
-        </div>
+        <CardWrapper
+          name="Total wallet credits"
+          value="$9,800.00"
+          note="Jun 18-24"
+        />
+        <CardWrapper
+          name="Total card refunds"
+          value="$7,120.00"
+          note="Jun 18-24"
+        />
+        <CardWrapper
+          name="Refund rate"
+          value="42.1%"
+          note="Jun 18-24"
+        />
+        <CardWrapper
+          name="Retention rate"
+          value="57.9%"
+          note="Jun 18-24"
+        />
       </div>
 
       {/* Chart Section */}
@@ -201,9 +232,10 @@ export default function WalletRefundsTab() {
           <div className="flex pl-12 pr-2 mt-2">
             <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
               {chartData.map((d, index) => (
-                <span key={index} className="w-0 overflow-visible text-center whitespace-nowrap flex justify-center text-sm text-text-muted font-light">
-                  {d.day}
-                </span>
+                <div key={index} className="w-0 overflow-visible text-center flex flex-col items-center justify-center shrink-0">
+                  <span className="text-xs text-text-primary">{d.dayName}</span>
+                  <span className="text-[10px] text-text-muted whitespace-nowrap leading-none mt-0.5">{d.fullDate}</span>
+                </div>
               ))}
             </div>
           </div>

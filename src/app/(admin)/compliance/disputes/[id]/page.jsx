@@ -455,7 +455,7 @@ export default function DisputeDetailPage() {
 
             {/* Timeline Tab Panel */}
             {activeTab === "Timeline" && (
-              <div className="relative pl-6 space-y-6 py-2 before:absolute before:left-2.75 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#10b981]">
+              <div className="relative pl-6 space-y-4 py-2 before:absolute before:left-2.75 before:top-4 before:bottom-4 before:w-0.5 before:bg-[#10b981]">
                 {(dispute.timeline || []).map((t, idx) => {
                   const isLatest = idx === (dispute.timeline || []).length - 1;
                   return (

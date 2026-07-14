@@ -83,11 +83,17 @@ export default function T4ATaxTab() {
     );
   }, [filteredSlips, currentPage]);
 
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
-    <div className="space-y-6 animate-scale-up">
+    <div className="space-y-4 animate-scale-up">
       
       {/* Generate T4A Slips Form Panel (Slide 2) */}
-      <form onSubmit={handleGenerateT4A} className="bg-white border border-secondary-bg rounded-3xl p-5 space-y-4 shadow-2xs">
+      <form onSubmit={handleGenerateT4A} className="bg-white border border-secondary-bg rounded-3xl p-5 space-y-4 hover:shadow-xs">
         <div className="flex justify-between items-center pb-2">
           <span className="text-sm font-semibold text-text-primary">Generate T4A Slips</span>
           <button
@@ -134,7 +140,7 @@ export default function T4ATaxTab() {
       </form>
 
       {/* Slips table listing container box */}
-      <div className="border border-secondary-bg rounded-3xl overflow-hidden bg-white shadow-2xs">
+      <div className="border border-secondary-bg rounded-3xl overflow-visible bg-white hover:shadow-xs relative z-20">
         
         {/* Filters control row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
@@ -184,9 +190,12 @@ export default function T4ATaxTab() {
           </div>
         </div>
 
-        {/* Slips table data listing */}
-        {filteredSlips.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
+            <span className="text-xs text-text-muted animate-pulse font-light">Loading T4A Slips Data...</span>
+          </div>
+        ) : filteredSlips.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-text-primary">No Slips Found</h3>
@@ -194,7 +203,7 @@ export default function T4ATaxTab() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-b-3xl">
             <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
               <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                 <tr>

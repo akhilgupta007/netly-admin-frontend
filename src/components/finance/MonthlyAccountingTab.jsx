@@ -6,13 +6,13 @@ import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 
 const mockTransactions = [
-  { id: "TXN00192123500007", dateTime: "June 9, 2027\n1:15 PM", client: "Logan Walker", provider: "Zoe Robinson", category: "Post-Construction Cleaning", amount: 500.00, fee: 25.00, commission: 30.00, tip: 20.00, status: "Hour Adjustment Pending" },
-  { id: "TXN00192123500004", dateTime: "June 6, 2027\n3:10 PM", client: "Isabella Thomas", provider: "Lucas Garcia", category: "Window Cleaning", amount: 250.00, fee: 12.50, commission: 15.00, tip: 10.00, status: "Completed" },
-  { id: "TXN001921235000011", dateTime: "June 13, 2027\n10:30 AM", client: "Chloe Torres", provider: "Daniel Baker", category: "Sanitization Services", amount: 300.00, fee: 15.00, commission: 20.00, tip: 15.00, status: "In Progress" },
-  { id: "TXN00192123500009", dateTime: "June 11, 2027\n5:30 PM", client: "Avery King", provider: "Jacob Wright", category: "Commercial Cleaning", amount: 700.00, fee: 35.00, commission: 45.00, tip: 30.00, status: "Refund Requested" },
-  { id: "TXN00192123500006", dateTime: "June 8, 2027\n4:00 PM", client: "Amelia Clark", provider: "Alexander Lewis", category: "Deep Cleaning", amount: 400.00, fee: 20.00, commission: 25.00, tip: 15.00, status: "Dispute" },
-  { id: "TXN00192123500003", dateTime: "June 5, 2027\n10:00 AM", client: "Ethan Martinez", provider: "Ava Anderson", category: "Pressure Washing", amount: 300.00, fee: 15.00, commission: 20.00, tip: 12.00, status: "Wallet Credited" },
-  { id: "TXN00192123500005", dateTime: "June 7, 2027\n9:30 AM", client: "Charlotte Lee", provider: "James Harris", category: "Floor Waxing", amount: 300.00, fee: 15.00, commission: 20.00, tip: 11.00, status: "Pending Provider Accept" }
+  { id: "TXN00192123500007", dateTime: "June 9, 2026\n1:15 PM", client: "Logan Walker", provider: "Zoe Robinson", category: "Post-Construction Cleaning", amount: 500.00, fee: 25.00, commission: 30.00, tip: 20.00, status: "Hour Adjustment Pending" },
+  { id: "TXN00192123500004", dateTime: "June 6, 2026\n3:10 PM", client: "Isabella Thomas", provider: "Lucas Garcia", category: "Window Cleaning", amount: 250.00, fee: 12.50, commission: 15.00, tip: 10.00, status: "Completed" },
+  { id: "TXN001921235000011", dateTime: "June 13, 2026\n10:30 AM", client: "Chloe Torres", provider: "Daniel Baker", category: "Sanitization Services", amount: 300.00, fee: 15.00, commission: 20.00, tip: 15.00, status: "In Progress" },
+  { id: "TXN00192123500009", dateTime: "June 11, 2026\n5:30 PM", client: "Avery King", provider: "Jacob Wright", category: "Commercial Cleaning", amount: 700.00, fee: 35.00, commission: 45.00, tip: 30.00, status: "Refund Requested" },
+  { id: "TXN00192123500006", dateTime: "June 8, 2026\n4:00 PM", client: "Amelia Clark", provider: "Alexander Lewis", category: "Deep Cleaning", amount: 400.00, fee: 20.00, commission: 25.00, tip: 15.00, status: "Dispute" },
+  { id: "TXN00192123500003", dateTime: "June 5, 2026\n10:00 AM", client: "Ethan Martinez", provider: "Ava Anderson", category: "Pressure Washing", amount: 300.00, fee: 15.00, commission: 20.00, tip: 12.00, status: "Wallet Credited" },
+  { id: "TXN00192123500005", dateTime: "June 7, 2026\n9:30 AM", client: "Charlotte Lee", provider: "James Harris", category: "Floor Waxing", amount: 300.00, fee: 15.00, commission: 20.00, tip: 11.00, status: "Pending Provider Accept" }
 ];
 
 export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
@@ -21,6 +21,11 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
   const [filterCategory, setFilterCategory] = useState("All");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,7 +39,22 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
       const matchStatus = filterStatus === "All" || t.status === filterStatus;
       const matchCategory = filterCategory === "All" || t.category === filterCategory;
 
-      return matchSearch && matchStatus && matchCategory;
+      let matchDate = true;
+      if (startDate || endDate) {
+        const logDate = new Date(t.dateTime.split("\n")[0]);
+        const compareDate = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
+        
+        if (startDate) {
+          const startCompare = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          if (compareDate < startCompare) matchDate = false;
+        }
+        if (endDate) {
+          const endCompare = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          if (compareDate > endCompare) matchDate = false;
+        }
+      }
+
+      return matchSearch && matchStatus && matchCategory && matchDate;
     });
   }, [searchTerm, filterStatus, filterCategory, startDate, endDate]);
 
@@ -131,7 +151,7 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="md:min-w-sm border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
@@ -159,9 +179,12 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
           </div>
         </div>
 
-        {/* Table Content list */}
-        {filteredData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
+            <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
+          </div>
+        ) : filteredData.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-text-primary">No Records Found</h3>
@@ -170,7 +193,7 @@ export default function MonthlyAccountingTab({ onExportCSV, onExportPDF }) {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-b-3xl">
               <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
                 <thead className="bg-secondary-bg text-text-primary text-left text-sm">
                   <tr>
