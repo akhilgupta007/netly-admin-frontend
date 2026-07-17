@@ -5,8 +5,8 @@ import { Search, ChevronDown, MoreHorizontal, Eye, Slash } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
-import PartnerDetailModal from "@/components/platform/PartnerDetailModal";
-import PartnerSuspendBanModal from "@/components/platform/PartnerSuspendBanModal";
+import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
+import SuspendBanModal from "@/components/accounts/SuspendBanModal";
 import CardWrapper from "@/components/ui/CardWrapper";
 
 // Initial Mock Partners list matching Screenshot 1 values
@@ -212,7 +212,13 @@ export default function FoundingPartnersPage() {
     setSelectedPartner(null);
     toast.success(`Partner account status updated to ${updatedStatus}.`);
   };
-
+  const handleReactivatePartner = (partnerId) => {
+    const updated = partners.map(p => 
+      p.id === partnerId ? { ...p, status: "Active" } : p
+    );
+    savePartners(updated);
+    toast.success(`Partner account has been reactivated.`);
+  };
   // Filtering
   const filteredPartners = partners.filter((p) => {
     const matchesSearch =
@@ -425,23 +431,34 @@ export default function FoundingPartnersPage() {
       {/* Action Modals */}
       {selectedPartner && (
         <>
-          <PartnerDetailModal
+          <ProviderDetailModal
             isOpen={detailOpen}
-            partner={selectedPartner}
+            provider={selectedPartner}
             onClose={() => {
               setDetailOpen(false);
               setSelectedPartner(null);
             }}
+            onSuspendBanTrigger={(partner) => {
+              setDetailOpen(false);
+              setSelectedPartner(partner);
+              setSuspendBanOpen(true);
+            }}
+            onReactivateTrigger={(partnerId) => {
+              handleReactivatePartner(partnerId);
+              // Update status of currently opened provider details card locally
+              setSelectedPartner(prev => prev ? { ...prev, status: "Active" } : null);
+            }}
           />
 
-          <PartnerSuspendBanModal
+          <SuspendBanModal
             isOpen={suspendBanOpen}
-            partner={selectedPartner}
+            account={selectedPartner}
+            activeTab="Providers"
             onClose={() => {
               setSuspendBanOpen(false);
               setSelectedPartner(null);
             }}
-            onSubmit={handleSuspendBanSubmit}
+            onSubmit={(data) => handleSuspendBanSubmit(selectedPartner, data)}
           />
         </>
       )}

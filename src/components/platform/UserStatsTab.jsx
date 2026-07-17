@@ -8,20 +8,20 @@ import { exportCSV } from "@/utils/exportHelper";
 
 // Mock stats data matching Screenshot 4 / 5
 const baseStats = [
-  { city: "Lilongwe", country: "Malawi", category: "Photography", subCategory: "Wildlife Photography", clients: 610, providers: 32, ratio: 4.4, volume: 175, gmv: 7200, demandLevel: "High demand", bubbleLabel: "Lil", left: "28%", top: "45%" },
-  { city: "Dakar", country: "Senegal", category: "Cooking", subCategory: "African Cuisine", clients: 550, providers: 28, ratio: 4.2, volume: 160, gmv: 6800, demandLevel: "High demand", bubbleLabel: "Dak", left: "15%", top: "35%" },
-  { city: "Freetown", country: "Sierra Leone", category: "Writing", subCategory: "Creative Writing", clients: 530, providers: 27, ratio: 4.0, volume: 145, gmv: 5300, demandLevel: "Medium", bubbleLabel: "Fre", left: "47%", top: "52%" },
-  { city: "Cairo", country: "Egypt", category: "Art & Design", subCategory: "Painting", clients: 450, providers: 20, ratio: 4.0, volume: 120, gmv: 4800, demandLevel: "Medium", bubbleLabel: "Cai", left: "42%", top: "25%" },
-  { city: "Addis Ababa", country: "Ethiopia", category: "Academic", subCategory: "Math Tutoring", clients: 800, providers: 40, ratio: 5.0, volume: 210, gmv: 10500, demandLevel: "High demand", bubbleLabel: "Add", left: "48%", top: "65%" },
-  { city: "Banjul", country: "Gambia", category: "Performing Arts", subCategory: "Dance", clients: 480, providers: 22, ratio: 4.3, volume: 130, gmv: 4200, demandLevel: "High demand", bubbleLabel: "Ban", left: "15%", top: "35%" },
-  { city: "Maputo", country: "Mozambique", category: "Health & Wellness", subCategory: "Nutrition Coaching", clients: 520, providers: 26, ratio: 3.5, volume: 140, gmv: 5600, demandLevel: "Balanced", bubbleLabel: "Map", left: "28%", top: "45%" },
-  { city: "Kampala", country: "Uganda", category: "Language", subCategory: "Swahili", clients: 600, providers: 30, ratio: 3.7, volume: 170, gmv: 6300, demandLevel: "High demand", bubbleLabel: "Kam", left: "51%", top: "47%" },
-  { city: "Nairobi", country: "Kenya", category: "Business", subCategory: "Entrepreneurship", clients: 900, providers: 50, ratio: 6.0, volume: 250, gmv: 13500, demandLevel: "High demand", bubbleLabel: "Nai", left: "56%", top: "41%" },
-  { city: "Accra", country: "Ghana", category: "Performing Arts", subCategory: "Dance Fitness", clients: 500, providers: 25, ratio: 4.0, volume: 150, gmv: 6000, demandLevel: "High demand", bubbleLabel: "Acc", left: "43%", top: "43%" },
-  { city: "Abuja", country: "Nigeria", category: "Health & Wellness", subCategory: "Spinning Classes", clients: 650, providers: 38, ratio: 3.8, volume: 200, gmv: 7800, demandLevel: "Medium", bubbleLabel: "Abu", left: "64%", top: "43%" },
-  { city: "Kigali", country: "Rwanda", category: "Academic", subCategory: "English Tutoring", clients: 680, providers: 34, ratio: 4.1, volume: 165, gmv: 8200, demandLevel: "High demand", bubbleLabel: "Kig", left: "60%", top: "37%" },
-  { city: "Lagos", country: "Nigeria", category: "Technology", subCategory: "Coding Bootcamp", clients: 1200, providers: 48, ratio: 5.5, volume: 340, gmv: 18000, demandLevel: "High demand", bubbleLabel: "Lag", left: "68%", top: "43%" },
-  { city: "Lagos", country: "Nigeria", category: "General Cleaning", subCategory: "Office Cleaning", clients: 950, providers: 42, ratio: 4.9, volume: 310, gmv: 9500, demandLevel: "High demand", bubbleLabel: "Lag", left: "72%", top: "37%" }
+  { city: "New York", country: "United States", category: "Photography", subCategory: "Wildlife Photography", clients: 610, providers: 32, ratio: 4.4, volume: 175, gmv: 7200, demandLevel: "High demand", bubbleLabel: "NYC", left: "28%", top: "45%" },
+  { city: "Toronto", country: "Canada", category: "Cooking", subCategory: "African Cuisine", clients: 550, providers: 28, ratio: 4.2, volume: 160, gmv: 6800, demandLevel: "High demand", bubbleLabel: "TOR", left: "15%", top: "35%" },
+  { city: "Los Angeles", country: "United States", category: "Writing", subCategory: "Creative Writing", clients: 530, providers: 27, ratio: 4.0, volume: 145, gmv: 5300, demandLevel: "Medium", bubbleLabel: "LA", left: "47%", top: "52%" },
+  { city: "Vancouver", country: "Canada", category: "Art & Design", subCategory: "Painting", clients: 450, providers: 20, ratio: 4.0, volume: 120, gmv: 4800, demandLevel: "Medium", bubbleLabel: "VAN", left: "42%", top: "25%" },
+  { city: "Chicago", country: "United States", category: "Academic", subCategory: "Math Tutoring", clients: 800, providers: 40, ratio: 5.0, volume: 210, gmv: 10500, demandLevel: "High demand", bubbleLabel: "CHI", left: "48%", top: "65%" },
+  { city: "Montreal", country: "Canada", category: "Performing Arts", subCategory: "Dance", clients: 480, providers: 22, ratio: 4.3, volume: 130, gmv: 4200, demandLevel: "High demand", bubbleLabel: "MTL", left: "15%", top: "35%" },
+  { city: "Houston", country: "United States", category: "Health & Wellness", subCategory: "Nutrition Coaching", clients: 520, providers: 26, ratio: 3.5, volume: 140, gmv: 5600, demandLevel: "Balanced", bubbleLabel: "HOU", left: "28%", top: "45%" },
+  { city: "Calgary", country: "Canada", category: "Language", subCategory: "Swahili", clients: 600, providers: 30, ratio: 3.7, volume: 170, gmv: 6300, demandLevel: "High demand", bubbleLabel: "CAL", left: "51%", top: "47%" },
+  { city: "San Francisco", country: "United States", category: "Business", subCategory: "Entrepreneurship", clients: 900, providers: 50, ratio: 6.0, volume: 250, gmv: 13500, demandLevel: "High demand", bubbleLabel: "SF", left: "56%", top: "41%" },
+  { city: "Ottawa", country: "Canada", category: "Performing Arts", subCategory: "Dance Fitness", clients: 500, providers: 25, ratio: 4.0, volume: 150, gmv: 6000, demandLevel: "High demand", bubbleLabel: "OTT", left: "43%", top: "43%" },
+  { city: "Seattle", country: "United States", category: "Health & Wellness", subCategory: "Spinning Classes", clients: 650, providers: 38, ratio: 3.8, volume: 200, gmv: 7800, demandLevel: "Medium", bubbleLabel: "SEA", left: "64%", top: "43%" },
+  { city: "Edmonton", country: "Canada", category: "Academic", subCategory: "English Tutoring", clients: 680, providers: 34, ratio: 4.1, volume: 165, gmv: 8200, demandLevel: "High demand", bubbleLabel: "EDM", left: "60%", top: "37%" },
+  { city: "Boston", country: "United States", category: "Technology", subCategory: "Coding Bootcamp", clients: 1200, providers: 48, ratio: 5.5, volume: 340, gmv: 18000, demandLevel: "High demand", bubbleLabel: "BOS", left: "68%", top: "43%" },
+  { city: "Quebec City", country: "Canada", category: "General Cleaning", subCategory: "Office Cleaning", clients: 950, providers: 42, ratio: 4.9, volume: 310, gmv: 9500, demandLevel: "High demand", bubbleLabel: "QBC", left: "72%", top: "37%" }
 ];
 
 const mockStats = [];
@@ -101,7 +101,10 @@ export default function UserStatsTab() {
 
   // Filter lists
   const countries = ["All", ...Array.from(new Set(data.map(item => item.country)))];
-  const cities = ["All", ...Array.from(new Set(data.map(item => item.city)))];
+  const cities = ["All", ...Array.from(new Set(
+    (selectedCountry === "All" ? data : data.filter(item => item.country === selectedCountry))
+      .map(item => item.city)
+  ))];
   const categoriesOnly = Array.from(new Set(data.map(item => item.category)));
 
   // Map of category -> subcategories
@@ -177,6 +180,7 @@ export default function UserStatsTab() {
             value={selectedCountry}
             onChange={(e) => {
               setSelectedCountry(e.target.value);
+              setSelectedCity("All");
               setCurrentPage(1);
             }}
             className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
@@ -240,7 +244,7 @@ export default function UserStatsTab() {
                     setCurrentPage(1);
                   }}
                   className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-normal ${
-                    selectedCategory === "All" ? "bg-page-bg font-medium text-[#6FB5BD]" : "text-text-primary"
+                    selectedCategory === "All" ? "bg-page-bg font-medium text-primary-bg" : "text-text-primary"
                   }`}
                 >
                   All Categories
@@ -255,7 +259,7 @@ export default function UserStatsTab() {
                       setCurrentPage(1);
                     }}
                     className={`flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs select-none ${
-                      selectedCategory === cat ? "bg-page-bg font-medium text-[#6FB5BD]" : "text-text-primary"
+                      selectedCategory === cat ? "bg-page-bg font-medium text-primary-bg" : "text-text-primary"
                     }`}
                   >
                     <span>{cat}</span>
@@ -277,7 +281,7 @@ export default function UserStatsTab() {
                       setCurrentPage(1);
                     }}
                     className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-semibold ${
-                      selectedCategory === hoveredCategory ? "bg-page-bg text-[#6FB5BD]" : "text-text-primary"
+                      selectedCategory === hoveredCategory ? "bg-page-bg text-primary-bg" : "text-text-primary"
                     }`}
                   >
                     {hoveredCategory} (All)
@@ -292,7 +296,7 @@ export default function UserStatsTab() {
                         setCurrentPage(1);
                       }}
                       className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-normal ${
-                        selectedCategory === `sub:${sub}` ? "bg-page-bg text-[#6FB5BD]" : "text-text-muted"
+                        selectedCategory === `sub:${sub}` ? "bg-page-bg text-primary-bg" : "text-text-muted"
                       }`}
                     >
                       {sub}

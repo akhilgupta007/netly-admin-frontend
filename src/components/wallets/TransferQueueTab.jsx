@@ -65,7 +65,7 @@ export default function TransferQueueTab({
             <select
               value={filterStatus}
               onChange={(e) => { onStatusChange(e.target.value); setCurrentPage(1); }}
-              className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-primary cursor-pointer"
+              className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
             >
               <option value="All">Status</option>
               <option value="Requested">Requested</option>

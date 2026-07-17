@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { toast } from "react-toastify";
 
 import WalletHistoryModal from "@/components/wallets/WalletHistoryModal";
@@ -53,6 +53,27 @@ export default function WalletsRefundsPage() {
   const [selectedQueueItem, setSelectedQueueItem] = useState(null); // Used for authorize / reject
   const [activeModal, setActiveModal] = useState(null); // 'adjust' | 'authorize' | 'reject'
   const [drawerOpen, setDrawerOpen] = useState(false); // History drawer
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      const startParam = params.get("startDate");
+      const endParam = params.get("endDate");
+      
+      if (tabParam) {
+        setActiveTab(tabParam);
+      }
+      if (startParam) {
+        const [y, m, d] = startParam.split("-").map(Number);
+        setStartDate(new Date(y, m - 1, d));
+      }
+      if (endParam) {
+        const [y, m, d] = endParam.split("-").map(Number);
+        setEndDate(new Date(y, m - 1, d));
+      }
+    }
+  }, []);
 
   // Mock Database - Wallets List
   const [wallets, setWallets] = useState([
@@ -258,14 +279,8 @@ export default function WalletsRefundsPage() {
       {activeTab === "wallets" && (
         <WalletsTab
           wallets={filteredWallets}
-          startDate={startDate}
-          endDate={endDate}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
-          onDateChange={(start, end) => {
-            setStartDate(start);
-            setEndDate(end);
-          }}
           onOpenHistory={(item) => {
             setSelectedWallet(item);
             setDrawerOpen(true);

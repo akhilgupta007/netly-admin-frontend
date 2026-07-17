@@ -2,17 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { Search, MoreVertical, History, Settings2 } from "lucide-react";
-import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
 
 export default function WalletsTab({
   wallets,
-  startDate,
-  endDate,
   searchTerm,
   onSearchChange,
-  onDateChange,
   onOpenHistory,
   onOpenAdjust,
   currentPage,
@@ -54,17 +50,6 @@ export default function WalletsTab({
             value={searchTerm}
             onChange={(e) => { onSearchChange(e.target.value); setCurrentPage(1); }}
             className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(start, end) => {
-              onDateChange(start, end);
-              setCurrentPage(1);
-            }}
           />
         </div>
       </div>

@@ -11,7 +11,8 @@ import ProvidersTab from "@/components/accounts/ProvidersTab";
 import SuspendBanModal from "@/components/accounts/SuspendBanModal";
 import ClientDetailModal from "@/components/accounts/ClientDetailModal";
 import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
-import InviteUserModal from "@/components/accounts/InviteUserModal";
+import InviteClientModal from "@/components/accounts/InviteClientModal";
+import InviteProviderModal from "@/components/accounts/InviteProviderModal";
 
 const defaultClients = [
   { id: "CL-01", name: "Amara Osei", email: "amara@gmail.com", joinDate: "May 22, 2027", otp: "Verified", bookings: 14, wallet: 247.50, status: "Active" },
@@ -83,6 +84,18 @@ export default function AccountsPage() {
     } else {
       setProviders(defaultProviders);
       localStorage.setItem("netly_accounts_providers", JSON.stringify(defaultProviders));
+    }
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      const statusParam = params.get("status");
+      if (tabParam) {
+        setActiveTab(tabParam);
+      }
+      if (statusParam) {
+        setFilterStatus(statusParam);
+      }
     }
   }, []);
 
@@ -201,10 +214,12 @@ export default function AccountsPage() {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
 
+    const finalName = data.name || generatedName;
+
     if (data.type === "Client") {
       const newClient = {
         id: `CL-${String(clients.length + 1).padStart(2, "0")}`,
-        name: generatedName,
+        name: finalName,
         email: data.email,
         joinDate: formattedDate,
         otp: "Verified",
@@ -216,15 +231,19 @@ export default function AccountsPage() {
       saveClients(updated);
       toast.success(`Client invite sent successfully to ${data.email}!`);
     } else {
+      const badgesList = ["Provider Pro"];
+      if (data.foundingPartnerBadge) {
+        badgesList.unshift("Founding Provider");
+      }
       const newProvider = {
         id: `PR-${String(providers.length + 1).padStart(2, "0")}`,
-        name: generatedName,
+        name: finalName,
         email: data.email,
         city: "Boston", // default city
         rating: "5.0",
         joinDate: formattedDate,
         kyc: "Verified",
-        badges: ["Provider Pro"],
+        badges: badgesList,
         status: "Active"
       };
       const updated = [newProvider, ...providers];
@@ -381,12 +400,19 @@ export default function AccountsPage() {
       )}
 
       {/* 4. Invite User Modal */}
-      <InviteUserModal
-        isOpen={inviteUserOpen}
-        onClose={() => setInviteUserOpen(false)}
-        onInvite={handleInviteUser}
-        defaultType={activeTab === "Clients" ? "Client" : "Provider"}
-      />
+      {activeTab === "Clients" ? (
+        <InviteClientModal
+          isOpen={inviteUserOpen}
+          onClose={() => setInviteUserOpen(false)}
+          onInvite={handleInviteUser}
+        />
+      ) : (
+        <InviteProviderModal
+          isOpen={inviteUserOpen}
+          onClose={() => setInviteUserOpen(false)}
+          onInvite={handleInviteUser}
+        />
+      )}
 
     </div>
   );

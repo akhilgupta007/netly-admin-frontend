@@ -12,6 +12,7 @@ export default function NetRevenueTab() {
   const [category, setCategory] = useState("All");
   const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
   const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
+  const [hoveredValue, setHoveredValue] = useState(null);
 
   const getChartData = () => {
     const data = [];
@@ -54,7 +55,7 @@ export default function NetRevenueTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
       </div>
     );
@@ -184,8 +185,28 @@ export default function NetRevenueTab() {
                     return (
                       <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                         <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
-                          <div style={{ height: feeHeight }} className="w-14 bg-primary-bg rounded-t-md" />
-                          <div style={{ height: commissionHeight }} className="w-14 bg-text-primary rounded-t-md" />
+                          <div 
+                            style={{ height: feeHeight }} 
+                            className="w-14 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
+                            onMouseEnter={() => setHoveredValue({
+                              x: `${7.1428 + index * 14.2857}%`,
+                              y: `${100 - (d.fee / 10000) * 100}%`,
+                              value: `$${d.fee.toLocaleString()}`,
+                              label: `5% Fee (${d.dayName}, ${d.fullDate})`
+                            })}
+                            onMouseLeave={() => setHoveredValue(null)}
+                          />
+                          <div 
+                            style={{ height: commissionHeight }} 
+                            className="w-14 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
+                            onMouseEnter={() => setHoveredValue({
+                              x: `${7.1428 + index * 14.2857}%`,
+                              y: `${100 - (d.commission / 10000) * 100}%`,
+                              value: `$${d.commission.toLocaleString()}`,
+                              label: `15% Commission (${d.dayName}, ${d.fullDate})`
+                            })}
+                            onMouseLeave={() => setHoveredValue(null)}
+                          />
                         </div>
                       </div>
                     );
@@ -232,17 +253,68 @@ export default function NetRevenueTab() {
                             />
                           ))}
                           {/* Fee dots */}
-                          {feePoints.map((p, idx) => (
-                            <circle key={`f-d-${idx}`} cx={p.x} cy={p.y} r="4.5" fill="#6FB5BD" stroke="white" strokeWidth="1.5" />
-                          ))}
+                          {feePoints.map((p, idx) => {
+                            const d = chartData[idx];
+                            return (
+                              <circle 
+                                key={`f-d-${idx}`} 
+                                cx={p.x} 
+                                cy={p.y} 
+                                r="4.5" 
+                                fill="#6FB5BD" 
+                                stroke="white" 
+                                strokeWidth="1.5" 
+                                className="cursor-pointer"
+                                onMouseEnter={() => setHoveredValue({
+                                  x: p.x,
+                                  y: p.y,
+                                  value: `$${d.fee.toLocaleString()}`,
+                                  label: `5% Fee (${d.dayName}, ${d.fullDate})`
+                                })}
+                                onMouseLeave={() => setHoveredValue(null)}
+                              />
+                            );
+                          })}
                           {/* Commission dots */}
-                          {commissionPoints.map((p, idx) => (
-                            <circle key={`c-d-${idx}`} cx={p.x} cy={p.y} r="4.5" fill="#0F1D36" stroke="white" strokeWidth="1.5" />
-                          ))}
+                          {commissionPoints.map((p, idx) => {
+                            const d = chartData[idx];
+                            return (
+                              <circle 
+                                key={`c-d-${idx}`} 
+                                cx={p.x} 
+                                cy={p.y} 
+                                r="4.5" 
+                                fill="#0F1D36" 
+                                stroke="white" 
+                                strokeWidth="1.5" 
+                                className="cursor-pointer"
+                                onMouseEnter={() => setHoveredValue({
+                                  x: p.x,
+                                  y: p.y,
+                                  value: `$${d.commission.toLocaleString()}`,
+                                  label: `15% Commission (${d.dayName}, ${d.fullDate})`
+                                })}
+                                onMouseLeave={() => setHoveredValue(null)}
+                              />
+                            );
+                          })}
                         </g>
                       );
                     })()}
                   </svg>
+                </div>
+              )}
+
+              {hoveredValue && (
+                <div 
+                  className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
+                  style={{ 
+                    left: hoveredValue.x, 
+                    top: hoveredValue.y 
+                  }}
+                >
+                  <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
+                  <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
                 </div>
               )}
             </div>

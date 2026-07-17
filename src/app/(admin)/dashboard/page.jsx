@@ -25,6 +25,7 @@ export default function DashboardPage() {
 
   // Banner visibility state
   const [showBanner, setShowBanner] = useState(true);
+  const [hoveredValue, setHoveredValue] = useState(null);
 
   // Time filter state
   const [timeFilter, setTimeFilter] = useState("This week");
@@ -35,6 +36,31 @@ export default function DashboardPage() {
 
   // Chart type state (Bar or Line)
   const [chartType, setChartType] = useState("Bar");
+
+  const formatDateStr = (dateObj) => {
+    if (!dateObj) return "";
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const d = String(dateObj.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  };
+
+  const startStr = formatDateStr(startDate);
+  const endStr = formatDateStr(endDate);
+
+  const getMondayAndSunday = (date) => {
+    const day = date.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { monday, sunday };
+  };
+
+  const { monday: thisWeekMonday, sunday: thisWeekSunday } = getMondayAndSunday(new Date());
+  const thisWeekMondayStr = formatDateStr(thisWeekMonday);
+  const thisWeekSundayStr = formatDateStr(thisWeekSunday);
 
   // Mock data for weekly chart - unaffected by the filters
   const chartData = [
@@ -107,12 +133,14 @@ export default function DashboardPage() {
       name: "Bookings",
       value: dynamicStats.bookings,
       note: dynamicStats.note,
+      href: `/transactions?startDate=${startStr}&endDate=${endStr}`,
       icon: Calendar,
     },
     {
       name: "Completion rate",
       value: dynamicStats.completionRate,
       note: "Completed + canceled",
+      href: `/transactions?status=completed,cancelled&startDate=${startStr}&endDate=${endStr}`,
       icon: CheckCircle,
     },
     {
@@ -126,12 +154,14 @@ export default function DashboardPage() {
       name: "Wallet credits pending",
       value: dynamicStats.walletCreditsPending,
       note: "Awaiting approval",
+      href: "/wallets?tab=credit",
       icon: Clock,
     },
     {
       name: "Refund requests",
       value: dynamicStats.refundRequests,
       note: "Awaiting approval",
+      href: "/transactions?status=refund requested",
       icon: Clock,
     },
     {
@@ -143,30 +173,36 @@ export default function DashboardPage() {
     },
   ];
 
+
+
   // Money info cards data
   const moneyCards = [
     {
       name: "Gross Merchandise Value",
       value: dynamicStats.gmv,
       note: dynamicStats.note,
+      href: `/transactions?status=confirmed,in progress,completed,finalised&startDate=${thisWeekMondayStr}&endDate=${thisWeekSundayStr}`,
       icon: ShieldCheck,
     },
     {
       name: "NETLY net revenue",
       value: dynamicStats.revenue,
       note: "5% + 15% commission",
+      href: `/transactions?status=finalised&startDate=${startStr}&endDate=${endStr}`,
       icon: ShieldCheck,
     },
     {
       name: "Non-refundable 5% fees",
       value: dynamicStats.fees,
       note: "Total collected",
+      href: `/wallets?tab=fee&startDate=${thisWeekMondayStr}&endDate=${thisWeekSundayStr}`,
       icon: ShieldCheck,
     },
     {
       name: "Client wallet balance",
       value: dynamicStats.liability,
       note: "Live liability - no trend",
+      href: "/wallets",
       icon: ShieldCheck,
     },
   ];
@@ -177,18 +213,21 @@ export default function DashboardPage() {
       name: "New clients",
       value: dynamicStats.newClients,
       note: dynamicStats.note,
+      href: "/accounts?tab=Clients",
       icon: ShieldCheck,
     },
     {
       name: "New providers",
       value: dynamicStats.newProviders,
       note: dynamicStats.note,
+      href: "/accounts?tab=Providers",
       icon: ShieldCheck,
     },
     {
       name: "Suspended accounts",
       value: dynamicStats.suspended,
       note: "Tap to manage",
+      href: "/accounts?tab=Clients&status=Suspended",
       icon: ShieldCheck,
     },
     {
@@ -202,7 +241,7 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[480px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Dashboard Data...</span>
       </div>
     );
@@ -318,6 +357,7 @@ export default function DashboardPage() {
                 value={card.value}
                 note={card.note}
                 icon={card.icon}
+                href={card.href}
               />
             ))}
           </div>
@@ -386,6 +426,13 @@ export default function DashboardPage() {
                             fill="#6FB5BD"
                             rx="3"
                             className="transition-all duration-300 hover:opacity-95 cursor-pointer"
+                            onMouseEnter={() => setHoveredValue({
+                              x: x_center - 8,
+                              y: 140 - outboundHeight,
+                              value: `$${data.outbound.toLocaleString()}`,
+                              label: `Outbound (${data.label})`
+                            })}
+                            onMouseLeave={() => setHoveredValue(null)}
                           />
                           {/* Retained bar */}
                           <rect
@@ -396,6 +443,13 @@ export default function DashboardPage() {
                             fill="#0B163F"
                             rx="3"
                             className="transition-all duration-300 hover:opacity-95 cursor-pointer"
+                            onMouseEnter={() => setHoveredValue({
+                              x: x_center + 18,
+                              y: 140 - retainedHeight,
+                              value: `$${data.retained.toLocaleString()}`,
+                              label: `Retained (${data.label})`
+                            })}
+                            onMouseLeave={() => setHoveredValue(null)}
                           />
                           {/* X-Axis Label */}
                           <text
@@ -450,9 +504,35 @@ export default function DashboardPage() {
                         return (
                           <g key={index}>
                             {/* Outbound Dot */}
-                            <circle cx={x_center} cy={cyOut} r="4" fill="#6FB5BD" className="cursor-pointer" />
+                            <circle 
+                              cx={x_center} 
+                              cy={cyOut} 
+                              r="4" 
+                              fill="#6FB5BD" 
+                              className="cursor-pointer" 
+                              onMouseEnter={() => setHoveredValue({
+                                x: x_center,
+                                y: cyOut,
+                                value: `$${data.outbound.toLocaleString()}`,
+                                label: `Outbound (${data.label})`
+                              })}
+                              onMouseLeave={() => setHoveredValue(null)}
+                            />
                             {/* Retained Dot */}
-                            <circle cx={x_center} cy={cyRet} r="4" fill="#0B163F" className="cursor-pointer" />
+                            <circle 
+                              cx={x_center} 
+                              cy={cyRet} 
+                              r="4" 
+                              fill="#0B163F" 
+                              className="cursor-pointer" 
+                              onMouseEnter={() => setHoveredValue({
+                                x: x_center,
+                                y: cyRet,
+                                value: `$${data.retained.toLocaleString()}`,
+                                label: `Retained (${data.label})`
+                              })}
+                              onMouseLeave={() => setHoveredValue(null)}
+                            />
                             {/* X-Axis Label */}
                             <text
                               x={x_center}
@@ -468,6 +548,18 @@ export default function DashboardPage() {
                     </g>
                   )}
                 </svg>
+                {hoveredValue && (
+                  <div 
+                    className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
+                    style={{ 
+                      left: `${(hoveredValue.x / 540) * 100}%`, 
+                      top: `${(hoveredValue.y / 180) * 100}%` 
+                    }}
+                  >
+                    <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
+                    <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
+                  </div>
+                )}
               </div>
             </div>
 

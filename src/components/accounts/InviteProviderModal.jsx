@@ -4,21 +4,29 @@ import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
 
-export default function InviteUserModal({ isOpen, onClose, onInvite, defaultType }) {
+export default function InviteProviderModal({ isOpen, onClose, onInvite }) {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Professional");
+  const [foundingPartnerBadge, setFoundingPartnerBadge] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
-      setRole(defaultType === "Provider" || defaultType === "Professional" ? "Professional" : "Client");
+      setName("");
       setEmail("");
+      setRole("Professional");
+      setFoundingPartnerBadge(true);
     }
-  }, [isOpen, defaultType]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!name.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
     if (!email.trim()) {
       toast.error("Email address is required.");
       return;
@@ -31,8 +39,11 @@ export default function InviteUserModal({ isOpen, onClose, onInvite, defaultType
     }
 
     onInvite({
+      name: name.trim(),
       email: email.trim(),
-      type: role === "Professional" ? "Provider" : "Client"
+      type: "Provider",
+      role: role,
+      foundingPartnerBadge
     });
 
     onClose();
@@ -40,7 +51,7 @@ export default function InviteUserModal({ isOpen, onClose, onInvite, defaultType
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl p-6 relative flex flex-col animate-scale-up font-onest">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl p-4 relative flex flex-col animate-scale-up font-onest">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-2 mb-3 border-b border-b-border-main">
@@ -57,9 +68,24 @@ export default function InviteUserModal({ isOpen, onClose, onInvite, defaultType
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="space-y-4 text-xs text-text-primary">
           
+          {/* Name input */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-text-primary block font-medium">
+              Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Enter User Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/50"
+            />
+          </div>
+
           {/* Email input */}
           <div className="space-y-1.5">
-            <label className="text-xs text-text-primary block">
+            <label className="text-xs text-text-primary block font-medium">
               Email Address <span className="text-red-500">*</span>
             </label>
             <input
@@ -74,7 +100,7 @@ export default function InviteUserModal({ isOpen, onClose, onInvite, defaultType
 
           {/* Role selector */}
           <div className="space-y-1.5">
-            <label className="text-xs text-text-primary block">
+            <label className="text-xs text-text-primary block font-medium">
               Role <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -88,6 +114,25 @@ export default function InviteUserModal({ isOpen, onClose, onInvite, defaultType
                 <option value="Client">Client</option>
               </select>
               <ChevronDown className="absolute right-3.5 top-4 h-4 w-4 text-text-muted pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Founding Partner Badge Checkbox */}
+          <div className="flex items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              id="foundingPartnerBadge"
+              checked={foundingPartnerBadge}
+              onChange={(e) => setFoundingPartnerBadge(e.target.checked)}
+              className="w-4 h-4 text-white accent-primary-bg-muted cursor-pointer mt-0.5"
+            />
+            <div>
+              <label htmlFor="foundingPartnerBadge" className="text-xs font-semibold text-text-primary cursor-pointer select-none">
+                Founding Partner Badge
+              </label>
+              <p className="text-[10px] text-text-muted mt-0.5 font-light select-none">
+                Grant this provider the Founding Partner badge upon joining.
+              </p>
             </div>
           </div>
 

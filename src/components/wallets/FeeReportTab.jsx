@@ -18,11 +18,25 @@ export default function FeeReportTab({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
       </div>
     );
   }
+
+  const getMondayAndSunday = (date) => {
+    const day = date.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diffToMonday);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return { monday, sunday };
+  };
+
+  const { monday: defaultMon, sunday: defaultSun } = getMondayAndSunday(new Date());
+  const displayStart = startDate || defaultMon;
+  const displayEnd = endDate || defaultSun;
 
   return (
     <div className="space-y-4 animate-scale-up">
@@ -30,16 +44,12 @@ export default function FeeReportTab({
       <div className="flex justify-end items-center gap-3">
         <div>
           <div className="text-sm font-medium text-text-primary block mt-0.5">
-            {startDate && endDate ? (
-              `${startDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-            ) : (
-              "July 1, 2026 - July 7, 2026"
-            )}
+            {`${displayStart.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} - ${displayEnd.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`}
           </div>
         </div>
         <DateRangePicker
-          startDate={startDate}
-          endDate={endDate}
+          startDate={startDate || defaultMon}
+          endDate={endDate || defaultSun}
           onChange={onDateChange}
           isWeekView={true}
         />

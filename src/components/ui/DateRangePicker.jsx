@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
 
 export default function DateRangePicker({ startDate, endDate, onChange, isWeekView }) {
@@ -11,6 +11,14 @@ export default function DateRangePicker({ startDate, endDate, onChange, isWeekVi
   const [currentCalendarDate, setCurrentCalendarDate] = useState(
     startDate ? new Date(startDate) : new Date(2026, 6, 1)
   );
+
+  useEffect(() => {
+    setTempStartDate(startDate);
+    setTempEndDate(endDate);
+    if (startDate) {
+      setCurrentCalendarDate(new Date(startDate));
+    }
+  }, [startDate, endDate]);
 
   // Sync temp dates with applied dates when opening calendar
   const toggleCalendar = () => {
@@ -28,9 +36,13 @@ export default function DateRangePicker({ startDate, endDate, onChange, isWeekVi
   const handleApply = () => {
     if (tempStartDate) {
       if (isWeekView) {
-        const end = new Date(tempStartDate);
-        end.setDate(end.getDate() + 6);
-        onChange(tempStartDate, end);
+        const day = tempStartDate.getDay();
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        const monday = new Date(tempStartDate);
+        monday.setDate(tempStartDate.getDate() + diffToMonday);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        onChange(monday, sunday);
       } else {
         const end = tempEndDate || tempStartDate;
         onChange(tempStartDate, end);
@@ -43,11 +55,10 @@ export default function DateRangePicker({ startDate, endDate, onChange, isWeekVi
 
   const handleReset = () => {
     if (isWeekView) {
-      const defaultStart = new Date(2026, 6, 1);
-      const defaultEnd = new Date(2026, 6, 7);
-      setTempStartDate(defaultStart);
-      setTempEndDate(defaultEnd);
-      onChange(defaultStart, defaultEnd);
+      const { monday, sunday } = getMondayAndSunday(new Date());
+      setTempStartDate(monday);
+      setTempEndDate(sunday);
+      onChange(monday, sunday);
     } else {
       setTempStartDate(null);
       setTempEndDate(null);
@@ -221,10 +232,14 @@ export default function DateRangePicker({ startDate, endDate, onChange, isWeekVi
                       onClick={() => {
                         if (isFuture) return;
                         if (isWeekView) {
-                          const end = new Date(thisDate);
-                          end.setDate(end.getDate() + 6);
-                          setTempStartDate(thisDate);
-                          setTempEndDate(end);
+                          const day = thisDate.getDay();
+                          const diffToMonday = day === 0 ? -6 : 1 - day;
+                          const monday = new Date(thisDate);
+                          monday.setDate(thisDate.getDate() + diffToMonday);
+                          const sunday = new Date(monday);
+                          sunday.setDate(monday.getDate() + 6);
+                          setTempStartDate(monday);
+                          setTempEndDate(sunday);
                         } else {
                           if (!tempStartDate || (tempStartDate && tempEndDate)) {
                             setTempStartDate(thisDate);

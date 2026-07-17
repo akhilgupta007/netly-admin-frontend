@@ -68,7 +68,7 @@ export default function TransactionsPage() {
   // Status options array
   const statusOptions = [
     { value: "All", label: "Status" },
-    { value: "Hour Adjustment Pending", label: "Hour Adjustment Pending" },
+    { value: "Finalised", label: "Finalised" },
     { value: "Completed", label: "Completed" },
     { value: "In Progress", label: "In Progress" },
     { value: "Refund Requested", label: "Refund Requested" },
@@ -85,7 +85,7 @@ export default function TransactionsPage() {
   const defaultTransactions = [
     {
       id: "TXN0019142136974",
-      status: "Hour Adjustment Pending",
+      status: "Finalised",
       client: { name: "Amara Osei", email: "amara@example.com" },
       provider: { name: "Fatima Diallo", email: "fatima.d@corp.com" },
       category: "Deep Cleaning",
@@ -179,6 +179,7 @@ export default function TransactionsPage() {
       disputeId: "DISP-8802",
       disputeOpenedAt: "May 24, 2027 02:30 PM",
       disputeStatus: "Open",
+      disputeRaisedBy: "Client",
       history: [
         { status: "Request Submitted", date: "June 10, 2026 • 09:45 AM" },
         { status: "Dispute Opened by Client", date: "June 10, 2026 • 09:45 AM" }
@@ -343,6 +344,30 @@ export default function TransactionsPage() {
       setTransactions(defaultTransactions);
       localStorage.setItem("netly_transactions", JSON.stringify(defaultTransactions));
     }
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const statusParam = params.get("status");
+      const startParam = params.get("startDate");
+      const endParam = params.get("endDate");
+      
+      if (statusParam) {
+        const matchedOpt = statusOptions.find(opt => opt.value.toLowerCase() === statusParam.toLowerCase());
+        if (matchedOpt) {
+          setFilterStatus(matchedOpt.value);
+        } else {
+          setFilterStatus(statusParam);
+        }
+      }
+      if (startParam) {
+        const [y, m, d] = startParam.split("-").map(Number);
+        setStartDate(new Date(y, m - 1, d));
+      }
+      if (endParam) {
+        const [y, m, d] = endParam.split("-").map(Number);
+        setEndDate(new Date(y, m - 1, d));
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -353,20 +378,96 @@ export default function TransactionsPage() {
 
   // Status-to-class color styling lookup mapping
   const statusColors = {
-    "Hour Adjustment Pending": "bg-amber-50 text-amber-600",
-    "Completed": "bg-emerald-50 text-emerald-600",
-    "In Progress": "bg-orange-50 text-orange-600",
-    "Refund Requested": "bg-blue-50 text-blue-600",
-    "Dispute": "bg-rose-50 text-rose-600",
-    "Wallet Credited — Client Fault": "bg-emerald-50 text-emerald-600",
-    "Wallet Credited — Provider Fault": "bg-emerald-50 text-emerald-600",
-    "Pending Provider Acceptance": "bg-amber-50 text-amber-600",
-    "Quote Pending": "bg-amber-50 text-amber-600",
-    "Confirmed": "bg-emerald-50 text-emerald-600",
-    "Cancelled Pending Admin Review": "bg-rose-50 text-rose-600",
-    "Pending Payment": "bg-amber-50 text-amber-600",
-    "Quote Declined": "bg-orange-50 text-orange-600",
-    "Rejected / Expired": "bg-orange-50 text-orange-600"
+    "Pending Payment": "text-amber-600 bg-amber-50",
+    "Hour Adjustment Pending": "text-amber-600 bg-amber-50",
+    "Confirmed": "text-blue-600 bg-blue-50",
+    "In Progress": "text-blue-600 bg-blue-50",
+    "Completed": "text-emerald-600 bg-emerald-50",
+    "Finalised": "text-emerald-600 bg-emerald-50",
+    "Cancelled Pending Admin Review": "text-gray-500 bg-gray-100",
+    "Wallet Credited — Client Fault": "text-gray-500 bg-gray-100",
+    "Wallet Credited — Provider Fault": "text-gray-500 bg-gray-100",
+    "Dispute": "text-rose-600 bg-rose-50",
+    "Refund Requested": "text-emerald-600 bg-emerald-50",
+    "Pending Provider Acceptance": "text-amber-600 bg-amber-50",
+    "Quote Pending": "text-amber-600 bg-amber-50",
+    "Quote Declined": "text-gray-500 bg-gray-100",
+    "Rejected / Expired": "text-gray-500 bg-gray-100"
+  };
+
+  // Status dot color lookup
+  const statusDotColors = {
+    "Pending Payment": "bg-amber-500",
+    "Hour Adjustment Pending": "bg-amber-500",
+    "Confirmed": "bg-blue-500",
+    "In Progress": "bg-blue-500",
+    "Completed": "bg-emerald-500",
+    "Finalised": "bg-emerald-500",
+    "Cancelled Pending Admin Review": "bg-gray-400",
+    "Wallet Credited — Client Fault": "bg-gray-400",
+    "Wallet Credited — Provider Fault": "bg-gray-400",
+    "Dispute": "bg-rose-500",
+    "Refund Requested": "bg-emerald-500",
+    "Pending Provider Acceptance": "bg-amber-500",
+    "Quote Pending": "bg-amber-500",
+    "Quote Declined": "bg-gray-400",
+    "Rejected / Expired": "bg-gray-400"
+  };
+
+  // Status subtitle text color lookup
+  const statusSubtitleColors = {
+    "Pending Payment": "text-amber-500",
+    "Hour Adjustment Pending": "text-amber-500",
+    "Confirmed": "text-blue-500",
+    "In Progress": "text-blue-500",
+    "Completed": "text-emerald-500",
+    "Finalised": "text-emerald-500",
+    "Cancelled Pending Admin Review": "text-gray-400",
+    "Wallet Credited — Client Fault": "text-gray-400",
+    "Wallet Credited — Provider Fault": "text-gray-400",
+    "Dispute": "text-rose-500",
+    "Refund Requested": "text-emerald-500",
+    "Pending Provider Acceptance": "text-amber-500",
+    "Quote Pending": "text-amber-500",
+    "Quote Declined": "text-gray-400",
+    "Rejected / Expired": "text-gray-400"
+  };
+
+  // Helper to get status subtitle description
+  const getStatusSubtitle = (tx) => {
+    switch (tx.status) {
+      case "Pending Payment": return "Payment Pending";
+      case "Confirmed": return "Payment Received";
+      case "In Progress": return "Started by Provider";
+      case "Completed": return "Waiting for Client Approval";
+      case "Finalised": return "Booking Closed";
+      case "Cancelled Pending Admin Review":
+        return tx.cancelledBy === "Client" ? "Cancelled by Client" : "Cancelled by Provider";
+      case "Wallet Credited — Client Fault": return "Cancelled by Client";
+      case "Wallet Credited — Provider Fault": return "Cancelled by Provider";
+      case "Dispute":
+        return tx.disputeRaisedBy === "Provider" ? "Raised by Provider" : "Raised by Client";
+      case "Refund Requested": return "Refund Completed";
+      case "Pending Provider Acceptance": return "Awaiting Provider";
+      case "Quote Pending": return "Quote Awaited";
+      case "Quote Declined": return "Declined by Client";
+      case "Hour Adjustment Pending": return "Adjustment Pending";
+      case "Rejected / Expired": return "Expired";
+      default: return "";
+    }
+  };
+
+  // Display label for status badge
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "Wallet Credited — Client Fault": return "Cancelled";
+      case "Wallet Credited — Provider Fault": return "Cancelled";
+      case "Pending Provider Acceptance": return "Pending";
+      case "Cancelled Pending Admin Review": return "Cancelled";
+      case "Pending Payment": return "Pending";
+      case "Refund Requested": return "Refunded";
+      default: return status;
+    }
   };
 
   // Static pricing multipliers
@@ -385,7 +486,22 @@ export default function TransactionsPage() {
         tx.provider.email.toLowerCase().includes(searchStr) ||
         tx.id.toLowerCase().includes(searchStr);
 
-      const matchStatus = filterStatus === "All" || tx.status === filterStatus;
+      let matchStatus = false;
+      if (filterStatus === "All") {
+        matchStatus = true;
+      } else if (filterStatus.includes(",")) {
+        const allowed = filterStatus.split(",").map(s => s.trim().toLowerCase());
+        const txStatusClean = tx.status.toLowerCase();
+        matchStatus = allowed.includes(txStatusClean) || 
+                      (allowed.includes("finalised") && (txStatusClean === "completed" || txStatusClean.startsWith("wallet credited"))) ||
+                      (allowed.includes("cancelled") && txStatusClean.includes("cancel"));
+      } else {
+        const txStatusClean = tx.status.toLowerCase();
+        const filterStatusClean = filterStatus.toLowerCase();
+        matchStatus = txStatusClean === filterStatusClean || 
+                      (filterStatusClean === "finalised" && (txStatusClean === "completed" || txStatusClean.startsWith("wallet credited"))) ||
+                      (filterStatusClean === "cancelled" && txStatusClean.includes("cancel"));
+      }
       const matchCategory = filterCategory === "All" || tx.category === filterCategory;
 
       let matchDate = true;
@@ -443,6 +559,11 @@ export default function TransactionsPage() {
                 onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
                 className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
               >
+                {filterStatus.includes(",") && (
+                  <option value={filterStatus}>
+                    {filterStatus.split(",").map(s => s.trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")).join(" + ")}
+                  </option>
+                )}
                 {statusOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
@@ -528,9 +649,15 @@ export default function TransactionsPage() {
                       <td className="px-4 py-3">${getFee(tx.serviceAmount).toFixed(2)}</td>
                       <td className="px-4 py-3">${getCommission(tx.serviceAmount).toFixed(2)}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${colorBadge}`}>
-                          {tx.status === "Wallet Credited — Client Fault" ? "Wallet Credited" : tx.status === "Pending Provider Acceptance" ? "Pending Provider Accept" : tx.status === "Cancelled Pending Admin Review" ? "Cancelled Pending" : tx.status}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold w-fit ${colorBadge}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusDotColors[tx.status] || "bg-gray-400"}`} />
+                            {getStatusLabel(tx.status)}
+                          </span>
+                          <span className={`text-[10px] font-light pl-0.5 ${statusSubtitleColors[tx.status] || "text-text-muted"}`}>
+                            {getStatusSubtitle(tx)}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button

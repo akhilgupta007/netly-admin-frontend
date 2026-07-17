@@ -6,14 +6,14 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { getInitials } from "@/lib/utils";
-import { 
+import {
   ArrowLeft,
-  Copy, 
-  X, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+  Copy,
+  X,
+  ArrowUpRight,
+  CheckCircle2,
+  XCircle,
+  Clock,
   Flag,
   Zap,
   MessageSquare
@@ -110,7 +110,7 @@ export default function TransactionDetailPage() {
   // Helper to update status in localStorage
   const updateStatus = (newStatus, customUpdates = {}) => {
     const updatedTx = { ...tx, status: newStatus, ...customUpdates };
-    
+
     // Add history log entry
     const actionDate = "Jun 24, 2027 • 12:00 PM";
     if (!updatedTx.history) updatedTx.history = [];
@@ -136,7 +136,7 @@ export default function TransactionDetailPage() {
           { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
           { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
           { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Awaiting Payment", date: "Pending", isPending: true }
+          { status: "Awaiting Payment", date: "Pending", isPending: true, note: "The client is reviewing the custom offer. Payment is required to confirm the booking." }
         ];
       case "Completed":
         return [
@@ -248,7 +248,7 @@ export default function TransactionDetailPage() {
           titleColor: "text-amber-800",
           textColor: "text-amber-700",
           title: "Awaiting Client Payment",
-          text: "The client has accepted the provider's custom offer. This booking will be confirmed automatically once payment is successfully completed."
+          text: "The provider has sent a custom offer. The client has not completed payment yet. This booking will be confirmed automatically once payment is successful."
         };
       case "Completed":
         return {
@@ -353,23 +353,23 @@ export default function TransactionDetailPage() {
 
   return (
     <div className="space-y-4 font-onest">
-      
+
 
       {/* Breadcrumb header row */}
-      <div className="flex items-center gap-3">
-        <button 
+      <div className="flex items-center gap-2">
+        <button
           onClick={() => router.push("/transactions")}
-          className="w-8 h-8 rounded-full bg-white border border-secondary-bg hover:bg-page-bg transition flex items-center justify-center text-text-primary cursor-pointer"
+          className="w-8 h-8 rounded-lg bg-white border border-border-main hover:bg-page-bg transition flex items-center justify-center text-text-primary cursor-pointer"
         >
           <ArrowLeft size={16} />
         </button>
-        <strong className="text-xl font-bold text-text-primary">{tx.id}</strong>
-        <button 
+        <div className="text-xl font-medium text-text-primary">{tx.id}</div>
+        <button
           onClick={() => copyToClipboard(tx.id)}
           className="text-text-muted hover:text-text-primary p-1.5 rounded-full hover:bg-white border border-transparent hover:border-secondary-bg transition cursor-pointer"
           title="Copy ID"
         >
-          <Copy size={13} />
+          <Copy size={16} />
         </button>
       </div>
 
@@ -381,61 +381,62 @@ export default function TransactionDetailPage() {
 
       {/* Grid structure columns layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
+
         {/* Left Column Section */}
         <div className="lg:col-span-1 space-y-4">
-          
+
           {/* Transaction Information */}
           <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Transaction Information</span>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+            <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Transaction Information</span>
+            <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Transaction ID</span>
-                <strong className="text-text-primary font-semibold">{tx.id}</strong>
+                <div className="text-text-primary">{tx.id}</div>
               </div>
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Status</span>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusPill(currentStatus)}`}>
-                  • {currentStatus}
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusPill(currentStatus)}`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  {currentStatus}
                 </span>
               </div>
               <div>
                 {["Completed", "Refunded", "Refund Requested"].includes(currentStatus) ? (
                   <>
                     <span className="text-text-muted block font-light mb-0.5">Completed On</span>
-                    <strong className="text-text-primary font-semibold">Jun 24, 2027 • 08:30 AM</strong>
+                    <div className="text-text-primary">Jun 24, 2027 • 08:30 AM</div>
                   </>
                 ) : (
                   <>
                     <span className="text-text-muted block font-light mb-0.5">Created On</span>
-                    <strong className="text-text-primary font-semibold">Jun 24, 2027 • 08:30 AM</strong>
+                    <div className="text-text-primary">Jun 24, 2027 • 08:30 AM</div>
                   </>
                 )}
               </div>
               {currentStatus === "Completed" && (
                 <div>
                   <span className="text-text-muted block font-light mb-0.5">Service Started</span>
-                  <strong className="text-text-primary font-semibold">Jun 24, 2027 • 09:05 AM</strong>
+                  <div className="text-text-primary">Jun 24, 2027 • 09:05 AM</div>
                 </div>
               )}
               {showRefundInfo && (
                 <>
                   <div>
                     <span className="text-text-muted block font-light mb-0.5">Cancelled On</span>
-                    <strong className="text-text-primary font-semibold">Jun 24, 2027 • 09:45 AM</strong>
+                    <div className="text-text-primary">Jun 24, 2027 • 09:45 AM</div>
                   </div>
                   <div>
                     <span className="text-text-muted block font-light mb-0.5">Refund Processed On</span>
-                    <strong className="text-text-primary font-semibold">
+                    <div className="text-text-primary">
                       {currentStatus === "Refund Requested" ? "Awaiting" : "Jun 24, 2027 • 11:10 AM"}
-                    </strong>
+                    </div>
                   </div>
                 </>
               )}
               {currentStatus === "Dispute" && (
                 <div>
                   <span className="text-text-muted block font-light mb-0.5">Dispute opened on</span>
-                  <strong className="text-text-primary font-semibold">Jun 24, 2027 • 09:45 AM</strong>
+                  <div className="text-text-primary">Jun 24, 2027 • 09:45 AM</div>
                 </div>
               )}
             </div>
@@ -443,34 +444,38 @@ export default function TransactionDetailPage() {
 
           {/* Service Information */}
           <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Service Information</span>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs border-b border-secondary-bg pb-4">
+            <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Service Information</span>
+            <div className="grid grid-cols-2 gap-4 text-xs border-b border-secondary-bg pb-4">
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Service</span>
-                <strong className="text-text-primary font-semibold">Office Daily Cleaning</strong>
+                <div className="text-text-primary">Office Daily Cleaning</div>
               </div>
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Category</span>
-                <strong className="text-text-primary font-semibold">Cleaning Services</strong>
+                <div className="text-text-primary">Cleaning Services</div>
+              </div>
+              <div>
+                <span className="text-text-muted block font-light mb-0.5">Sub Category</span>
+                <div className="text-text-primary">Office Cleaning</div>
               </div>
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Pricing Model</span>
-                <strong className="text-text-primary font-semibold">Hourly</strong>
+                <div className="text-text-primaryd">Hourly</div>
               </div>
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Scheduled Date & Time</span>
-                <strong className="text-text-primary font-semibold">Jun 24, 2027 • 08:30 AM</strong>
+                <div className="text-text-primary">Jun 24, 2027 • 08:30 AM</div>
               </div>
               <div>
                 {currentStatus === "Completed" ? (
                   <>
                     <span className="text-text-muted block font-light mb-0.5">Completed At</span>
-                    <strong className="text-text-primary font-semibold">Jun 24, 2027 • 12:35 PM</strong>
+                    <div className="text-text-primary">Jun 24, 2027 • 12:35 PM</div>
                   </>
                 ) : (
                   <>
                     <span className="text-text-muted block font-light mb-0.5">Estimated Duration</span>
-                    <strong className="text-text-primary font-semibold">4 Hours</strong>
+                    <div className="text-text-primary">4 Hours</div>
                   </>
                 )}
               </div>
@@ -478,14 +483,14 @@ export default function TransactionDetailPage() {
             <div className="space-y-3 pt-1 text-xs">
               <div>
                 <span className="text-text-muted block font-light mb-1">Booking notes</span>
-                <p className="text-text-primary leading-relaxed font-light bg-page-bg/40 p-3.5 rounded-2xl border border-secondary-bg/50">
+                <p className="text-text-primary">
                   3-bedroom flat. Kitchen requires priority cleaning.
                 </p>
               </div>
               {showRefundInfo && (
                 <div>
                   <span className="text-text-muted block font-light mb-1">Cancellation Reason</span>
-                  <p className="text-text-primary font-light bg-page-bg/40 p-3.5 rounded-2xl border border-secondary-bg/50">
+                  <p className="text-text-primary">
                     Client cancelled before the scheduled service.
                   </p>
                 </div>
@@ -495,9 +500,9 @@ export default function TransactionDetailPage() {
 
           {/* Status History */}
           <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
-            <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Status history</span>
+            <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Status history</span>
             <div className="relative pl-8 space-y-5">
-              
+
               {/* Timeline bar line */}
               <div className="absolute left-2.5 top-2.5 bottom-2.5 w-[1.5px] bg-primary-bg/25" />
 
@@ -516,8 +521,11 @@ export default function TransactionDetailPage() {
                       <CheckCircle2 className="fill-emerald-500 text-white" size={18} />
                     )}
                   </div>
-                  <span className="font-semibold text-text-primary">{step.status}</span>
+                  <span className="text-text-primary">{step.status}</span>
                   <span className="text-[10px] text-text-muted font-light">{step.date}</span>
+                  {step.note && (
+                    <span className="text-[10px] text-text-muted font-light leading-relaxed mt-0.5">{step.note}</span>
+                  )}
                 </div>
               ))}
             </div>
@@ -527,26 +535,26 @@ export default function TransactionDetailPage() {
 
         {/* Right Column Section */}
         <div className="space-y-4">
-          
+
           {/* Admin Actions */}
           <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Admin Actions</span>
             <div className="flex flex-col gap-2.5">
               {currentStatus === "Pending Payment" && (
                 <>
-                  <button 
+                  <button
                     onClick={() => toast.success("Payment reminder resent to client successfully!")}
                     className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                   >
                     Resend Payment Reminder
                   </button>
-                  <button 
+                  <button
                     onClick={() => updateStatus("Refunded", { refundedAt: "Jun 24, 2027" })}
                     className="w-full bg-white border border-border-main text-text-primary hover:bg-page-bg font-semibold text-xs py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Zap size={14} /> Force Manual Transfer
                   </button>
-                  <button 
+                  <button
                     onClick={() => setDisputeModalOpen(true)}
                     className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-xs py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
@@ -557,7 +565,7 @@ export default function TransactionDetailPage() {
 
               {["Completed", "In Progress", "Confirmed", "Cancelled – Wallet Credited", "Refunded", "Refund Requested"].includes(currentStatus) && (
                 <>
-                  <button 
+                  <button
                     onClick={() => toast.success("Opening booking chat thread...")}
                     className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
@@ -565,7 +573,7 @@ export default function TransactionDetailPage() {
                   </button>
 
                   {currentStatus === "Cancelled – Wallet Credited" && (
-                    <button 
+                    <button
                       onClick={() => toast.info("Redirecting to Wallet Transaction logs...")}
                       className="w-full bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                     >
@@ -574,7 +582,7 @@ export default function TransactionDetailPage() {
                   )}
 
                   {currentStatus === "Refund Requested" && (
-                    <button 
+                    <button
                       onClick={() => updateStatus("Refunded")}
                       className="w-full bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                     >
@@ -583,7 +591,7 @@ export default function TransactionDetailPage() {
                   )}
 
                   {currentStatus === "Refunded" && (
-                    <button 
+                    <button
                       onClick={() => toast.info("Redirecting to Stripe payment gateway logs...")}
                       className="w-full bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                     >
@@ -591,7 +599,7 @@ export default function TransactionDetailPage() {
                     </button>
                   )}
 
-                  <button 
+                  <button
                     onClick={() => setDisputeModalOpen(true)}
                     className="w-full bg-white border border-red-200 text-red-500 hover:bg-red-50 font-semibold text-xs py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
@@ -601,7 +609,7 @@ export default function TransactionDetailPage() {
               )}
 
               {currentStatus === "Dispute" && (
-                <button 
+                <button
                   onClick={() => router.push("/compliance/disputes")}
                   className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                 >
@@ -614,7 +622,7 @@ export default function TransactionDetailPage() {
           {/* Users */}
           <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Users</span>
-            
+
             {/* Client Block */}
             <div className="space-y-2 pb-3.5 border-b border-secondary-bg">
               <div className="flex items-center justify-between text-xs">
@@ -657,8 +665,8 @@ export default function TransactionDetailPage() {
           {/* Financial Summary */}
           <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Financial Summary</span>
-            <div className="grid grid-cols-2 gap-3">
-              
+            <div className="grid grid-cols-3 gap-3">
+
               {/* Box 1 */}
               <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
                 <span className="text-[10px] text-text-muted block">Service Price</span>
@@ -672,11 +680,10 @@ export default function TransactionDetailPage() {
               </div>
 
               {/* Box 3 - Total Amount Due */}
-              <div className={`rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16 border ${
-                currentStatus === "Pending Payment" ? "border-amber-200" : "border-secondary-bg"
-              }`}>
-                <span className="text-[10px] text-text-muted block">Total Amount Due</span>
-                <strong className="text-sm text-text-primary font-bold block mt-1">$89.25</strong>
+              <div className={`rounded-2xl p-3 text-xs flex flex-col justify-between min-h-16 border ${currentStatus === "Pending Payment" ? "border-amber-300 bg-amber-50/40" : "border-secondary-bg bg-page-bg/10"
+                }`}>
+                <span className={`text-[10px] block ${currentStatus === "Pending Payment" ? "text-amber-600" : "text-text-muted"}`}>Total Amount Due</span>
+                <strong className={`text-sm font-bold block mt-1 ${currentStatus === "Pending Payment" ? "text-amber-700" : "text-text-primary"}`}>$89.25</strong>
               </div>
 
               {/* Box 4 - Commission or Wallet Credit */}
@@ -705,9 +712,8 @@ export default function TransactionDetailPage() {
                   </span>
                 </div>
               ) : (
-                <div className={`rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 border ${
-                  ["In Progress", "Confirmed", "Dispute"].includes(currentStatus) ? "border-amber-200" : "border-secondary-bg"
-                }`}>
+                <div className={`rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 border ${["In Progress", "Confirmed", "Dispute"].includes(currentStatus) ? "border-amber-200" : "border-secondary-bg"
+                  }`}>
                   <span className="text-[10px] text-text-muted block">Expected Provider Payout</span>
                   <strong className="text-sm text-text-primary font-bold block mt-0.5">$72.25</strong>
                   {["In Progress", "Confirmed", "Dispute"].includes(currentStatus) && (
@@ -720,17 +726,17 @@ export default function TransactionDetailPage() {
 
               {/* Box 6 - Netly Revenue */}
               {showRefundInfo ? (
-                <div className="border border-emerald-400 rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
-                  <span className="text-[10px] text-text-muted block">Netly Revenue</span>
-                  <strong className="text-sm text-text-primary font-bold block mt-0.5">$4.25</strong>
-                  <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
+                <div className="border border-emerald-300 rounded-2xl p-3 text-xs bg-emerald-50/40 flex flex-col justify-between min-h-21.25 col-span-1">
+                  <span className="text-[10px] text-emerald-600 block">Netly Revenue</span>
+                  <strong className="text-sm text-emerald-700 font-bold block mt-0.5">$4.25</strong>
+                  <span className="text-[8px] text-emerald-500 font-light leading-tight mt-0.5">
                     (Client platform fee retained.)
                   </span>
                 </div>
               ) : (
-                <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
-                  <span className="text-[10px] text-text-muted block">Netly Revenue</span>
-                  <strong className="text-sm text-text-primary font-bold block mt-1">$17.00</strong>
+                <div className="border border-emerald-300 rounded-2xl p-3 text-xs bg-emerald-50/40 flex flex-col justify-between min-h-16">
+                  <span className="text-[10px] text-emerald-600 block">Netly Revenue</span>
+                  <strong className="text-sm text-emerald-700 font-bold block mt-1">$17.00</strong>
                 </div>
               )}
 
@@ -743,7 +749,7 @@ export default function TransactionDetailPage() {
               <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Completion Photos</span>
               <div className="grid grid-cols-2 gap-3.5">
                 <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-secondary-bg">
-                  <Image 
+                  <Image
                     src="/kitchen_completed.png"
                     alt="Kitchen Completed Photos"
                     fill
@@ -751,7 +757,7 @@ export default function TransactionDetailPage() {
                   />
                 </div>
                 <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-secondary-bg">
-                  <Image 
+                  <Image
                     src="/bathroom_completed.png"
                     alt="Bathroom Completed Photos"
                     fill
@@ -770,8 +776,8 @@ export default function TransactionDetailPage() {
                 <div>
                   <span className="text-text-muted block font-light mb-0.5">Refund Method</span>
                   <strong className="text-text-primary font-semibold">
-                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus) 
-                      ? "Netly Wallet Credit" 
+                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus)
+                      ? "Netly Wallet Credit"
                       : "Client Bank Account"
                     }
                   </strong>
@@ -788,14 +794,14 @@ export default function TransactionDetailPage() {
                 </div>
                 <div>
                   <span className="text-text-muted block font-light mb-0.5">
-                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus) 
-                      ? "Wallet Transaction ID" 
+                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus)
+                      ? "Wallet Transaction ID"
                       : "Transaction ID"
                     }
                   </span>
                   <strong className="text-text-primary font-semibold font-mono">
-                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus) 
-                      ? "WLT-002184" 
+                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus)
+                      ? "WLT-002184"
                       : "TXN-002184"
                     }
                   </strong>
@@ -811,12 +817,12 @@ export default function TransactionDetailPage() {
       {/* DISPUTE ACTIONS DIALOG MODAL */}
       {disputeModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center font-onest animate-fade-in">
-          <div 
+          <div
             className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs transition-opacity"
             onClick={() => setDisputeModalOpen(false)}
           />
           <div className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4">
-            <button 
+            <button
               onClick={() => setDisputeModalOpen(false)}
               className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
             >
@@ -826,12 +832,12 @@ export default function TransactionDetailPage() {
               <span className="h-2 w-2 rounded-full bg-red-500" />
               Open Dispute
             </h3>
-            
+
             <div className="space-y-4">
               <p className="text-xs text-text-muted leading-relaxed font-light">
                 Are you sure you want to flag transaction <strong>{tx.id}</strong> as a dispute? This action will block scheduled payouts and alert the operations compliance team.
               </p>
-              
+
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-text-primary block">Justification Reason *</label>
                 <textarea
@@ -857,10 +863,10 @@ export default function TransactionDetailPage() {
                       toast.error("Please enter a detailed reason of at least 20 characters.");
                       return;
                     }
-                    updateStatus("Dispute", { 
-                      disputeId: "DISP-9901", 
-                      disputeOpenedAt: "Jun 24, 2027 • 09:45 AM", 
-                      disputeStatus: "Open" 
+                    updateStatus("Dispute", {
+                      disputeId: "DISP-9901",
+                      disputeOpenedAt: "Jun 24, 2027 • 09:45 AM",
+                      disputeStatus: "Open"
                     });
                     setDisputeModalOpen(false);
                     setJustification("");
