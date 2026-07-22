@@ -11,6 +11,9 @@ import Pagination from "@/components/ui/Pagination";
 import KYCDocumentReviewModal from "@/components/compliance/KYCDocumentReviewModal";
 import CardWrapper from "@/components/ui/CardWrapper";
 
+// Import custom Firestore React Query hook
+import { useKyc } from "@/hooks/useKyc";
+
 const defaultKycSubmissions = [
   { id: "KYC-01", name: "Leonard Thomas", docType: "ID", docFile: "ID_Leonard_Thomas.jpg", submittedDate: "October 29, 2027", status: "Pending", email: "leonard@thomas.com", phone: "+233 24 123 4567", joined: "Oct 12, 2027" },
   { id: "KYC-02", name: "Amara Osei", docType: "Proof of Address", docFile: "Proof_of_Address_Amara_Osei.pdf", submittedDate: "May 22, 2027", status: "In Review", email: "amara@gmail.com", phone: "+233 24 123 4567", joined: "Jan 12, 2027" },
@@ -27,7 +30,6 @@ const defaultKycSubmissions = [
 ];
 
 export default function KYCVerificationPage() {
-  const [submissions, setSubmissions] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterDocType, setFilterDocType] = useState("All");
@@ -39,28 +41,38 @@ export default function KYCVerificationPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const itemsPerPage = 8;
 
-  // Initialize and Sync with localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("netly_kyc_submissions");
-    if (saved) {
-      setSubmissions(JSON.parse(saved));
-    } else {
-      setSubmissions(defaultKycSubmissions);
-      localStorage.setItem("netly_kyc_submissions", JSON.stringify(defaultKycSubmissions));
-    }
-  }, []);
+  // Memoize backend parameters
+  const kycParams = useMemo(() => ({
+    searchTerm,
+    filterStatus,
+    filterDocType,
+    startDate,
+    endDate,
+    page: currentPage,
+    limit: itemsPerPage
+  }), [searchTerm, filterStatus, filterDocType, startDate, endDate, currentPage]);
 
-  const saveSubmissions = (updated) => {
-    setSubmissions(updated);
-    localStorage.setItem("netly_kyc_submissions", JSON.stringify(updated));
-  };
+  // Firestore React Query hook with backend params
+  const { kycList, total: totalKyc, isLoading } = useKyc(kycParams);
+
+  // Map query items to submission row format
+  const submissions = useMemo(() => {
+    return kycList.map((item) => ({
+      id: item.id,
+      name: item.providerName || "Provider",
+      docType: item.documents?.[0] || "ID",
+      docFile: item.verificationDocuments?.[0]?.name || `${item.documents?.[0] || "ID"}_Document.pdf`,
+      submittedDate: item.date || item.submittedAt || "N/A",
+      status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "In Review",
+      email: item.email || "",
+      phone: item.phoneNumber || "+233 24 123 4567",
+      joined: item.date || "N/A",
+      verificationDocuments: item.verificationDocuments,
+      rejectionReason: item.rejectionReason
+    }));
+  }, [kycList]);
 
   // Status statistics card counts
   const counts = useMemo(() => {
@@ -225,7 +237,7 @@ export default function KYCVerificationPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             
             {/* Status Dropdown Filter */}
             <div className="relative">
@@ -300,7 +312,7 @@ export default function KYCVerificationPage() {
                     </div>
                   </td>
                 </tr>
-              ) : paginated.length === 0 ? (
+              ) : submissions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
                     <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
@@ -310,7 +322,7 @@ export default function KYCVerificationPage() {
                   </td>
                 </tr>
               ) : (
-                paginated.map((row) => {
+                submissions.map((row) => {
                   const actionText = getActionButtonText(row.status);
                   return (
                     <tr key={row.id} className="hover:bg-page-bg/50 transition">
@@ -350,21 +362,22 @@ export default function KYCVerificationPage() {
 
                       {/* Actions Column */}
                       <td className="px-4 py-3 text-right pr-6">
-                        {row.status === "Not Submitted" ? (
-                          <span className="text-text-muted text-xs pr-4">-</span>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              setSelectedItem(row);
-                              setIsModalOpen(true);
-                            }}
-                            className={`inline-block text-xs px-4 py-1.5 rounded-xl transition cursor-pointer text-center font-medium border border-primary-bg text-primary-bg`}
-                          >
-                            {actionText}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            setSelectedItem(row);
+                            setIsModalOpen(true);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                            row.status === "Approved"
+                              ? "border-emerald-200 text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                              : row.status === "Rejected"
+                              ? "border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
+                              : "border-primary-bg text-primary-bg hover:bg-page-bg"
+                          }`}
+                        >
+                          {actionText}
+                        </button>
                       </td>
-
                     </tr>
                   );
                 })
@@ -377,7 +390,7 @@ export default function KYCVerificationPage() {
         <Pagination
           currentPage={currentPage}
           itemsPerPage={itemsPerPage}
-          totalItems={filteredSubmissions.length}
+          totalItems={totalKyc || submissions.length}
           onPageChange={setCurrentPage}
         />
 

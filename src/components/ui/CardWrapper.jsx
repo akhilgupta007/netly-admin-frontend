@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export default function CardWrapper({ 
   name, 
   value, 
-  note, 
+  subtext, 
   icon: Icon, 
   href, 
   className,
@@ -19,7 +19,7 @@ export default function CardWrapper({
       {...linkProps}
       {...props}
       className={cn(
-        "bg-white rounded-2xl p-4 hover:shadow-xs transition-all duration-200 border border-secondary-bg",
+        "bg-white rounded-2xl p-4 hover:shadow-xs transition-all duration-200",
         href && "block group cursor-pointer hover:border-primary-bg",
         className
       )}
@@ -38,9 +38,11 @@ export default function CardWrapper({
         <div className="text-2xl font-semibold tracking-tight text-text-primary">
           {value}
         </div>
-        <p className="text-[10px] text-text-muted group-hover:text-primary-bg transition-colors flex items-center gap-1">
-          {note} {href && <ArrowRight size={12} className="inline-block" />}
-        </p>
+        {subtext && (
+          <p className="text-[10px] text-text-muted group-hover:text-primary-bg transition-colors flex items-center gap-1 mt-0.5">
+            {subtext} {href && <ArrowRight size={12} className="inline-block" />}
+          </p>
+        )}
       </div>
     </Component>
   );

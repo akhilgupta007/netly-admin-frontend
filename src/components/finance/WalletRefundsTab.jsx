@@ -93,22 +93,22 @@ export default function WalletRefundsTab() {
         <CardWrapper
           name="Total wallet credits"
           value="$9,800.00"
-          note="Jun 18-24"
+          subtext="Jun 18-24"
         />
         <CardWrapper
           name="Total card refunds"
           value="$7,120.00"
-          note="Jun 18-24"
+          subtext="Jun 18-24"
         />
         <CardWrapper
           name="Refund rate"
           value="42.1%"
-          note="Jun 18-24"
+          subtext="Jun 18-24"
         />
         <CardWrapper
           name="Retention rate"
           value="57.9%"
-          note="Jun 18-24"
+          subtext="Jun 18-24"
         />
       </div>
 
@@ -136,179 +136,181 @@ export default function WalletRefundsTab() {
         </div>
 
         {/* HTML/CSS-based Responsive Chart Area */}
-        <div className="pt-4 px-10">
-          <div className="flex items-stretch h-64 relative">
-            {/* Left Y Axis column */}
-            <div className="w-12 flex flex-col justify-between text-sm text-text-muted pb-1 select-none">
-              <span>$10.0k</span>
-              <span>$7.5k</span>
-              <span>$5.0k</span>
-              <span>$2.5k</span>
-              <span>$0.0k</span>
-            </div>
-
-            {/* Middle Graph Area */}
-            <div className="flex-1 relative h-full mx-2">
-              {/* Gridlines */}
-              <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-1">
-                {[0, 1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-full border-b border-dashed border-secondary-bg/75" />
-                ))}
+        <div className="pt-4 px-2 sm:px-10 overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+          <div className="min-w-[650px] sm:min-w-0">
+            <div className="flex items-stretch h-64 relative">
+              {/* Left Y Axis column */}
+              <div className="w-12 flex flex-col justify-between text-sm text-text-muted pb-1 select-none">
+                <span>$10.0k</span>
+                <span>$7.5k</span>
+                <span>$5.0k</span>
+                <span>$2.5k</span>
+                <span>$0.0k</span>
               </div>
 
-              {/* Chart content */}
-              {chartType === "Bar" ? (
-                <div className="w-full h-full flex justify-between items-end pb-1 relative z-10" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
-                  {chartData.map((d, index) => {
-                    const walletHeight = `${(d.wallet / 10000) * 100}%`;
-                    const cardHeight = `${(d.card / 10000) * 100}%`;
-                    return (
-                      <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
-                        <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
-                          <div 
-                            style={{ height: walletHeight }} 
-                            className="w-14 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
-                            onMouseEnter={() => setHoveredValue({
-                              x: `${7.1428 + index * 14.2857}%`,
-                              y: `${100 - (d.wallet / 10000) * 100}%`,
-                              value: `$${d.wallet.toLocaleString()}`,
-                              label: `Wallet (${d.dayName}, ${d.fullDate})`
-                            })}
-                            onMouseLeave={() => setHoveredValue(null)}
-                          />
-                          <div 
-                            style={{ height: cardHeight }} 
-                            className="w-14 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
-                            onMouseEnter={() => setHoveredValue({
-                              x: `${7.1428 + index * 14.2857}%`,
-                              y: `${100 - (d.card / 10000) * 100}%`,
-                              value: `$${d.card.toLocaleString()}`,
-                              label: `Card (${d.dayName}, ${d.fullDate})`
-                            })}
-                            onMouseLeave={() => setHoveredValue(null)}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+              {/* Middle Graph Area */}
+              <div className="flex-1 relative h-full mx-2">
+                {/* Gridlines */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-1">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div key={i} className="w-full border-b border-dashed border-secondary-bg/75" />
+                  ))}
                 </div>
-              ) : (
-                <div className="w-full h-full relative z-10">
-                  <svg className="w-full h-full absolute inset-0 pb-1">
-                    {(() => {
-                      const walletPoints = chartData.map((d, index) => ({
-                        x: `${7.1428 + index * 14.2857}%`,
-                        y: `${(1 - d.wallet / 10000) * 100}%`
-                      }));
-                      const cardPoints = chartData.map((d, index) => ({
-                        x: `${7.1428 + index * 14.2857}%`,
-                        y: `${(1 - d.card / 10000) * 100}%`
-                      }));
+
+                {/* Chart content */}
+                {chartType === "Bar" ? (
+                  <div className="w-full h-full flex justify-between items-end pb-1 relative z-10" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
+                    {chartData.map((d, index) => {
+                      const walletHeight = `${(d.wallet / 10000) * 100}%`;
+                      const cardHeight = `${(d.card / 10000) * 100}%`;
                       return (
-                        <g>
-                          {/* Wallet line segments */}
-                          {walletPoints.slice(0, -1).map((p, idx) => (
-                            <line
-                              key={`w-l-${idx}`}
-                              x1={p.x}
-                              y1={p.y}
-                              x2={walletPoints[idx + 1].x}
-                              y2={walletPoints[idx + 1].y}
-                              stroke="#6FB5BD"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
+                        <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
+                          <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
+                            <div 
+                              style={{ height: walletHeight }} 
+                              className="w-14 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
+                              onMouseEnter={() => setHoveredValue({
+                                x: `${7.1428 + index * 14.2857}%`,
+                                y: `${100 - (d.wallet / 10000) * 100}%`,
+                                value: `$${d.wallet.toLocaleString()}`,
+                                label: `Wallet (${d.dayName}, ${d.fullDate})`
+                              })}
+                              onMouseLeave={() => setHoveredValue(null)}
                             />
-                          ))}
-                          {/* Card line segments */}
-                          {cardPoints.slice(0, -1).map((p, idx) => (
-                            <line
-                              key={`c-l-${idx}`}
-                              x1={p.x}
-                              y1={p.y}
-                              x2={cardPoints[idx + 1].x}
-                              y2={cardPoints[idx + 1].y}
-                              stroke="#0F1D36"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
+                            <div 
+                              style={{ height: cardHeight }} 
+                              className="w-14 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
+                              onMouseEnter={() => setHoveredValue({
+                                x: `${7.1428 + index * 14.2857}%`,
+                                y: `${100 - (d.card / 10000) * 100}%`,
+                                value: `$${d.card.toLocaleString()}`,
+                                label: `Card (${d.dayName}, ${d.fullDate})`
+                              })}
+                              onMouseLeave={() => setHoveredValue(null)}
                             />
-                          ))}
-                          {/* Wallet dots */}
-                          {walletPoints.map((p, idx) => {
-                            const d = chartData[idx];
-                            return (
-                              <circle 
-                                key={`w-d-${idx}`} 
-                                cx={p.x} 
-                                cy={p.y} 
-                                r="4.5" 
-                                fill="#6FB5BD" 
-                                stroke="white" 
-                                strokeWidth="1.5" 
-                                className="cursor-pointer"
-                                onMouseEnter={() => setHoveredValue({
-                                  x: p.x,
-                                  y: p.y,
-                                  value: `$${d.wallet.toLocaleString()}`,
-                                  label: `Wallet (${d.dayName}, ${d.fullDate})`
-                                })}
-                                onMouseLeave={() => setHoveredValue(null)}
-                              />
-                            );
-                          })}
-                          {/* Card dots */}
-                          {cardPoints.map((p, idx) => {
-                            const d = chartData[idx];
-                            return (
-                              <circle 
-                                key={`c-d-${idx}`} 
-                                cx={p.x} 
-                                cy={p.y} 
-                                r="4.5" 
-                                fill="#0F1D36" 
-                                stroke="white" 
-                                strokeWidth="1.5" 
-                                className="cursor-pointer"
-                                onMouseEnter={() => setHoveredValue({
-                                  x: p.x,
-                                  y: p.y,
-                                  value: `$${d.card.toLocaleString()}`,
-                                  label: `Card (${d.dayName}, ${d.fullDate})`
-                                })}
-                                onMouseLeave={() => setHoveredValue(null)}
-                              />
-                            );
-                          })}
-                        </g>
+                          </div>
+                        </div>
                       );
-                    })()}
-                  </svg>
-                </div>
-              )}
+                    })}
+                  </div>
+                ) : (
+                  <div className="w-full h-full relative z-10">
+                    <svg className="w-full h-full absolute inset-0 pb-1">
+                      {(() => {
+                        const walletPoints = chartData.map((d, index) => ({
+                          x: `${7.1428 + index * 14.2857}%`,
+                          y: `${(1 - d.wallet / 10000) * 100}%`
+                        }));
+                        const cardPoints = chartData.map((d, index) => ({
+                          x: `${7.1428 + index * 14.2857}%`,
+                          y: `${(1 - d.card / 10000) * 100}%`
+                        }));
+                        return (
+                          <g>
+                            {/* Wallet line segments */}
+                            {walletPoints.slice(0, -1).map((p, idx) => (
+                              <line
+                                key={`w-l-${idx}`}
+                                x1={p.x}
+                                y1={p.y}
+                                x2={walletPoints[idx + 1].x}
+                                y2={walletPoints[idx + 1].y}
+                                stroke="#6FB5BD"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                              />
+                            ))}
+                            {/* Card line segments */}
+                            {cardPoints.slice(0, -1).map((p, idx) => (
+                              <line
+                                key={`c-l-${idx}`}
+                                x1={p.x}
+                                y1={p.y}
+                                x2={cardPoints[idx + 1].x}
+                                y2={cardPoints[idx + 1].y}
+                                stroke="#0F1D36"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                              />
+                            ))}
+                            {/* Wallet dots */}
+                            {walletPoints.map((p, idx) => {
+                              const d = chartData[idx];
+                              return (
+                                <circle 
+                                  key={`w-d-${idx}`} 
+                                  cx={p.x} 
+                                  cy={p.y} 
+                                  r="4.5" 
+                                  fill="#6FB5BD" 
+                                  stroke="white" 
+                                  strokeWidth="1.5" 
+                                  className="cursor-pointer"
+                                  onMouseEnter={() => setHoveredValue({
+                                    x: p.x,
+                                    y: p.y,
+                                    value: `$${d.wallet.toLocaleString()}`,
+                                    label: `Wallet (${d.dayName}, ${d.fullDate})`
+                                  })}
+                                  onMouseLeave={() => setHoveredValue(null)}
+                                />
+                              );
+                            })}
+                            {/* Card dots */}
+                            {cardPoints.map((p, idx) => {
+                              const d = chartData[idx];
+                              return (
+                                <circle 
+                                  key={`c-d-${idx}`} 
+                                  cx={p.x} 
+                                  cy={p.y} 
+                                  r="4.5" 
+                                  fill="#0F1D36" 
+                                  stroke="white" 
+                                  strokeWidth="1.5" 
+                                  className="cursor-pointer"
+                                  onMouseEnter={() => setHoveredValue({
+                                    x: p.x,
+                                    y: p.y,
+                                    value: `$${d.card.toLocaleString()}`,
+                                    label: `Card (${d.dayName}, ${d.fullDate})`
+                                  })}
+                                  onMouseLeave={() => setHoveredValue(null)}
+                                />
+                              );
+                            })}
+                          </g>
+                        );
+                      })()}
+                    </svg>
+                  </div>
+                )}
 
-              {hoveredValue && (
-                <div 
-                  className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
-                  style={{ 
-                    left: hoveredValue.x, 
-                    top: hoveredValue.y 
-                  }}
-                >
-                  <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
-                  <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
-                </div>
-              )}
+                {hoveredValue && (
+                  <div 
+                    className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
+                    style={{ 
+                      left: hoveredValue.x, 
+                      top: hoveredValue.y 
+                    }}
+                  >
+                    <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
+                    <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* X Axis days label row aligned exactly under the middle graph area */}
-          <div className="flex pl-12 pr-2 mt-2">
-            <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
-              {chartData.map((d, index) => (
-                <div key={index} className="w-0 overflow-visible text-center flex flex-col items-center justify-center shrink-0">
-                  <span className="text-xs text-text-primary">{d.dayName}</span>
-                  <span className="text-[10px] text-text-muted whitespace-nowrap leading-none mt-0.5">{d.fullDate}</span>
-                </div>
-              ))}
+            {/* X Axis days label row aligned exactly under the middle graph area */}
+            <div className="flex pl-12 pr-2 mt-2">
+              <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
+                {chartData.map((d, index) => (
+                  <div key={index} className="w-0 overflow-visible text-center flex flex-col items-center justify-center shrink-0">
+                    <span className="text-xs text-text-primary">{d.dayName}</span>
+                    <span className="text-[10px] text-text-muted whitespace-nowrap leading-none mt-0.5">{d.fullDate}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

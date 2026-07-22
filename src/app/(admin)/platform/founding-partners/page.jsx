@@ -9,6 +9,9 @@ import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
 import SuspendBanModal from "@/components/accounts/SuspendBanModal";
 import CardWrapper from "@/components/ui/CardWrapper";
 
+// Import custom Firestore React Query hook
+import { useProviders } from "@/hooks/useProviders";
+
 // Initial Mock Partners list matching Screenshot 1 values
 const initialPartners = [
   {
@@ -160,8 +163,32 @@ export default function FoundingPartnersPage() {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
 
-  // Load from LocalStorage
+  // Firestore React Query hook
+  const { providers: queryProviders } = useProviders();
+
+  // Load from Firestore query or LocalStorage
   useEffect(() => {
+    if (queryProviders && queryProviders.length > 0) {
+      const foundingList = queryProviders
+        .filter(p => p.badges?.includes("Founding Provider"))
+        .map(p => ({
+          id: p.id,
+          uid: p.uid,
+          name: p.name,
+          email: p.email,
+          date: p.joinDate,
+          dateTime: new Date(),
+          status: p.status,
+          city: p.city,
+          rating: p.rating
+        }));
+
+      if (foundingList.length > 0) {
+        setPartners(foundingList);
+        return;
+      }
+    }
+
     const stored = localStorage.getItem("netly_founding_partners");
     if (stored) {
       try {
@@ -175,9 +202,8 @@ export default function FoundingPartnersPage() {
       }
     } else {
       setPartners(initialPartners);
-      localStorage.setItem("netly_founding_partners", JSON.stringify(initialPartners));
     }
-  }, []);
+  }, [queryProviders]);
 
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {

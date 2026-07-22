@@ -52,7 +52,7 @@ export default function UserStatsTab() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [mapView, setMapView] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 8;
 
   // Sorting state: "" (unsorted default), "desc", "asc"
   const [sortField, setSortField] = useState("");

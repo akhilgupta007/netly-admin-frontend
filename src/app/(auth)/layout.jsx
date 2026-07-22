@@ -25,6 +25,7 @@ export default function AuthLayout({ children }) {
             alt="Netly"
             width={170}
             height={170}
+            style={{ width: "auto", height: "auto" }}
             priority
           />
         </div>

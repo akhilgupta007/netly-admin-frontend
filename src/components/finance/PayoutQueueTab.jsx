@@ -41,7 +41,7 @@ export default function PayoutQueueTab() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
 
   const handleActionClick = (item) => {
     setSelectedPayout(item);
@@ -129,28 +129,28 @@ export default function PayoutQueueTab() {
         <CardWrapper
           name="Expected Friday Payout"
           value="$18,540.25"
-          note="Based on current provider wallet balances."
+          subtext="Based on current provider wallet balances."
           icon={Calendar}
           className="h-32"
         />
         <CardWrapper
           name="Providers Ready"
           value="128"
-          note="Providers with earnings available for payout."
+          subtext="Providers with earnings available for payout."
           icon={Users}
           className="h-32"
         />
         <CardWrapper
           name="Failed Last Run"
           value="3"
-          note="Awaiting manual review."
+          subtext="Awaiting manual review."
           icon={AlertCircle}
           className="h-32"
         />
         <CardWrapper
           name="Next Payout"
           value="Friday, Jul 11, 2027"
-          note="Weekly payout schedule."
+          subtext="Weekly payout schedule."
           icon={Clock}
           className="h-32"
         />

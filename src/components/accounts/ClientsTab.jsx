@@ -21,7 +21,8 @@ export default function ClientsTab({
   getStatusClass,
   onViewClient,
   onSuspendBan,
-  onInviteClick
+  onInviteClick,
+  totalItems,
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -43,8 +44,8 @@ export default function ClientsTab({
     };
   }, []);
 
-  // Sliced page clients list
-  const paginated = clients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Backend paginated clients list (or fallback sliced list)
+  const paginated = totalItems !== undefined ? clients : clients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
@@ -64,7 +65,7 @@ export default function ClientsTab({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           
           {/* Status Dropdown */}
           <div className="relative">
@@ -215,7 +216,7 @@ export default function ClientsTab({
       <Pagination
         currentPage={currentPage}
         itemsPerPage={itemsPerPage}
-        totalItems={clients.length}
+        totalItems={totalItems !== undefined ? totalItems : clients.length}
         onPageChange={setCurrentPage}
       />
     </div>

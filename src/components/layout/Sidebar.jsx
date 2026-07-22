@@ -90,6 +90,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               alt="Netly Logo"
               width={70}
               height={14}
+              style={{ width: "auto", height: "auto" }}
               className="object-contain"
               priority
             />

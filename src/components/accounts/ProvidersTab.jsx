@@ -25,7 +25,8 @@ export default function ProvidersTab({
   onKYCDocuments,
   onPayouts,
   onSuspendBan,
-  onInviteClick
+  onInviteClick,
+  totalItems
 }) {
   const getKycClass = (kyc) => {
     switch (kyc) {
@@ -57,8 +58,8 @@ export default function ProvidersTab({
     };
   }, []);
 
-  // Sliced page providers list
-  const paginated = providers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Backend paginated providers list (or fallback sliced list)
+  const paginated = totalItems !== undefined ? providers : providers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
@@ -78,7 +79,7 @@ export default function ProvidersTab({
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           
           {/* Status Dropdown */}
           <div className="relative">
@@ -285,7 +286,7 @@ export default function ProvidersTab({
       <Pagination
         currentPage={currentPage}
         itemsPerPage={itemsPerPage}
-        totalItems={providers.length}
+        totalItems={totalItems !== undefined ? totalItems : providers.length}
         onPageChange={setCurrentPage}
       />
     </div>

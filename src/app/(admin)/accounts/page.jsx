@@ -14,78 +14,67 @@ import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
 import InviteClientModal from "@/components/accounts/InviteClientModal";
 import InviteProviderModal from "@/components/accounts/InviteProviderModal";
 
-const defaultClients = [
-  { id: "CL-01", name: "Amara Osei", email: "amara@gmail.com", joinDate: "May 22, 2027", otp: "Verified", bookings: 14, wallet: 247.50, status: "Active" },
-  { id: "CL-02", name: "Lila Carter", email: "lila.carter@email.com", joinDate: "July 1, 2027", otp: "Verified", bookings: 20, wallet: 350.00, status: "Active" },
-  { id: "CL-03", name: "Hannah White", email: "hannah.white@email.com", joinDate: "January 25, 2028", otp: "Verified", bookings: 11, wallet: 300.00, status: "Active" },
-  { id: "CL-04", name: "Sofia Martinez", email: "sofia.martinez@email.com", joinDate: "September 30, 2027", otp: "Pending", bookings: 12, wallet: 210.75, status: "Banned" },
-  { id: "CL-05", name: "Ravi Patel", email: "ravi.patel@email.com", joinDate: "August 15, 2027", otp: "Verified", bookings: 10, wallet: 180.25, status: "Active" },
-  { id: "CL-06", name: "Mason Green", email: "mason.green@email.com", joinDate: "December 18, 2027", otp: "Pending", bookings: 9, wallet: 125.00, status: "Active" },
-  { id: "CL-07", name: "Thomas Kim", email: "thomas.kim@email.com", joinDate: "October 20, 2027", otp: "Verified", bookings: 6, wallet: 100.50, status: "Pending Verification" },
-  { id: "CL-08", name: "Jordan Bailey", email: "jordan.bailey@email.com", joinDate: "June 12, 2027", otp: "Pending", bookings: 8, wallet: 159.00, status: "Active" },
-  { id: "CL-09", name: "Ella Robinson", email: "ella.robinson@email.com", joinDate: "November 5, 2027", otp: "Verified", bookings: 15, wallet: 400.00, status: "Suspended" },
-  { id: "CL-10", name: "Michael Thompson", email: "michael.thompson@email.com", joinDate: "December 15, 2027", otp: "Pending", bookings: 22, wallet: 750.00, status: "Active" }
-];
+// Import custom Firestore React Query hooks
+import { useClients } from "@/hooks/useClients";
+import { useProviders } from "@/hooks/useProviders";
 
-const defaultProviders = [
-  { id: "PR-01", name: "Amara Osei", email: "amara@gmail.com", city: "Accra", rating: "4.9", joinDate: "Feb 22, 2027", kyc: "Verified", badges: ["Founding Provider", "Provider Pro"], status: "Active" },
-  { id: "PR-02", name: "Gina Hall", email: "gina.hall@example.com", city: "Boston", rating: "4.2", joinDate: "Jul 19, 2027", kyc: "Unverified", badges: ["Provider Pro"], status: "Pending Verification" },
-  { id: "PR-03", name: "Bola Tunde", email: "bola.tunde@example.com", city: "Lagos", rating: "4.5", joinDate: "Mar 15, 2027", kyc: "Pending", badges: ["Provider Pro"], status: "Banned" },
-  { id: "PR-04", name: "Kira Mehta", email: "kira.mehta@example.com", city: "Mumbai", rating: "4.0", joinDate: "Nov 8, 2027", kyc: "Pending", badges: ["Provider Pro"], status: "Suspended" },
-  { id: "PR-05", name: "Carmen Diaz", email: "carmen.diaz@example.com", city: "Madrid", rating: "4.8", joinDate: "Apr 10, 2027", kyc: "Verified", badges: ["Founding Provider"], status: "Active" },
-  { id: "PR-06", name: "Dmitri Koval", email: "dmitri.koval@example.com", city: "Moscow", rating: "4.7", joinDate: "May 25, 2027", kyc: "Pending", badges: ["Founding Provider"], status: "Active" },
-  { id: "PR-07", name: "Evelyn Foster", email: "evelyn.foster@example.com", city: "Toronto", rating: "4.6", joinDate: "Jun 30, 2027", kyc: "Verified", badges: ["Provider Pro"], status: "Banned" },
-  { id: "PR-08", name: "Isla Liu", email: "isla.liu@example.com", city: "Beijing", rating: "4.3", joinDate: "Sep 20, 2027", kyc: "Pending", badges: ["Provider Pro"], status: "Active" },
-  { id: "PR-09", name: "Liam Reilly", email: "liam.reilly@example.com", city: "Sydney", rating: "4.9", joinDate: "Dec 6, 2027", kyc: "Verified", badges: ["Founding Provider"], status: "Suspended" },
-  { id: "PR-10", name: "Jasper Quinn", email: "jasper.quinn@example.com", city: "Dublin", rating: "4.1", joinDate: "Oct 11, 2027", kyc: "Verified", badges: ["Founding Provider"], status: "Banned" }
-];
+// Import Zustand store
+import { useAdminStore } from "@/store/useAdminStore";
 
 export default function AccountsPage() {
-  const [activeTab, setActiveTab] = useState("Clients"); // 'Clients' | 'Providers'
-  
-  // Filter settings
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterKYC, setFilterKYC] = useState("All");
+  const {
+    accountsActiveTab: activeTab,
+    setAccountsActiveTab: setActiveTab,
+    searchTerm,
+    setSearchTerm,
+    filterStatus,
+    setFilterStatus,
+    filterKYC,
+    setFilterKYC,
+    selectedAccount,
+    setSelectedAccount,
+    modalType,
+    setModalType,
+    inviteUserOpen,
+    setInviteUserOpen
+  } = useAdminStore();
+
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-
-  // Database lists
-  const [clients, setClients] = useState([]);
-  const [providers, setProviders] = useState([]);
-
-  // Active action menu states
-  const [openMenuId, setOpenMenuId] = useState(null);
-
-  // Modal display targets
-  const [selectedAccount, setSelectedAccount] = useState(null);
-  const [modalType, setModalType] = useState(null); // 'viewClient' | 'viewProvider' | 'suspendBan'
-  const [inviteUserOpen, setInviteUserOpen] = useState(false);
 
   // Pagination states
   const [clientPage, setClientPage] = useState(1);
   const [providerPage, setProviderPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Sync state with localStorage
+  // Memoize backend search & filter params
+  const clientParams = useMemo(() => ({
+    searchTerm,
+    filterStatus,
+    startDate,
+    endDate,
+    page: clientPage,
+    limit: itemsPerPage
+  }), [searchTerm, filterStatus, startDate, endDate, clientPage]);
+
+  const providerParams = useMemo(() => ({
+    searchTerm,
+    filterStatus,
+    filterKYC,
+    startDate,
+    endDate,
+    page: providerPage,
+    limit: itemsPerPage
+  }), [searchTerm, filterStatus, filterKYC, startDate, endDate, providerPage]);
+
+  // Custom React Query Firestore hooks with backend search, filter, and pagination
+  const { clients, total: totalClients, isLoading: isClientsLoading } = useClients(clientParams);
+  const { providers, total: totalProviders, isLoading: isProvidersLoading } = useProviders(providerParams);
+
+  // Active action menu states
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   useEffect(() => {
-    const storedClients = localStorage.getItem("netly_accounts_clients");
-    const storedProviders = localStorage.getItem("netly_accounts_providers");
-
-    if (storedClients) {
-      setClients(JSON.parse(storedClients));
-    } else {
-      setClients(defaultClients);
-      localStorage.setItem("netly_accounts_clients", JSON.stringify(defaultClients));
-    }
-
-    if (storedProviders) {
-      setProviders(JSON.parse(storedProviders));
-    } else {
-      setProviders(defaultProviders);
-      localStorage.setItem("netly_accounts_providers", JSON.stringify(defaultProviders));
-    }
-
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get("tab");
@@ -97,17 +86,7 @@ export default function AccountsPage() {
         setFilterStatus(statusParam);
       }
     }
-  }, []);
-
-  const saveClients = (list) => {
-    setClients(list);
-    localStorage.setItem("netly_accounts_clients", JSON.stringify(list));
-  };
-
-  const saveProviders = (list) => {
-    setProviders(list);
-    localStorage.setItem("netly_accounts_providers", JSON.stringify(list));
-  };
+  }, [setActiveTab, setFilterStatus]);
 
   // Close row dropdown menu safely when clicking elsewhere
   useEffect(() => {
@@ -115,50 +94,6 @@ export default function AccountsPage() {
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
   }, []);
-
-  // Filter actions
-  const filteredClients = useMemo(() => {
-    return clients.filter((c) => {
-      const matchSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filterStatus === "All" || c.status === filterStatus;
-
-      let matchRange = true;
-      if (startDate && endDate) {
-        const joinDate = new Date(c.joinDate);
-        matchRange = joinDate >= startDate && joinDate <= endDate;
-      }
-      return matchSearch && matchStatus && matchRange;
-    });
-  }, [clients, searchTerm, filterStatus, startDate, endDate]);
-
-  const filteredProviders = useMemo(() => {
-    return providers.filter((p) => {
-      const matchSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.city.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filterStatus === "All" || p.status === filterStatus;
-      const matchKYC = filterKYC === "All" || p.kyc === filterKYC;
-
-      let matchRange = true;
-      if (startDate && endDate) {
-        const joinDate = new Date(p.joinDate);
-        matchRange = joinDate >= startDate && joinDate <= endDate;
-      }
-      return matchSearch && matchStatus && matchKYC && matchRange;
-    });
-  }, [providers, searchTerm, filterStatus, filterKYC, startDate, endDate]);
-
-  // Pagination calculation slices
-  const currentClients = useMemo(() => {
-    const start = (clientPage - 1) * itemsPerPage;
-    return filteredClients.slice(start, start + itemsPerPage);
-  }, [filteredClients, clientPage]);
-
-  const currentProviders = useMemo(() => {
-    const start = (providerPage - 1) * itemsPerPage;
-    return filteredProviders.slice(start, start + itemsPerPage);
-  }, [filteredProviders, providerPage]);
 
   // Moderate Submit action handlers
   const handleSuspendBanSubmit = ({ accountId, actionType, duration, reason }) => {
@@ -302,7 +237,8 @@ export default function AccountsPage() {
 
       {activeTab === "Clients" ? (
         <ClientsTab
-          clients={filteredClients}
+          clients={clients}
+          totalItems={totalClients}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}
@@ -329,7 +265,8 @@ export default function AccountsPage() {
         />
       ) : (
         <ProvidersTab
-          providers={filteredProviders}
+          providers={providers}
+          totalItems={totalProviders}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ChevronDown } from "lucide-react";
+import { Search } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import CardWrapper from "@/components/ui/CardWrapper";
@@ -68,13 +68,13 @@ export default function DisputesPage() {
   const router = useRouter();
   const [disputes, setDisputes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
+  const [activeTab, setActiveTab] = useState("Open");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const itemsPerPage = 8;
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     const timer = setTimeout(() => setIsLoading(false), 500);
@@ -127,7 +127,7 @@ export default function DisputesPage() {
     return res;
   }, [disputes]);
 
-  // Filter disputes
+  // Filter disputes by active tab + search + date
   const filteredDisputes = useMemo(() => {
     return disputes.filter((d) => {
       const matchSearch = 
@@ -135,9 +135,7 @@ export default function DisputesPage() {
         d.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.id.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchStatus = 
-        filterStatus === "All" || 
-        d.status === filterStatus;
+      const matchTab = d.status === activeTab;
 
       let matchDate = true;
       if (startDate && endDate) {
@@ -149,9 +147,9 @@ export default function DisputesPage() {
         matchDate = itemDate >= start && itemDate <= end;
       }
 
-      return matchSearch && matchStatus && matchDate;
+      return matchSearch && matchTab && matchDate;
     });
-  }, [disputes, searchTerm, filterStatus, startDate, endDate]);
+  }, [disputes, searchTerm, activeTab, startDate, endDate]);
 
   // Sliced page data
   const paginated = useMemo(() => {
@@ -175,6 +173,13 @@ export default function DisputesPage() {
     }
   };
 
+  // Tab definitions
+  const tabs = [
+    { id: "Open", label: "Open" },
+    { id: "Under Review", label: "Under Review" },
+    { id: "Resolved", label: "Resolved" }
+  ];
+
   // Dashboard list layout (default state)
   return (
     <div className="space-y-4 font-onest">
@@ -191,6 +196,26 @@ export default function DisputesPage() {
             name={card.label}
             value={card.count}
           />
+        ))}
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex border-b border-secondary-bg text-xs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setCurrentPage(1);
+            }}
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${
+              activeTab === tab.id
+                ? "border-b-2 border-text-primary text-text-primary font-bold"
+                : "text-text-muted"
+            }`}
+          >
+            {tab.label}
+          </button>
         ))}
       </div>
 
@@ -213,26 +238,7 @@ export default function DisputesPage() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            
-            {/* Status selector */}
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
-              >
-                <option value="All">Status</option>
-                <option value="Open">Open</option>
-                <option value="Under Review">Under Review</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-              <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
-            </div>
-
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Date range picker */}
             <DateRangePicker
               startDate={startDate}
@@ -243,7 +249,6 @@ export default function DisputesPage() {
                 setCurrentPage(1);
               }}
             />
-
           </div>
         </div>
 
@@ -272,7 +277,6 @@ export default function DisputesPage() {
                   <th className="px-4 py-2 font-semibold">Provider</th>
                   <th className="px-4 py-2 font-semibold">Category</th>
                   <th className="px-4 py-2 font-semibold">Date Opened</th>
-                  <th className="px-4 py-2 font-semibold">Status</th>
                   <th className="px-4 py-2 w-20 text-right pr-6 font-semibold">Actions</th>
                 </tr>
               </thead>
@@ -286,12 +290,6 @@ export default function DisputesPage() {
                     <td className="px-4 py-3">{row.provider}</td>
                     <td className="px-4 py-3">{row.category}</td>
                     <td className="px-4 py-3">{row.dateOpened}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${getStatusClass(row.status)}`}>
-                        <span className="h-1 w-1 rounded-full bg-current" />
-                        {row.status}
-                      </span>
-                    </td>
                     <td className="px-4 py-3 text-right pr-6">
                       <button
                         onClick={() => {

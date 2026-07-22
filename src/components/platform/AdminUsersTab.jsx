@@ -84,7 +84,7 @@ export default function AdminUsersTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 8;
 
   // Selected row/modal parameters
   const [selectedAdmin, setSelectedAdmin] = useState(null);
@@ -221,7 +221,7 @@ export default function AdminUsersTab() {
             key={i}
             name={card.title}
             value={card.count}
-            note={card.sub}
+            subtext={card.sub}
           />
         ))}
       </div>

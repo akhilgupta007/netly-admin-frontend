@@ -29,7 +29,7 @@ export default function DataAccessLogsTab() {
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, []);
-  const itemsPerPage = 7;
+  const itemsPerPage = 8;
 
   const filteredLogs = useMemo(() => {
     return mockDataAccessLogs.filter((log) => {

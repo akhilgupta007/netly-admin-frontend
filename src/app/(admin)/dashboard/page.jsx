@@ -334,7 +334,7 @@ export default function DashboardPage() {
               key={idx}
               name={card.name}
               value={card.value}
-              note={card.note}
+              subtext={card.note}
               icon={card.icon}
               href={card.href}
             />
@@ -355,7 +355,7 @@ export default function DashboardPage() {
                 key={idx} 
                 name={card.name}
                 value={card.value}
-                note={card.note}
+                subtext={card.note}
                 icon={card.icon}
                 href={card.href}
               />
@@ -393,141 +393,60 @@ export default function DashboardPage() {
               </div>
 
               {/* Chart visualization */}
-              <div className="mt-4 relative w-full">
-                <svg className="w-full" viewBox="0 0 540 180" preserveAspectRatio="none">
-                  {/* Grid Lines */}
-                  <line x1="55" y1="20" x2="520" y2="20" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                  <line x1="55" y1="50" x2="520" y2="50" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                  <line x1="55" y1="80" x2="520" y2="80" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                  <line x1="55" y1="110" x2="520" y2="110" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                  <line x1="55" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
+              <div className="mt-4 relative w-full overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+                <div className="min-w-[500px] sm:min-w-0 relative">
+                  <svg className="w-full" viewBox="0 0 540 180" preserveAspectRatio="none">
+                    {/* Grid Lines */}
+                    <line x1="55" y1="20" x2="520" y2="20" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
+                    <line x1="55" y1="50" x2="520" y2="50" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
+                    <line x1="55" y1="80" x2="520" y2="80" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
+                    <line x1="55" y1="110" x2="520" y2="110" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
+                    <line x1="55" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
 
-                  {/* Y-Axis Labels */}
-                  <text x="10" y="24" className="text-[10px] text-text-muted fill-current font-medium">$10.0k</text>
-                  <text x="10" y="54" className="text-[10px] text-text-muted fill-current font-medium">$7.5k</text>
-                  <text x="10" y="84" className="text-[10px] text-text-muted fill-current font-medium">$5.0k</text>
-                  <text x="10" y="114" className="text-[10px] text-text-muted fill-current font-medium">$2.5k</text>
-                  <text x="10" y="144" className="text-[10px] text-text-muted fill-current font-medium">$0.0k</text>
+                    {/* Y-Axis Labels */}
+                    <text x="10" y="24" className="text-[10px] text-text-muted fill-current font-medium">$10.0k</text>
+                    <text x="10" y="54" className="text-[10px] text-text-muted fill-current font-medium">$7.5k</text>
+                    <text x="10" y="84" className="text-[10px] text-text-muted fill-current font-medium">$5.0k</text>
+                    <text x="10" y="114" className="text-[10px] text-text-muted fill-current font-medium">$2.5k</text>
+                    <text x="10" y="144" className="text-[10px] text-text-muted fill-current font-medium">$0.0k</text>
 
-                  {chartType === "Bar" ? (
-                    // Bar Chart Option
-                    chartData.map((data, index) => {
-                      const x_center = 85 + index * 68;
-                      const outboundHeight = (data.outbound / maxVal) * 120;
-                      const retainedHeight = (data.retained / maxVal) * 120;
-                      return (
-                        <g key={index} className="group">
-                          {/* Outbound bar */}
-                          <rect
-                            x={x_center - 20}
-                            y={140 - outboundHeight}
-                            width="24"
-                            height={outboundHeight}
-                            fill="#6FB5BD"
-                            rx="3"
-                            className="transition-all duration-300 hover:opacity-95 cursor-pointer"
-                            onMouseEnter={() => setHoveredValue({
-                              x: x_center - 8,
-                              y: 140 - outboundHeight,
-                              value: `$${data.outbound.toLocaleString()}`,
-                              label: `Outbound (${data.label})`
-                            })}
-                            onMouseLeave={() => setHoveredValue(null)}
-                          />
-                          {/* Retained bar */}
-                          <rect
-                            x={x_center + 6}
-                            y={140 - retainedHeight}
-                            width="24"
-                            height={retainedHeight}
-                            fill="#0B163F"
-                            rx="3"
-                            className="transition-all duration-300 hover:opacity-95 cursor-pointer"
-                            onMouseEnter={() => setHoveredValue({
-                              x: x_center + 18,
-                              y: 140 - retainedHeight,
-                              value: `$${data.retained.toLocaleString()}`,
-                              label: `Retained (${data.label})`
-                            })}
-                            onMouseLeave={() => setHoveredValue(null)}
-                          />
-                          {/* X-Axis Label */}
-                          <text
-                            x={x_center + 5}
-                            y="155"
-                            textAnchor="middle"
-                            className="text-[11px] text-text-muted fill-current font-medium"
-                          >
-                            {data.label}
-                          </text>
-                        </g>
-                      );
-                    })
-                  ) : (
-                    // Line Chart Option
-                    <g>
-                      {/* Lines Paths */}
-                      <path
-                        d={`M ${85} ${140 - (chartData[0].outbound / maxVal) * 120} 
-                            L ${85 + 68} ${140 - (chartData[1].outbound / maxVal) * 120} 
-                            L ${85 + 68 * 2} ${140 - (chartData[2].outbound / maxVal) * 120} 
-                            L ${85 + 68 * 3} ${140 - (chartData[3].outbound / maxVal) * 120} 
-                            L ${85 + 68 * 4} ${140 - (chartData[4].outbound / maxVal) * 120} 
-                            L ${85 + 68 * 5} ${140 - (chartData[5].outbound / maxVal) * 120} 
-                            L ${85 + 68 * 6} ${140 - (chartData[6].outbound / maxVal) * 120}`}
-                        fill="none"
-                        stroke="#6FB5BD"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        className="transition-all duration-500"
-                      />
-                      <path
-                        d={`M ${85} ${140 - (chartData[0].retained / maxVal) * 120} 
-                            L ${85 + 68} ${140 - (chartData[1].retained / maxVal) * 120} 
-                            L ${85 + 68 * 2} ${140 - (chartData[2].retained / maxVal) * 120} 
-                            L ${85 + 68 * 3} ${140 - (chartData[3].retained / maxVal) * 120} 
-                            L ${85 + 68 * 4} ${140 - (chartData[4].retained / maxVal) * 120} 
-                            L ${85 + 68 * 5} ${140 - (chartData[5].retained / maxVal) * 120} 
-                            L ${85 + 68 * 6} ${140 - (chartData[6].retained / maxVal) * 120}`}
-                        fill="none"
-                        stroke="#0B163F"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        className="transition-all duration-500"
-                      />
-
-                      {/* Dots and Labels */}
-                      {chartData.map((data, index) => {
+                    {chartType === "Bar" ? (
+                      // Bar Chart Option
+                      chartData.map((data, index) => {
                         const x_center = 85 + index * 68;
-                        const cyOut = 140 - (data.outbound / maxVal) * 120;
-                        const cyRet = 140 - (data.retained / maxVal) * 120;
+                        const outboundHeight = (data.outbound / maxVal) * 120;
+                        const retainedHeight = (data.retained / maxVal) * 120;
                         return (
-                          <g key={index}>
-                            {/* Outbound Dot */}
-                            <circle 
-                              cx={x_center} 
-                              cy={cyOut} 
-                              r="4" 
-                              fill="#6FB5BD" 
-                              className="cursor-pointer" 
+                          <g key={index} className="group">
+                            {/* Outbound bar */}
+                            <rect
+                              x={x_center - 20}
+                              y={140 - outboundHeight}
+                              width="24"
+                              height={outboundHeight}
+                              fill="#6FB5BD"
+                              rx="3"
+                              className="transition-all duration-300 hover:opacity-95 cursor-pointer"
                               onMouseEnter={() => setHoveredValue({
-                                x: x_center,
-                                y: cyOut,
+                                x: x_center - 8,
+                                y: 140 - outboundHeight,
                                 value: `$${data.outbound.toLocaleString()}`,
                                 label: `Outbound (${data.label})`
                               })}
                               onMouseLeave={() => setHoveredValue(null)}
                             />
-                            {/* Retained Dot */}
-                            <circle 
-                              cx={x_center} 
-                              cy={cyRet} 
-                              r="4" 
-                              fill="#0B163F" 
-                              className="cursor-pointer" 
+                            {/* Retained bar */}
+                            <rect
+                              x={x_center + 6}
+                              y={140 - retainedHeight}
+                              width="24"
+                              height={retainedHeight}
+                              fill="#0B163F"
+                              rx="3"
+                              className="transition-all duration-300 hover:opacity-95 cursor-pointer"
                               onMouseEnter={() => setHoveredValue({
-                                x: x_center,
-                                y: cyRet,
+                                x: x_center + 18,
+                                y: 140 - retainedHeight,
                                 value: `$${data.retained.toLocaleString()}`,
                                 label: `Retained (${data.label})`
                               })}
@@ -535,7 +454,7 @@ export default function DashboardPage() {
                             />
                             {/* X-Axis Label */}
                             <text
-                              x={x_center}
+                              x={x_center + 5}
                               y="155"
                               textAnchor="middle"
                               className="text-[11px] text-text-muted fill-current font-medium"
@@ -544,22 +463,105 @@ export default function DashboardPage() {
                             </text>
                           </g>
                         );
-                      })}
-                    </g>
+                      })
+                    ) : (
+                      // Line Chart Option
+                      <g>
+                        {/* Lines Paths */}
+                        <path
+                          d={`M ${85} ${140 - (chartData[0].outbound / maxVal) * 120} 
+                              L ${85 + 68} ${140 - (chartData[1].outbound / maxVal) * 120} 
+                              L ${85 + 68 * 2} ${140 - (chartData[2].outbound / maxVal) * 120} 
+                              L ${85 + 68 * 3} ${140 - (chartData[3].outbound / maxVal) * 120} 
+                              L ${85 + 68 * 4} ${140 - (chartData[4].outbound / maxVal) * 120} 
+                              L ${85 + 68 * 5} ${140 - (chartData[5].outbound / maxVal) * 120} 
+                              L ${85 + 68 * 6} ${140 - (chartData[6].outbound / maxVal) * 120}`}
+                          fill="none"
+                          stroke="#6FB5BD"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          className="transition-all duration-500"
+                        />
+                        <path
+                          d={`M ${85} ${140 - (chartData[0].retained / maxVal) * 120} 
+                              L ${85 + 68} ${140 - (chartData[1].retained / maxVal) * 120} 
+                              L ${85 + 68 * 2} ${140 - (chartData[2].retained / maxVal) * 120} 
+                              L ${85 + 68 * 3} ${140 - (chartData[3].retained / maxVal) * 120} 
+                              L ${85 + 68 * 4} ${140 - (chartData[4].retained / maxVal) * 120} 
+                              L ${85 + 68 * 5} ${140 - (chartData[5].retained / maxVal) * 120} 
+                              L ${85 + 68 * 6} ${140 - (chartData[6].retained / maxVal) * 120}`}
+                          fill="none"
+                          stroke="#0B163F"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          className="transition-all duration-500"
+                        />
+
+                        {/* Dots and Labels */}
+                        {chartData.map((data, index) => {
+                          const x_center = 85 + index * 68;
+                          const cyOut = 140 - (data.outbound / maxVal) * 120;
+                          const cyRet = 140 - (data.retained / maxVal) * 120;
+                          return (
+                            <g key={index}>
+                              {/* Outbound Dot */}
+                              <circle 
+                                cx={x_center} 
+                                cy={cyOut} 
+                                r="4" 
+                                fill="#6FB5BD" 
+                                className="cursor-pointer" 
+                                onMouseEnter={() => setHoveredValue({
+                                  x: x_center,
+                                  y: cyOut,
+                                  value: `$${data.outbound.toLocaleString()}`,
+                                  label: `Outbound (${data.label})`
+                                })}
+                                onMouseLeave={() => setHoveredValue(null)}
+                              />
+                              {/* Retained Dot */}
+                              <circle 
+                                cx={x_center} 
+                                cy={cyRet} 
+                                r="4" 
+                                fill="#0B163F" 
+                                className="cursor-pointer" 
+                                onMouseEnter={() => setHoveredValue({
+                                  x: x_center,
+                                  y: cyRet,
+                                  value: `$${data.retained.toLocaleString()}`,
+                                  label: `Retained (${data.label})`
+                                })}
+                                onMouseLeave={() => setHoveredValue(null)}
+                              />
+                              {/* X-Axis Label */}
+                              <text
+                                x={x_center}
+                                y="155"
+                                textAnchor="middle"
+                                className="text-[11px] text-text-muted fill-current font-medium"
+                              >
+                                {data.label}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </g>
+                    )}
+                  </svg>
+                  {hoveredValue && (
+                    <div 
+                      className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
+                      style={{ 
+                        left: `${(hoveredValue.x / 540) * 100}%`, 
+                        top: `${(hoveredValue.y / 180) * 100}%` 
+                      }}
+                    >
+                      <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
+                      <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
+                    </div>
                   )}
-                </svg>
-                {hoveredValue && (
-                  <div 
-                    className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
-                    style={{ 
-                      left: `${(hoveredValue.x / 540) * 100}%`, 
-                      top: `${(hoveredValue.y / 180) * 100}%` 
-                    }}
-                  >
-                    <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
-                    <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -589,7 +591,7 @@ export default function DashboardPage() {
               key={idx}
               name={card.name}
               value={card.value}
-              note={card.note}
+              subtext={card.note}
               href={card.href}
               icon={card.icon}
             />
