@@ -8,10 +8,10 @@ export default function ReviewContentModal({ flag, isOpen, onClose, onAction }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="text- font-semibold text-text-primary">Review content</h3>
           <button
             type="button"
@@ -31,7 +31,7 @@ export default function ReviewContentModal({ flag, isOpen, onClose, onAction }) 
               <span className="font-semibold text-text-primary block">{flag.type}</span>
             </div>
 
-            <div className="bg-page-bg rounded-2xl p-3 space-y-1.5 border border-secondary-bg/50">
+            <div className="bg-page-bg rounded-2xl p-3 space-y-1.5 border border-border-main/50">
               <span className="text-[10px] text-text-muted block">Reported content preview</span>
               <p className="text-xs text-text-primary leading-normal font-light">
                 {flag.content}
@@ -40,16 +40,16 @@ export default function ReviewContentModal({ flag, isOpen, onClose, onAction }) 
           </div>
 
           {/* Split grid details row */}
-          <div className="grid grid-cols-3 gap-2 border-t border-b border-secondary-bg py-4 text-xs text-text-muted font-light">
+          <div className="grid sm:grid-cols-3 sm:justify-between justify-center gap-2 border-t border-b border-border-main py-4 text-xs text-text-muted font-light">
             <div className="space-y-1">
               <span className="block text-[10px] text-text-muted">Reported by</span>
               <span className="block font-medium text-text-primary truncate">{flag.email || "reporter@clean.io"}</span>
             </div>
-            <div className="space-y-1 border-l border-secondary-bg pl-3">
+            <div className="space-y-1 sm:border-l border-border-main sm:pl-3">
               <span className="block text-[10px] text-text-muted">Date reported</span>
               <span className="block font-medium text-text-primary">{flag.date}</span>
             </div>
-            <div className="space-y-1 border-l border-secondary-bg pl-3">
+            <div className="space-y-1 sm:border-l border-border-main sm:pl-3">
               <span className="block text-[10px] text-text-muted">Subject email</span>
               <span className="block font-medium text-text-primary truncate">{flag.subjectEmail}</span>
             </div>

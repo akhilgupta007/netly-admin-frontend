@@ -48,9 +48,9 @@ export default function ClientsTab({
   const paginated = totalItems !== undefined ? clients : clients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
+    <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
       {/* Filters controls bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -61,12 +61,12 @@ export default function ClientsTab({
               onSearchChange(e.target.value);
               setCurrentPage(1);
             }}
-            className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+            className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+
           {/* Status Dropdown */}
           <div className="relative">
             <select
@@ -75,7 +75,7 @@ export default function ClientsTab({
                 onStatusChange(e.target.value);
                 setCurrentPage(1);
               }}
-              className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+              className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
             >
               <option value="All">Status</option>
               <option value="Active">Active</option>
@@ -110,8 +110,8 @@ export default function ClientsTab({
 
       {/* Table Content Section */}
       <div className="overflow-x-auto rounded-b-3xl">
-        <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-          <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+        <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+          <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
             <tr>
               <th className="px-4 py-3 font-semibold">Name</th>
               <th className="px-4 py-3 font-semibold">Email Address</th>
@@ -122,7 +122,7 @@ export default function ClientsTab({
               <th className="px-4 py-3 w-10"></th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+          <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
             {isLoading ? (
               <tr>
                 <td colSpan={7} className="px-6 py-12 text-center text-text-muted font-light">
@@ -142,12 +142,12 @@ export default function ClientsTab({
               </tr>
             ) : (
               paginated.map((client, idx) => (
-                <tr 
+                <tr
                   key={client.id}
                   className="hover:bg-page-bg/50 transition"
                 >
                   <td className="px-4 py-3 flex items-center gap-1.5">
-                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-light pt-0.5">
+                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center md:text-[10px] text-[7px] font-light pt-0.5">
                       {getInitials(client.name)}
                     </div>
                     <span className="text-text-primary">{client.name}</span>
@@ -157,7 +157,7 @@ export default function ClientsTab({
                   <td className="px-4 py-3 text-text-primary">{client.bookings}</td>
                   <td className="px-4 py-3 text-text-primary">${client.wallet.toFixed(2)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs ${getStatusClass(client.status)}`}>
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full md:text-xs text-[10px] ${getStatusClass(client.status)}`}>
                       {client.status}
                     </span>
                   </td>
@@ -178,10 +178,10 @@ export default function ClientsTab({
                     >
                       <MoreVertical size={20} />
                     </button>
-                    
+
                     {openMenuId === client.id && (
                       <div
-                        className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
+                        className="fixed w-36 bg-white border border-border-main rounded-xl shadow-lg z-50 py-1.5 animate-scale-up"
                         style={{ top: dropdownPos.top, left: dropdownPos.left }}
                       >
                         <button

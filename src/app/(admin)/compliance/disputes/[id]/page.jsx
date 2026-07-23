@@ -131,7 +131,7 @@ export default function DisputeDetailPage() {
       list = defaultDisputesBackup;
       localStorage.setItem("netly_disputes", JSON.stringify(defaultDisputesBackup));
     }
-    
+
     setDisputes(list);
     const found = list.find((d) => d.id === id);
     if (found) {
@@ -246,7 +246,7 @@ export default function DisputeDetailPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/compliance/disputes")}
-            className="w-8 h-8 rounded-lg bg-white border border-secondary-bg hover:bg-page-bg transition flex items-center justify-center text-text-primary cursor-pointer font-bold shrink-0"
+            className="w-8 h-8 rounded-lg bg-white border border-border-main hover:bg-page-bg transition flex items-center justify-center text-text-primary cursor-pointer font-bold shrink-0"
           >
             <ArrowLeft size={16} />
           </button>
@@ -263,7 +263,7 @@ export default function DisputeDetailPage() {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-text-primary bg-page-bg px-3 py-1.5 rounded-xl border border-secondary-bg/30 select-none">
+        <div className="flex items-center gap-1.5 text-xs text-text-primary bg-page-bg px-3 py-1.5 rounded-xl border border-border-main/30 select-none">
           <User size={16} className="text-text-muted" />
           <span>Assigned: <span>admin@netly.io</span></span>
         </div>
@@ -271,13 +271,13 @@ export default function DisputeDetailPage() {
 
       {/* Main Layout: Left Column (Parties + Tabs) & Right Column (Live Conversation) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        
+
         {/* LEFT COLUMN: Parties and Info Tabs */}
         <div className="lg:col-span-1 space-y-4">
           {/* Parties Card */}
-          <div className="bg-white rounded-3xl border border-secondary-bg p-4 space-y-4 shadow-2xs">
+          <div className="bg-white rounded-3xl border border-border-main p-4 space-y-4 shadow-2xs">
             <span className="text-[10px] text-text-muted block">Parties</span>
-            
+
             {/* Client */}
             <div className="flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-[#E5F5F7] text-[#0ea5e9] flex items-center justify-center font-bold text-xs shrink-0 select-none">
@@ -314,18 +314,17 @@ export default function DisputeDetailPage() {
           </div>
 
           {/* Details / Evidence / Timeline Tab Selection */}
-          <div className="bg-white rounded-3xl border border-secondary-bg p-4 space-y-4 shadow-2xs">
-            <div className="flex border-b border-secondary-bg text-xs">
+          <div className="bg-white rounded-3xl border border-border-main p-4 space-y-4 shadow-2xs">
+            <div className="flex border-b border-border-main text-xs">
               {["Details", "Evidence", "Timeline"].map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 pb-2 font-semibold border-b-2 text-center transition cursor-pointer ${
-                    activeTab === tab 
-                      ? "border-[#93D6DB] text-text-primary font-bold" 
+                  className={`flex-1 pb-2 font-semibold border-b-2 text-center transition cursor-pointer ${activeTab === tab
+                      ? "border-[#93D6DB] text-text-primary font-bold"
                       : "border-transparent text-text-muted hover:text-text-primary"
-                  }`}
+                    }`}
                 >
                   {tab}
                 </button>
@@ -336,13 +335,13 @@ export default function DisputeDetailPage() {
             {activeTab === "Details" && (
               <div className="space-y-3.5">
                 {/* Dispute Reason */}
-                <div className="bg-[#FAFBFD] rounded-2xl border border-secondary-bg p-4 space-y-1">
+                <div className="bg-[#FAFBFD] rounded-2xl border border-border-main p-4 space-y-1">
                   <span className="text-[10px] text-text-muted block">Dispute Reason</span>
                   <p className="text-xs font-medium text-text-primary">{dispute.reason || "Service not completed"}</p>
                 </div>
 
                 {/* Description (by client) */}
-                <div className="bg-[#FAFBFD] rounded-2xl border border-secondary-bg p-4 space-y-1">
+                <div className="bg-[#FAFBFD] rounded-2xl border border-border-main p-4 space-y-1">
                   <span className="text-[10px] text-text-muted block">Description (by client)</span>
                   <p className="text-xs text-text-primary leading-relaxed font-light">
                     {dispute.description || "No client description provided."}
@@ -350,15 +349,15 @@ export default function DisputeDetailPage() {
                 </div>
 
                 {/* Transaction Summary Card */}
-                <div className="bg-white rounded-2xl border border-secondary-bg overflow-hidden shadow-3xs">
-                  <div className="flex items-center justify-between p-4 border-b border-secondary-bg/60">
+                <div className="bg-white rounded-2xl border border-border-main overflow-hidden shadow-3xs">
+                  <div className="flex items-center justify-between p-4 border-b border-border-main/60">
                     <div className="flex items-center gap-2">
                       <ArrowLeftRight size={14} className="text-text-muted transform scale-x-[-1]" />
                       <span className="text-xs font-semibold text-text-primary">Transaction Summary</span>
                     </div>
                     <span className="text-xs text-[#0ea5e9] font-medium">{dispute.txnId || "TXN-00188"}</span>
                   </div>
-                  
+
                   <div className="p-4 space-y-2.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-text-muted font-light">Service</span>
@@ -368,8 +367,8 @@ export default function DisputeDetailPage() {
                       <span className="text-text-muted font-light">Date</span>
                       <span className="text-text-primary font-medium">{dispute.dateOpened}</span>
                     </div>
-                    
-                    <div className="border-t border-secondary-bg/50 pt-2 flex justify-between">
+
+                    <div className="border-t border-border-main/50 pt-2 flex justify-between">
                       <span className="text-text-muted font-light">Service amount</span>
                       <span className="text-text-primary font-medium">${dispute.serviceAmount?.toFixed(2)}</span>
                     </div>
@@ -381,7 +380,7 @@ export default function DisputeDetailPage() {
                       <span className="text-text-muted font-light">Commission (15%)</span>
                       <span className="text-text-primary font-medium">${dispute.commission?.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between font-semibold pt-1 border-t border-secondary-bg/30 text-text-primary">
+                    <div className="flex justify-between font-semibold pt-1 border-t border-border-main/30 text-text-primary">
                       <span>Total charged</span>
                       <span>${dispute.totalCharged?.toFixed(2)}</span>
                     </div>
@@ -389,7 +388,7 @@ export default function DisputeDetailPage() {
                 </div>
 
                 {/* Provider Statement */}
-                <div className="bg-[#FAFBFD] rounded-2xl border border-secondary-bg p-4 space-y-2">
+                <div className="bg-[#FAFBFD] rounded-2xl border border-border-main p-4 space-y-2">
                   <span className="text-[10px] text-text-muted block">Provider statement</span>
                   <div className="flex items-center gap-1.5 text-xs text-text-primary font-medium">
                     <User size={13} className="text-text-muted" />
@@ -431,9 +430,9 @@ export default function DisputeDetailPage() {
                   { name: "listing_description.pdf", uploader: "System - Jul 5", isImg: false },
                   { name: "provider_completion_photo.jpg", uploader: `${dispute.provider} - Jul 5`, isImg: true }
                 ].map((file, idx) => (
-                  <div key={idx} className="bg-page-bg/60 rounded-xl p-3 flex items-center justify-between text-xs hover:bg-page-bg transition border border-secondary-bg/30">
+                  <div key={idx} className="bg-page-bg/60 rounded-xl p-3 flex items-center justify-between text-xs hover:bg-page-bg transition border border-border-main/30">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-white border border-secondary-bg flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-white border border-border-main flex items-center justify-center shrink-0">
                         <FileText size={14} className={file.isImg ? "text-blue-500" : "text-amber-500"} />
                       </div>
                       <div className="min-w-0">
@@ -441,8 +440,8 @@ export default function DisputeDetailPage() {
                         <span className="text-[9px] text-text-muted block mt-0.5">{file.uploader}</span>
                       </div>
                     </div>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => toast.info(`Viewing file ${file.name}...`)}
                       className="text-text-muted hover:text-text-primary p-1 shrink-0 cursor-pointer"
                     >
@@ -480,15 +479,15 @@ export default function DisputeDetailPage() {
         </div>
 
         {/* RIGHT/MAIN COLUMN: Conversation Area */}
-        <div className="lg:col-span-3 bg-white rounded-3xl border border-secondary-bg shadow-2xs flex flex-col h-[78vh] overflow-hidden">
-          
+        <div className="lg:col-span-3 bg-white rounded-3xl border border-border-main shadow-2xs flex flex-col h-[78vh] overflow-hidden">
+
           {/* Conversation Header */}
-          <div className="px-5 py-3.5 border-b border-secondary-bg flex items-center justify-between bg-white shrink-0">
+          <div className="px-5 py-3.5 border-b border-border-main flex items-center justify-between bg-white shrink-0">
             <div className="flex items-center gap-3">
               <span className="text-sm font-semibold text-text-primary">Live Conversation</span>
-              
+
               {/* Member Avatars */}
-              <div className="flex items-center gap-2 pl-2 border-l border-secondary-bg text-[10px]">
+              <div className="flex items-center gap-2 pl-2 border-l border-border-main text-[10px]">
                 <div className="flex -space-x-1.5 shrink-0 select-none">
                   <div className="w-5 h-5 rounded-full bg-[#E5F5F7] text-[#0ea5e9] border border-white flex items-center justify-center font-bold text-[8px]">AO</div>
                   <div className="w-5 h-5 rounded-full bg-[#0F172A] text-white border border-white flex items-center justify-center font-bold text-[8px]">BO</div>
@@ -527,8 +526,8 @@ export default function DisputeDetailPage() {
           </div>
 
           {/* Conversation Chat Thread */}
-          <div 
-            ref={chatContainerRef} 
+          <div
+            ref={chatContainerRef}
             className="flex-1 overflow-y-auto p-5 bg-[#FAFBFD] space-y-4 scrollbar-thin"
           >
             {(() => {
@@ -537,7 +536,7 @@ export default function DisputeDetailPage() {
                 const isSystem = (msg.role === "system" || msg.sender === "System") && msg.sender !== "System User";
                 const isProvider = msg.role === "provider";
                 const isAdmin = msg.role === "admin" || msg.sender.startsWith("Admin") || msg.sender === "System User";
-                
+
                 // Parse date header
                 let dateHeader = null;
                 const match = msg.time.match(/^[A-Za-z]{3} \d{1,2}, \d{4}/);
@@ -561,7 +560,7 @@ export default function DisputeDetailPage() {
                     <React.Fragment key={idx}>
                       {dateHeader}
                       <div className="flex justify-center my-4 animate-fade-in select-none">
-                        <div className="bg-white border border-secondary-bg rounded-full text-center py-1.5 px-5 text-text-muted italic text-[10px] max-w-lg shadow-2xs">
+                        <div className="bg-white border border-border-main rounded-full text-center py-1.5 px-5 text-text-muted italic text-[10px] max-w-lg shadow-2xs">
                           {msg.text}
                         </div>
                       </div>
@@ -579,18 +578,18 @@ export default function DisputeDetailPage() {
                           <span className="text-[10px] text-text-muted font-medium">
                             {msg.sender} <span className="font-light opacity-80">(You)</span>
                           </span>
-                          
-                          <div className="p-3 rounded-2xl rounded-tr-none leading-relaxed text-xs shadow-3xs bg-primary-bg-muted text-text-primary border border-secondary-bg/20 text-left">
+
+                          <div className="p-3 rounded-2xl rounded-tr-none leading-relaxed text-xs shadow-3xs bg-primary-bg-muted text-text-primary border border-border-main/20 text-left">
                             <p className="whitespace-pre-line">{msg.text}</p>
-                            
+
                             {/* Attached mock file preview box */}
                             {msg.file && (
-                              <div className="mt-2.5 p-2.5 rounded-xl flex items-center justify-between text-[10px] bg-page-bg text-text-primary border border-secondary-bg/50">
+                              <div className="mt-2.5 p-2.5 rounded-xl flex items-center justify-between text-[10px] bg-page-bg text-text-primary border border-border-main/50">
                                 <div className="flex items-center gap-2 truncate">
                                   <FileText size={13} className="text-blue-500" />
                                   <span className="font-medium truncate">{msg.file}</span>
                                 </div>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => toast.info(`Downloading file ${msg.file}...`)}
                                   className="p-1 hover:opacity-80 transition cursor-pointer text-text-primary"
@@ -600,7 +599,7 @@ export default function DisputeDetailPage() {
                               </div>
                             )}
                           </div>
-                          
+
                           <span className="text-[8px] text-text-muted block mt-0.5 font-light">{displayTime}</span>
                         </div>
                       </div>
@@ -611,7 +610,7 @@ export default function DisputeDetailPage() {
                 // Client or Provider bubble
                 let avatarText = isProvider ? "BO" : "AO";
                 let avatarBgClass = isProvider ? "bg-[#0F172A] text-white" : "bg-[#E5F5F7] text-[#0ea5e9]";
-                let bubbleClass = isProvider ? "bg-[#0F172A] text-white" : "bg-white text-text-primary border border-secondary-bg/30";
+                let bubbleClass = isProvider ? "bg-[#0F172A] text-white" : "bg-white text-text-primary border border-border-main/30";
                 let labelSuffix = isProvider ? "(Provider)" : "(Client)";
 
                 return (
@@ -625,20 +624,19 @@ export default function DisputeDetailPage() {
                         <span className="text-[10px] text-text-muted font-medium">
                           {msg.sender} <span className="font-light opacity-80">{labelSuffix}</span>
                         </span>
-                        
+
                         <div className={`p-3 rounded-2xl rounded-tl-none leading-relaxed text-xs shadow-3xs ${bubbleClass}`}>
                           <p className="whitespace-pre-line">{msg.text}</p>
-                          
+
                           {/* Attached mock file preview box */}
                           {msg.file && (
-                            <div className={`mt-2.5 p-2.5 rounded-xl flex items-center justify-between text-[10px] ${
-                              isProvider ? "bg-white/10 text-white" : "bg-page-bg text-text-primary border border-secondary-bg/50"
-                            }`}>
+                            <div className={`mt-2.5 p-2.5 rounded-xl flex items-center justify-between text-[10px] ${isProvider ? "bg-white/10 text-white" : "bg-page-bg text-text-primary border border-border-main/50"
+                              }`}>
                               <div className="flex items-center gap-2 truncate">
                                 <FileText size={13} className={isProvider ? "text-blue-300" : "text-blue-500"} />
                                 <span className="font-medium truncate">{msg.file}</span>
                               </div>
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => toast.info(`Downloading file ${msg.file}...`)}
                                 className="p-1 hover:opacity-80 transition cursor-pointer text-text-primary"
@@ -648,7 +646,7 @@ export default function DisputeDetailPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <span className="text-[8px] text-text-muted block mt-0.5 font-light">{displayTime}</span>
                       </div>
                     </div>
@@ -659,7 +657,7 @@ export default function DisputeDetailPage() {
           </div>
 
           {/* Conversation Input area */}
-          <div className="p-4 border-t border-secondary-bg bg-white shrink-0">
+          <div className="p-4 border-t border-border-main bg-white shrink-0">
             <div className="flex items-center justify-between text-[10px] text-text-muted pb-2 select-none">
               <span className="font-medium">Sending as <span className="text-text-primary font-semibold">Priya Nair</span> · Admin</span>
               <span className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">
@@ -667,11 +665,11 @@ export default function DisputeDetailPage() {
                 Live
               </span>
             </div>
-            
+
             {dispute.status !== "Resolved" ? (
-              <form onSubmit={handleSendChatSubmit} className="flex items-center gap-2 border border-secondary-bg rounded-2xl p-1 bg-white focus-within:ring-1 focus-within:ring-primary-bg/20 transition">
-                <button 
-                  type="button" 
+              <form onSubmit={handleSendChatSubmit} className="flex items-center gap-2 border border-border-main rounded-2xl p-1 bg-white focus-within:ring-1 focus-within:ring-primary-bg/20 transition">
+                <button
+                  type="button"
                   onClick={() => toast.info("Opening file upload attachment manager...")}
                   className="p-2 text-text-muted hover:text-text-primary transition cursor-pointer"
                 >
@@ -692,7 +690,7 @@ export default function DisputeDetailPage() {
                 </button>
               </form>
             ) : (
-              <div className="bg-page-bg/50 border border-secondary-bg/30 text-center text-text-muted font-light py-2 text-xs rounded-xl italic select-none">
+              <div className="bg-page-bg/50 border border-border-main/30 text-center text-text-muted font-light py-2 text-xs rounded-xl italic select-none">
                 This dispute conversation has been resolved and closed.
               </div>
             )}
@@ -706,9 +704,9 @@ export default function DisputeDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
           {/* Backdrop */}
           <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs animate-fade-in" onClick={() => setIsResolveModalOpen(false)} />
-          
+
           {/* Modal Container */}
-          <form onSubmit={handleResolveSubmit} className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4 max-h-[90vh] flex flex-col">
+          <form onSubmit={handleResolveSubmit} className="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl z-10 border border-border-main animate-scale-up mx-4 max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main shrink-0">
               <h3 className="text-lg font-bold text-text-primary tracking-tight">Resolve Dispute</h3>
               <button
@@ -732,11 +730,10 @@ export default function DisputeDetailPage() {
                   ].map((opt) => (
                     <label
                       key={opt.id}
-                      className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer select-none transition ${
-                        decision === opt.id 
-                          ? "bg-blue-50/40 border-primary-bg-muted/70" 
-                          : "bg-white border-secondary-bg hover:bg-page-bg/30"
-                      }`}
+                      className={`flex items-center gap-3 border p-3 rounded-xl cursor-pointer select-none transition ${decision === opt.id
+                          ? "bg-blue-50/40 border-primary-bg-muted/70"
+                          : "bg-white border-border-main hover:bg-page-bg/30"
+                        }`}
                     >
                       <input
                         type="radio"
@@ -746,9 +743,8 @@ export default function DisputeDetailPage() {
                         onChange={() => setDecision(opt.id)}
                         className="sr-only"
                       />
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition shrink-0 ${
-                        decision === opt.id ? "border-primary-bg" : "border-text-muted/30"
-                      }`}>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition shrink-0 ${decision === opt.id ? "border-primary-bg" : "border-text-muted/30"
+                        }`}>
                         {decision === opt.id && (
                           <div className="w-2.5 h-2.5 rounded-full bg-primary-bg" />
                         )}
@@ -769,7 +765,7 @@ export default function DisputeDetailPage() {
                     value={adjustmentAmount}
                     onChange={(e) => setAdjustmentAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary font-mono"
+                    className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary font-mono"
                     required
                   />
                   <span className="text-[10px] text-text-muted block mt-0.5">Credit issued back to client's wallet.</span>
@@ -785,9 +781,8 @@ export default function DisputeDetailPage() {
                     onChange={(e) => setRefundOriginalCard(e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition shrink-0 ${
-                    refundOriginalCard ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30 bg-white"
-                  }`}>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition shrink-0 ${refundOriginalCard ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30 bg-white"
+                    }`}>
                     {refundOriginalCard && <span className="text-[10px] font-bold">✓</span>}
                   </div>
                   <div>
@@ -806,9 +801,8 @@ export default function DisputeDetailPage() {
                     onChange={(e) => setSuspendAccount(e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition shrink-0 ${
-                    suspendAccount ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30 bg-white"
-                  }`}>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center transition shrink-0 ${suspendAccount ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30 bg-white"
+                    }`}>
                     {suspendAccount && <span className="text-[10px] font-bold">✓</span>}
                   </div>
                   <div>
@@ -826,14 +820,14 @@ export default function DisputeDetailPage() {
                   rows={4}
                   value={resolutionNotes}
                   onChange={(e) => setResolutionNotes(e.target.value)}
-                  className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+                  className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
                   required
                 />
                 <span className="text-[10px] text-text-muted block">Minimum 30 characters.</span>
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4 border-t border-secondary-bg mt-4 shrink-0">
+            <div className="flex gap-2 pt-4 border-t border-border-main mt-4 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsResolveModalOpen(false)}

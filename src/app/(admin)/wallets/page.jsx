@@ -60,7 +60,7 @@ export default function WalletsRefundsPage() {
       const tabParam = params.get("tab");
       const startParam = params.get("startDate");
       const endParam = params.get("endDate");
-      
+
       if (tabParam) {
         setActiveTab(tabParam);
       }
@@ -140,7 +140,7 @@ export default function WalletsRefundsPage() {
     return wallets.filter(w => {
       const search = searchTerm.toLowerCase();
       const matchSearch = w.client.name.toLowerCase().includes(search) || w.client.email.toLowerCase().includes(search);
-      
+
       let matchDate = true;
       if (startDate || endDate) {
         // Strip out and parse the first portion of the string
@@ -162,7 +162,7 @@ export default function WalletsRefundsPage() {
       const search = searchTerm.toLowerCase();
       const matchSearch = q.client.name.toLowerCase().includes(search) || q.client.email.toLowerCase().includes(search) || q.id.toLowerCase().includes(search);
       const matchStatus = filterStatus === "All" || q.status === filterStatus;
-      
+
       let matchDate = true;
       if (startDate || endDate) {
         const cleanTxDate = parseTxDate(q.date);
@@ -183,7 +183,7 @@ export default function WalletsRefundsPage() {
       const search = searchTerm.toLowerCase();
       const matchSearch = q.provider.name.toLowerCase().includes(search) || q.provider.email.toLowerCase().includes(search) || q.id.toLowerCase().includes(search);
       const matchStatus = filterStatus === "All" || q.status === filterStatus;
-      
+
       let matchDate = true;
       if (startDate || endDate) {
         const cleanTxDate = parseTxDate(q.date);
@@ -243,11 +243,11 @@ export default function WalletsRefundsPage() {
 
   return (
     <div className="space-y-4">
-      
+
       {/* Dynamic Header - Title and subtitle dynamically managed by layouts.jsx */}
-      
+
       {/* 4 Navigation Tabs */}
-      <div className="flex border-b border-secondary-bg text-xs">
+      <div className="flex border-b border-border-main text-xs">
         {[
           { id: "wallets", label: "Wallets" },
           { id: "credit", label: "Wallet Credit Queue" },
@@ -264,11 +264,10 @@ export default function WalletsRefundsPage() {
               setStartDate(null);
               setEndDate(null);
             }}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg ${
-              activeTab === tab.id
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg ${activeTab === tab.id
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             {tab.label}
           </button>

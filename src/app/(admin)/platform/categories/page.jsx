@@ -220,7 +220,7 @@ export default function ServiceCategoriesPage() {
       </div>
 
       {/* Accordion Table Card */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
+      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs">
 
         {categories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 px-4 text-center space-y-4 select-none bg-white">
@@ -232,8 +232,8 @@ export default function ServiceCategoriesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto select-none">
-            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-              <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+            <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+              <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
                 <tr>
                   <th className="px-4 py-3 font-semibold w-1/3">Category / Sub-service</th>
                   <th className="px-4 py-3 font-semibold text-center w-24">Photo</th>
@@ -242,7 +242,7 @@ export default function ServiceCategoriesPage() {
                   <th className="px-4 py-3 font-semibold text-right w-28">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {categories.map((cat) => {
                   const isExpanded = !!expandedCats[cat.id];
                   const isCatEditing = editingRowId === cat.id;
@@ -265,7 +265,7 @@ export default function ServiceCategoriesPage() {
                                 type="text"
                                 value={editingName}
                                 onChange={(e) => setEditingName(e.target.value)}
-                                className="border border-secondary-bg rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-bg text-xs text-text-primary"
+                                className="border border-border-main rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-bg text-xs text-text-primary"
                                 autoFocus
                               />
                               <button
@@ -331,7 +331,7 @@ export default function ServiceCategoriesPage() {
                         const isSubEditing = editingRowId === sub.id;
 
                         return (
-                          <tr key={sub.id} className={`bg-page-bg/70 hover:bg-page-bg transition-colors border-t border-secondary-bg/25 ${(!sub.active || !cat.active) ? "opacity-60" : ""
+                          <tr key={sub.id} className={`bg-page-bg/70 hover:bg-page-bg transition-colors border-t border-border-main/25 ${(!sub.active || !cat.active) ? "opacity-60" : ""
                             }`}>
                             <td className="px-4 py-3 flex items-center pl-10 gap-2">
                               <span className="font-light select-none mr-1">—</span>
@@ -341,7 +341,7 @@ export default function ServiceCategoriesPage() {
                                     type="text"
                                     value={editingName}
                                     onChange={(e) => setEditingName(e.target.value)}
-                                    className="border border-secondary-bg rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-bg text-xs text-text-primary bg-white"
+                                    className="border border-border-main rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-bg text-xs text-text-primary bg-white"
                                     autoFocus
                                   />
                                   <button

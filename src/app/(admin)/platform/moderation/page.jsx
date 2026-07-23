@@ -13,16 +13,15 @@ export default function ContentModerationPage() {
   return (
     <div className="space-y-4 font-onest">
       {/* Dynamic Tab Navigation headers matching Accounts/Wallets/Compliance styling */}
-      <div className="flex border-b border-secondary-bg text-xs">
+      <div className="flex border-b border-border-main text-xs">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${
-              activeTab === tab
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${activeTab === tab
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             {tab}
           </button>

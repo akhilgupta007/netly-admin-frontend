@@ -23,7 +23,7 @@ export default function ConsentManagementTab() {
 
   const matchedRecord = useMemo(() => {
     if (!searchTerm.trim()) return consentList[0] || null;
-    return consentList.find(c => 
+    return consentList.find(c =>
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.email.toLowerCase().includes(searchTerm.toLowerCase())
     ) || null;
@@ -59,7 +59,7 @@ export default function ConsentManagementTab() {
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+            className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
           />
         </div>
 
@@ -77,14 +77,14 @@ export default function ConsentManagementTab() {
       ) : (
         <div className="pt-4 space-y-5 bg-white rounded-b-3xl">
           {/* Header Info bar */}
-          <div className="bg-page-bg/40 border border-secondary-bg rounded-2xl p-4 text-xs text-text-primary">
+          <div className="bg-page-bg/40 border border-border-main rounded-2xl p-4 text-xs text-text-primary">
             <div className="block text-xs text-text-primary">Search a user to view their consent record</div>
             <p className="text-[10px] text-text-muted font-light mt-0.5">Covers marketing opt-in (CASL), data processing consent, and PII rights (PIPEDA)</p>
           </div>
 
           {/* Matched user record block */}
-          <div className="border border-secondary-bg rounded-3xl p-4 space-y-5 shadow-2xs">
-            <div className="flex justify-between items-center pb-3 border-b border-secondary-bg">
+          <div className="border border-border-main rounded-3xl p-4 space-y-5 shadow-2xs">
+            <div className="flex justify-between items-center pb-3 border-b border-border-main">
               <div>
                 <h3 className="text-sm text-text-primary">{matchedRecord.name}</h3>
                 <p className="text-[10px] text-text-muted font-light mt-0.5">{matchedRecord.email}</p>
@@ -98,7 +98,7 @@ export default function ConsentManagementTab() {
             {/* Status Boxes row */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Data Processing Consent */}
-              <div className="border border-secondary-bg rounded-2xl p-4 space-y-2">
+              <div className="border border-border-main rounded-2xl p-4 space-y-2">
                 <span className="text-sm text-text-primary block">Data processing consent</span>
                 <strong className={`text-xl block ${matchedRecord.dataConsent ? "text-emerald-500" : "text-red-500"}`}>
                   {matchedRecord.dataConsent ? "Opted in" : "Opted out"}
@@ -107,7 +107,7 @@ export default function ConsentManagementTab() {
               </div>
 
               {/* Marketing opt-in (CASL) */}
-              <div className="border border-secondary-bg rounded-2xl p-4 space-y-2">
+              <div className="border border-border-main rounded-2xl p-4 space-y-2">
                 <span className="text-sm text-text-primary block">Marketing opt-in (CASL)</span>
                 <strong className={`text-xl block ${matchedRecord.marketingConsent ? "text-emerald-500" : "text-red-500"}`}>
                   {matchedRecord.marketingConsent ? "Opted in" : "Opted out"}

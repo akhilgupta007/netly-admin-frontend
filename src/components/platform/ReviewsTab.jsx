@@ -136,8 +136,8 @@ export default function ReviewsTab() {
 
     let matchesDate = true;
     if (startDate && endDate) {
-      const start = new Date(startDate).setHours(0,0,0,0);
-      const end = new Date(endDate).setHours(23,59,59,999);
+      const start = new Date(startDate).setHours(0, 0, 0, 0);
+      const end = new Date(endDate).setHours(23, 59, 59, 999);
       const revVal = new Date(rev.dateTime).getTime();
       matchesDate = revVal >= start && revVal <= end;
     }
@@ -156,8 +156,8 @@ export default function ReviewsTab() {
     <div className="space-y-4 animate-scale-up">
 
       {/* Inline Filters bar inside the white container card */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-secondary-bg">
+      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -168,19 +168,21 @@ export default function ReviewsTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="md:min-w-sm border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-sm w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(start, end) => {
-              setStartDate(start);
-              setEndDate(end);
-              setCurrentPage(1);
-            }}
-          />
+          <div className="flex justify-center">
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(start, end) => {
+                setStartDate(start);
+                setEndDate(end);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </div>
 
         {/* Reviews Data List */}
@@ -195,8 +197,8 @@ export default function ReviewsTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+              <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Client</th>
                     <th className="px-4 py-3 font-semibold">Provider</th>
@@ -206,7 +208,7 @@ export default function ReviewsTab() {
                     <th className="px-4 py-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+                <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedReviews.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
                       <td className="px-4 py-3">{item.client}</td>
@@ -217,8 +219,8 @@ export default function ReviewsTab() {
                           {item.rating.toFixed(1)}
                         </span>
                       </td>
-                      <td className="px-4 py-3">{item.date}</td>
-                      <td className="px-4 py-3 leading-normal max-w-sm md:max-w-xl whitespace-normal wrap-break-word">
+                      <td className="px-4 py-3 text-nowrap">{item.date}</td>
+                      <td className="px-4 py-3 leading-normal min-w-2xs max-w-xs whitespace-normal wrap-break-word">
                         {item.reviewText}
                       </td>
                       <td className="px-4 py-3">

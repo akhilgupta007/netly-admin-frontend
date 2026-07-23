@@ -111,7 +111,7 @@ export default function UserStatsTab() {
   const subCategoriesByCategory = categoriesOnly.reduce((acc, cat) => {
     const subs = Array.from(new Set(
       data.filter(item => item.category === cat && item.subCategory)
-          .map(item => item.subCategory)
+        .map(item => item.subCategory)
     ));
     acc[cat] = subs;
     return acc;
@@ -121,7 +121,7 @@ export default function UserStatsTab() {
   const filtered = data.filter((item) => {
     const matchesCountry = selectedCountry === "All" || item.country === selectedCountry;
     const matchesCity = selectedCity === "All" || item.city === selectedCity;
-    
+
     let matchesCategory = true;
     if (selectedCategory !== "All") {
       if (selectedCategory.startsWith("sub:")) {
@@ -171,9 +171,9 @@ export default function UserStatsTab() {
 
   return (
     <div className="animate-scale-up font-onest text-xs text-text-primary">
-       {/* Controls Bar */}
-      <div className="flex flex-wrap items-center justify-end gap-3 select-none p-4 w-full">
-        
+      {/* Controls Bar */}
+      <div className="flex flex-wrap items-center sm:justify-end justify-center gap-3 select-none p-4 w-full">
+
         {/* Country select */}
         <div className="relative">
           <select
@@ -212,7 +212,7 @@ export default function UserStatsTab() {
         </div>
 
         {/* Category custom cascade select dropdown */}
-        <div 
+        <div
           ref={categoryDropdownRef}
           className="relative"
         >
@@ -224,15 +224,15 @@ export default function UserStatsTab() {
             {selectedCategory === "All"
               ? "Category"
               : selectedCategory.startsWith("sub:")
-              ? selectedCategory.substring(4)
-              : selectedCategory}
+                ? selectedCategory.substring(4)
+                : selectedCategory}
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </button>
 
           {categoryDropdownOpen && (
-            <div 
+            <div
               onMouseLeave={() => setHoveredCategory(null)}
-              className="absolute top-full right-0 mt-1.5 bg-white border border-secondary-bg shadow-lg rounded-2xl p-1.5 z-50 flex animate-scale-up min-w-44"
+              className="absolute top-full right-0 mt-1.5 bg-white border border-border-main shadow-lg rounded-2xl p-1.5 z-50 flex animate-scale-up min-w-44"
             >
               {/* Main categories list */}
               <div className="flex flex-col gap-0.5 whitespace-nowrap min-w-36 text-left">
@@ -243,9 +243,8 @@ export default function UserStatsTab() {
                     setCategoryDropdownOpen(false);
                     setCurrentPage(1);
                   }}
-                  className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-normal ${
-                    selectedCategory === "All" ? "bg-page-bg font-medium text-primary-bg" : "text-text-primary"
-                  }`}
+                  className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-normal ${selectedCategory === "All" ? "bg-page-bg font-medium text-primary-bg" : "text-text-primary"
+                    }`}
                 >
                   All Categories
                 </button>
@@ -258,9 +257,8 @@ export default function UserStatsTab() {
                       setCategoryDropdownOpen(false);
                       setCurrentPage(1);
                     }}
-                    className={`flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs select-none ${
-                      selectedCategory === cat ? "bg-page-bg font-medium text-primary-bg" : "text-text-primary"
-                    }`}
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs select-none ${selectedCategory === cat ? "bg-page-bg font-medium text-primary-bg" : "text-text-primary"
+                      }`}
                   >
                     <span>{cat}</span>
                     {subCategoriesByCategory[cat] && subCategoriesByCategory[cat].length > 0 && (
@@ -272,7 +270,7 @@ export default function UserStatsTab() {
 
               {/* Side sub-menu on hover of a category */}
               {hoveredCategory && subCategoriesByCategory[hoveredCategory] && subCategoriesByCategory[hoveredCategory].length > 0 && (
-                <div className="border-l border-secondary-bg ml-1.5 pl-1.5 flex flex-col gap-0.5 min-w-40 justify-start animate-fade-in whitespace-nowrap text-left">
+                <div className="border-l border-border-main ml-1.5 pl-1.5 flex flex-col gap-0.5 min-w-40 justify-start animate-fade-in whitespace-nowrap text-left">
                   <button
                     type="button"
                     onClick={() => {
@@ -280,9 +278,8 @@ export default function UserStatsTab() {
                       setCategoryDropdownOpen(false);
                       setCurrentPage(1);
                     }}
-                    className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-semibold ${
-                      selectedCategory === hoveredCategory ? "bg-page-bg text-primary-bg" : "text-text-primary"
-                    }`}
+                    className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-semibold ${selectedCategory === hoveredCategory ? "bg-page-bg text-primary-bg" : "text-text-primary"
+                      }`}
                   >
                     {hoveredCategory} (All)
                   </button>
@@ -295,9 +292,8 @@ export default function UserStatsTab() {
                         setCategoryDropdownOpen(false);
                         setCurrentPage(1);
                       }}
-                      className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-normal ${
-                        selectedCategory === `sub:${sub}` ? "bg-page-bg text-primary-bg" : "text-text-muted"
-                      }`}
+                      className={`text-left px-3 py-1.5 rounded-lg hover:bg-page-bg transition cursor-pointer text-xs font-normal ${selectedCategory === `sub:${sub}` ? "bg-page-bg text-primary-bg" : "text-text-muted"
+                        }`}
                     >
                       {sub}
                     </button>
@@ -314,14 +310,12 @@ export default function UserStatsTab() {
           <button
             type="button"
             onClick={() => setMapView(!mapView)}
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              mapView ? "bg-primary-bg-muted" : "bg-secondary-bg"
-            }`}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mapView ? "bg-primary-bg-muted" : "bg-secondary-bg"
+              }`}
           >
             <span
-              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
-                mapView ? "translate-x-4" : "translate-x-0"
-              }`}
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${mapView ? "translate-x-4" : "translate-x-0"
+                }`}
             />
           </button>
         </div>
@@ -366,8 +360,8 @@ export default function UserStatsTab() {
 
           {/* Hover overlay tooltip details card */}
           {hoveredNode && (
-            <div className="absolute top-4 right-4 z-20 w-48 bg-white/95 backdrop-blur-xs border border-secondary-bg rounded-2xl shadow-xl p-3.5 space-y-2 animate-scale-up text-left">
-              <div className="flex items-center gap-1.5 border-b border-secondary-bg pb-1.5">
+            <div className="absolute top-4 right-4 z-20 w-48 bg-white/95 backdrop-blur-xs border border-border-main rounded-2xl shadow-xl p-3.5 space-y-2 animate-scale-up text-left">
+              <div className="flex items-center gap-1.5 border-b border-border-main pb-1.5">
                 <MapPin size={12} className="text-primary-bg" />
                 <div>
                   <strong className="font-bold text-text-primary block leading-none">{hoveredNode.city}</strong>
@@ -397,7 +391,7 @@ export default function UserStatsTab() {
                   <span className="text-text-muted font-light">D/S Ratio:</span>
                   <span className="font-bold text-primary-bg">{hoveredNode.ratio}x</span>
                 </div>
-                <div className="flex justify-between border-t border-secondary-bg/50 pt-1 mt-1 font-semibold text-text-primary">
+                <div className="flex justify-between border-t border-border-main/50 pt-1 mt-1 font-semibold text-text-primary">
                   <span>GMV:</span>
                   <span>${hoveredNode.gmv.toLocaleString()}</span>
                 </div>
@@ -406,7 +400,7 @@ export default function UserStatsTab() {
           )}
 
           {/* Legend block on bottom right matching Screenshot 5 */}
-          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-xs border border-secondary-bg/60 rounded-xl px-3 py-2 flex flex-wrap items-center gap-3 shadow-2xs text-xs text-text-primary">
+          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-xs border border-border-main/60 rounded-xl px-3 ml-4 py-2 flex flex-wrap items-center gap-3 shadow-2xs text-xs text-text-primary">
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
               <span>High demand</span>
@@ -419,7 +413,7 @@ export default function UserStatsTab() {
               <span className="w-1.5 h-1.5 rounded-full bg-[#0F172A]" />
               <span>Balanced</span>
             </div>
-            <div className="border-l border-secondary-bg/60 ml-0.5 pl-2 text-text-muted font-light">
+            <div className="border-l border-border-main/60 ml-0.5 pl-2 text-text-muted font-light">
               Circle size = GMV
             </div>
           </div>
@@ -428,8 +422,8 @@ export default function UserStatsTab() {
       )}
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-secondary-bg text-left">
-          <thead className="bg-secondary-bg text-text-primary text-sm">
+        <table className="min-w-full divide-y divide-secondary-bg text-left md:text-sm text-xs">
+          <thead className="bg-secondary-bg text-text-primary md:text-sm text-xs">
             <tr>
               <th
                 onClick={() => handleSort("city")}
@@ -505,7 +499,7 @@ export default function UserStatsTab() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+          <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
             {paginated.map((item) => (
               <tr key={item.id} className="hover:bg-page-bg/50 transition">
                 <td className="px-4 py-3">

@@ -55,17 +55,17 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      
+
       {/* Modal Container */}
-      <div className="relative bg-white rounded-3xl max-w-xl w-full p-3 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4 max-h-[95vh] flex flex-col">
-        
+      <div className="relative bg-white rounded-3xl max-w-xl w-full p-3 shadow-2xl z-10 border border-border-main animate-scale-up mx-4 max-h-[95vh] flex flex-col">
+
         {/* Modal Header */}
         <div className="flex justify-between items-center p-1 pb-2 mb-4 border-b border-border-main shrink-0">
           <h3 className="text-lg font-semibold text-text-primary">
             {isRejectMode ? "Reject Document" : "Document Review"}
           </h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 cursor-pointer"
           >
             <X size={14} />
@@ -74,7 +74,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
 
         {/* Modal Content Scroll Area */}
         <div className="space-y-4 overflow-y-auto p-1 flex-1 scrollbar-thin">
-          
+
           {/* User metadata header card */}
           <div className="bg-page-bg rounded-2xl p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
           <div className="space-y-1">
             {item.docType === "ID" ? (
               /* Slate National ID Image Mock card layout */
-              <div className="flex flex-col items-center justify-center py-4 bg-gray-50 rounded-2xl relative border border-secondary-bg/50">
+              <div className="flex flex-col items-center justify-center py-4 bg-gray-50 rounded-2xl relative border border-border-main/50">
                 <div className="relative w-80 h-44 bg-slate-800 rounded-2xl p-4 text-white shadow-lg font-mono text-[10px] flex flex-col justify-between select-none">
                   <div className="flex justify-between items-start">
                     <div>
@@ -158,7 +158,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                       👤
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center text-xs text-white uppercase font-bold font-sans">
                       {getInitials(item.name)}
@@ -184,8 +184,8 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
               </div>
             ) : (
               /* PDF Mock documents layout */
-              <div className="bg-gray-50 rounded-2xl p-4 border border-secondary-bg/50 flex flex-col justify-between max-h-65 relative overflow-hidden">
-                <div className="flex items-center justify-between text-[10px] text-text-muted pb-2 border-b border-secondary-bg/50 shrink-0">
+              <div className="bg-gray-50 rounded-2xl p-4 border border-border-main/50 flex flex-col justify-between max-h-65 relative overflow-hidden">
+                <div className="flex items-center justify-between text-[10px] text-text-muted pb-2 border-b border-border-main/50 shrink-0">
                   <span>Page 1 of 1</span>
                   <div className="flex items-center gap-2">
                     <button
@@ -207,12 +207,11 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                     </button>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto p-3 bg-white border border-secondary-bg/30 rounded-xl shadow-xs mt-2 relative select-none h-44">
+                <div className="flex-1 overflow-auto p-3 bg-white border border-border-main/30 rounded-xl shadow-xs mt-2 relative select-none h-44">
                   <div className={`flex justify-center min-h-full min-w-full ${zoom > 100 ? "items-start pt-4 pb-16" : "items-center py-2"}`}>
                     <div
-                      className={`w-64 border border-border-main rounded-xl p-3 text-[10px] space-y-2.5 font-sans relative transition-transform duration-200 ease-out shrink-0 ${
-                        zoom > 100 ? "origin-top" : "origin-center"
-                      }`}
+                      className={`w-64 border border-border-main rounded-xl p-3 text-[10px] space-y-2.5 font-sans relative transition-transform duration-200 ease-out shrink-0 ${zoom > 100 ? "origin-top" : "origin-center"
+                        }`}
                       style={{ transform: `scale(${zoom / 100})` }}
                     >
                       <div className="flex justify-between items-start">
@@ -256,13 +255,13 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
 
           {/* Rejection Form fields (conditional on Reject Mode) */}
           {isRejectMode && (
-            <form onSubmit={handleConfirmRejectionSubmit} className="space-y-3.5 border-t border-secondary-bg pt-4 shrink-0">
+            <form onSubmit={handleConfirmRejectionSubmit} className="space-y-3.5 border-t border-border-main pt-4 shrink-0">
               <div className="space-y-1">
                 <label className="text-xs text-text-primary block">Reason Category <span className="text-red-500">*</span></label>
                 <select
                   value={reasonCategory}
                   onChange={(e) => setReasonCategory(e.target.value)}
-                  className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary cursor-pointer"
+                  className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary cursor-pointer"
                 >
                   <option value="Blurry">Blurry</option>
                   <option value="Expired">Expired</option>
@@ -279,7 +278,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                   rows={3}
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+                  className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
                   required
                 />
                 <span className="text-[10px] text-text-muted block">
@@ -308,7 +307,7 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
 
           {/* Action trigger footer blocks */}
           {!isRejectMode && (
-            <div className="border-t border-secondary-bg pt-4 shrink-0">
+            <div className="border-t border-border-main pt-4 shrink-0">
               {item.status === "Approved" ? (
                 <div className="text-center text-emerald-600 font-semibold text-xs py-2">
                   Document approved – no further action required

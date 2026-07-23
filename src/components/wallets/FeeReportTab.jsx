@@ -18,7 +18,7 @@ export default function FeeReportTab({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
       </div>
     );
@@ -75,13 +75,13 @@ export default function FeeReportTab({
       </div>
 
       {/* Bar Chart section */}
-      <div className="bg-white border border-secondary-bg p-4 rounded-2xl shadow-xs">
+      <div className="bg-white border border-border-main p-4 rounded-2xl shadow-xs">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-semibold text-sm text-text-primary">5% Fees Collected by Day</h3>
           <span className="text-[10px] text-text-muted font-medium pr-4">This week · USD</span>
         </div>
         <div className="relative w-full overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-          <div className="min-w-[500px] sm:min-w-0">
+          <div className="min-w-125 sm:min-w-0">
             <svg className="w-full" viewBox="0 0 540 180" preserveAspectRatio="none">
               {/* Horizontal grid lines */}
               <line x1="45" y1="20" x2="520" y2="20" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
@@ -91,11 +91,11 @@ export default function FeeReportTab({
               <line x1="45" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
 
               {/* Y-axis labels */}
-              <text x="5" y="24" className="text-[6px] text-text-muted fill-current">$10.0k</text>
-              <text x="5" y="54" className="text-[6px] text-text-muted fill-current">$7.5k</text>
-              <text x="5" y="84" className="text-[6px] text-text-muted fill-current">$5.0k</text>
-              <text x="5" y="114" className="text-[6px] text-text-muted fill-current">$2.5k</text>
-              <text x="5" y="144" className="text-[6px] text-text-muted fill-current">$0.0k</text>
+              <text x="5" y="24" className="md:text-[6px] text-[10px] text-text-muted fill-current">$10.0k</text>
+              <text x="5" y="54" className="md:text-[6px] text-[10px] text-text-muted fill-current">$7.5k</text>
+              <text x="5" y="84" className="md:text-[6px] text-[10px] text-text-muted fill-current">$5.0k</text>
+              <text x="5" y="114" className="md:text-[6px] text-[10px] text-text-muted fill-current">$2.5k</text>
+              <text x="5" y="144" className="md:text-[6px] text-[10px] text-text-muted fill-current">$0.0k</text>
 
               {/* Bars group */}
               {(() => {
@@ -122,7 +122,7 @@ export default function FeeReportTab({
                         x={x_center}
                         y={140 - barHeight - 6}
                         textAnchor="middle"
-                        className="text-[7px] font-semibold text-text-primary fill-current animate-scale-up"
+                        className="sm:text-[7px] text-[10px] font-semibold text-text-primary fill-current animate-scale-up"
                       >
                         ${item.val.toLocaleString()}
                       </text>
@@ -141,10 +141,10 @@ export default function FeeReportTab({
                       x={x_center}
                       y="152"
                       textAnchor="middle"
-                      className="text-[6px] fill-current"
+                      className="sm:text-[6px] text-[10px] fill-current"
                     >
                       <tspan x={x_center} dy="0" className="text-text-primary fill-current">{item.dayName}</tspan>
-                      <tspan x={x_center} dy="8" className="text-[5px] text-text-muted fill-current">{item.fullDate}</tspan>
+                      <tspan x={x_center} dy="8" className="sm:text-[5px] text-[8px] text-text-muted fill-current">{item.fullDate}</tspan>
                     </text>
                   </g>
                 );

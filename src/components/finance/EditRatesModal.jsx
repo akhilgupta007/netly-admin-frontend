@@ -11,7 +11,7 @@ export default function EditRatesModal({ currentClientFee, currentProviderCommis
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const clientVal = parseFloat(clientFee);
     const providerVal = parseFloat(providerCommission);
 
@@ -37,22 +37,23 @@ export default function EditRatesModal({ currentClientFee, currentProviderCommis
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="text-sm font-semibold text-text-primary">Edit rates</h3>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
-            <X size={14} />
+            <X size={12} strokeWidth={2.5} />
           </button>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
-          
+
           <div className="space-y-1">
             <label className="text-xs text-text-primary block">Client fee (%) <span className="text-red-500">*</span></label>
             <div className="relative">
@@ -64,7 +65,7 @@ export default function EditRatesModal({ currentClientFee, currentProviderCommis
                 min="0"
                 max="100"
                 step="0.1"
-                className="w-full bg-white border border-secondary-bg rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary pr-8 text-xs"
+                className="w-full bg-white border border-border-main rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary pr-8 text-xs"
                 required
               />
               <span className="absolute right-3 top-3 text-text-muted font-medium">%</span>
@@ -83,7 +84,7 @@ export default function EditRatesModal({ currentClientFee, currentProviderCommis
                 min="0"
                 max="100"
                 step="0.1"
-                className="w-full bg-white border border-secondary-bg rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary pr-8 text-xs"
+                className="w-full bg-white border border-border-main rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary pr-8 text-xs"
                 required
               />
               <span className="absolute right-3 top-3 text-text-muted font-medium">%</span>
@@ -98,7 +99,7 @@ export default function EditRatesModal({ currentClientFee, currentProviderCommis
               rows={4}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
               required
             />
           </div>

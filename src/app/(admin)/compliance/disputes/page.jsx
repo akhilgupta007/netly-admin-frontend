@@ -130,7 +130,7 @@ export default function DisputesPage() {
   // Filter disputes by active tab + search + date
   const filteredDisputes = useMemo(() => {
     return disputes.filter((d) => {
-      const matchSearch = 
+      const matchSearch =
         d.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
         d.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -183,7 +183,7 @@ export default function DisputesPage() {
   // Dashboard list layout (default state)
   return (
     <div className="space-y-4 font-onest">
-      
+
       {/* Summary Stat Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
         {[
@@ -200,7 +200,7 @@ export default function DisputesPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-secondary-bg text-xs">
+      <div className="flex border-b border-border-main text-xs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -208,11 +208,10 @@ export default function DisputesPage() {
               setActiveTab(tab.id);
               setCurrentPage(1);
             }}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${
-              activeTab === tab.id
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${activeTab === tab.id
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -220,10 +219,10 @@ export default function DisputesPage() {
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
-        
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+
         {/* Filters control bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -234,11 +233,11 @@ export default function DisputesPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap justify-center">
             {/* Date range picker */}
             <DateRangePicker
               startDate={startDate}
@@ -267,8 +266,8 @@ export default function DisputesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-b-3xl">
-            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-              <thead className="bg-secondary-bg text-text-primary text-left text-sm font-bold">
+            <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+              <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs font-bold">
                 <tr>
                   <th className="px-4 py-2 font-semibold">Dispute ID</th>
                   <th className="px-4 py-2 font-semibold">Transaction ID</th>
@@ -280,7 +279,7 @@ export default function DisputesPage() {
                   <th className="px-4 py-2 w-20 text-right pr-6 font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {paginated.map((row) => (
                   <tr key={row.id} className="hover:bg-page-bg/50 transition">
                     <td className="px-4 py-3">{row.id}</td>

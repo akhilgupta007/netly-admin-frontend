@@ -55,7 +55,7 @@ export default function NetRevenueTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Reports Data...</span>
       </div>
     );
@@ -65,7 +65,7 @@ export default function NetRevenueTab() {
     <div className="animate-scale-up font-onest">
       {/* Filters row bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <div className="relative">
             <select
               value={category}
@@ -92,7 +92,7 @@ export default function NetRevenueTab() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 justify-center">
           <button
             onClick={handleExportCSV}
             className="bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 px-4 rounded-lg transition cursor-pointer flex items-center gap-1.5"
@@ -138,7 +138,7 @@ export default function NetRevenueTab() {
           <h3 className="text-sm font-semibold text-text-primary">5% Fee vs 15% Commission – Daily</h3>
           <div className="flex items-center gap-2">
             <span className="text-[9px] text-text-muted block">This week · USD</span>
-            <div className="flex bg-primary-bg-muted/20 rounded-lg p-0.5 text-[10px]">
+            <div className="flex md:flex-row flex-col bg-primary-bg-muted/20 rounded-lg p-0.5 text-[10px]">
               <button
                 onClick={() => setChartType("Bar")}
                 className={`px-2 py-1 rounded-md font-medium transition ${chartType === "Bar" ? "bg-white text-text-primary shadow-2xs" : "text-text-muted"}`}
@@ -157,10 +157,10 @@ export default function NetRevenueTab() {
 
         {/* HTML/CSS-based Responsive Chart Area */}
         <div className="pt-4 px-2 sm:px-10 overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-          <div className="min-w-[650px] sm:min-w-0">
+          <div className="min-w-162.5 sm:min-w-0">
             <div className="flex items-stretch h-64 relative">
               {/* Left Y Axis column */}
-              <div className="w-12 flex flex-col justify-between text-sm text-text-muted pb-1 select-none">
+              <div className="w-12 flex flex-col justify-between md:text-sm text-xs text-text-muted pb-1 select-none">
                 <span>$10.0k</span>
                 <span>$7.5k</span>
                 <span>$5.0k</span>
@@ -173,7 +173,7 @@ export default function NetRevenueTab() {
                 {/* Gridlines */}
                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-1">
                   {[0, 1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-full border-b border-dashed border-secondary-bg/75" />
+                    <div key={i} className="w-full border-b border-dashed border-border-main/75" />
                   ))}
                 </div>
 
@@ -185,10 +185,10 @@ export default function NetRevenueTab() {
                       const commissionHeight = `${(d.commission / 10000) * 100}%`;
                       return (
                         <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
-                          <div className="flex items-end justify-center gap-1.5 shrink-0 h-full">
-                            <div 
-                              style={{ height: feeHeight }} 
-                              className="w-14 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
+                          <div className="flex items-end justify-center gap-1 sm:gap-1.5 shrink-0 h-full">
+                            <div
+                              style={{ height: feeHeight }}
+                              className="sm:w-12 w-6 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
                                 y: `${100 - (d.fee / 10000) * 100}%`,
@@ -197,9 +197,9 @@ export default function NetRevenueTab() {
                               })}
                               onMouseLeave={() => setHoveredValue(null)}
                             />
-                            <div 
-                              style={{ height: commissionHeight }} 
-                              className="w-14 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
+                            <div
+                              style={{ height: commissionHeight }}
+                              className="sm:w-12 w-6 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
                                 y: `${100 - (d.commission / 10000) * 100}%`,
@@ -257,14 +257,14 @@ export default function NetRevenueTab() {
                             {feePoints.map((p, idx) => {
                               const d = chartData[idx];
                               return (
-                                <circle 
-                                  key={`f-d-${idx}`} 
-                                  cx={p.x} 
-                                  cy={p.y} 
-                                  r="4.5" 
-                                  fill="#6FB5BD" 
-                                  stroke="white" 
-                                  strokeWidth="1.5" 
+                                <circle
+                                  key={`f-d-${idx}`}
+                                  cx={p.x}
+                                  cy={p.y}
+                                  r="4.5"
+                                  fill="#6FB5BD"
+                                  stroke="white"
+                                  strokeWidth="1.5"
                                   className="cursor-pointer"
                                   onMouseEnter={() => setHoveredValue({
                                     x: p.x,
@@ -280,14 +280,14 @@ export default function NetRevenueTab() {
                             {commissionPoints.map((p, idx) => {
                               const d = chartData[idx];
                               return (
-                                <circle 
-                                  key={`c-d-${idx}`} 
-                                  cx={p.x} 
-                                  cy={p.y} 
-                                  r="4.5" 
-                                  fill="#0F1D36" 
-                                  stroke="white" 
-                                  strokeWidth="1.5" 
+                                <circle
+                                  key={`c-d-${idx}`}
+                                  cx={p.x}
+                                  cy={p.y}
+                                  r="4.5"
+                                  fill="#0F1D36"
+                                  stroke="white"
+                                  strokeWidth="1.5"
                                   className="cursor-pointer"
                                   onMouseEnter={() => setHoveredValue({
                                     x: p.x,
@@ -307,11 +307,11 @@ export default function NetRevenueTab() {
                 )}
 
                 {hoveredValue && (
-                  <div 
+                  <div
                     className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
-                    style={{ 
-                      left: hoveredValue.x, 
-                      top: hoveredValue.y 
+                    style={{
+                      left: hoveredValue.x,
+                      top: hoveredValue.y
                     }}
                   >
                     <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
@@ -321,7 +321,7 @@ export default function NetRevenueTab() {
               </div>
 
               {/* Right Y Axis column */}
-              <div className="w-14 flex flex-col justify-between text-sm text-text-muted text-right pb-1 select-none">
+              <div className="w-14 flex flex-col justify-between md:text-sm text-xs text-text-muted text-right pb-1 select-none">
                 <span>$10.0k</span>
                 <span>$7.5k</span>
                 <span>$5.0k</span>
@@ -332,7 +332,7 @@ export default function NetRevenueTab() {
 
             {/* X Axis days label row aligned exactly under the middle graph area */}
             <div className="flex pl-10 pr-14 mt-2">
-              <div className="flex-1 flex justify-between mx-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
+              <div className="flex-1 flex justify-between ml-4 mr-2" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
                 {chartData.map((d, index) => (
                   <div key={index} className="w-0 overflow-visible text-center flex flex-col items-center justify-center shrink-0">
                     <span className="text-xs text-text-primary">{d.dayName}</span>

@@ -36,13 +36,13 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
+    <div className="fixed inset-0 z-50 p-4 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl w-full max-w-lg p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up">
+      <div className="relative bg-white rounded-3xl w-full max-w-lg p-4 shadow-2xl z-10 border border-border-main animate-scale-up">
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main">
           <h3 className="text-lg font-semibold text-text-primary">Adjust Balance</h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 cursor-pointer"
           >
             <X size={14} />
@@ -50,32 +50,32 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Client / Available balance header blocks */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-page-bg rounded-2xl p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-medium text-text-muted">Client</span>
-                  <Link
-                    href="/accounts" 
-                    className="text-[10px] text-primary-bg hover:underline font-light flex items-center gap-0.5"
-                  >
-                    View account <ArrowUpRight size={10} />
-                  </Link>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-primary-bg text-white flex items-center justify-center text-xs font-semibold font-mono">
-                    {getInitials(wallet.client.name)}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-text-primary">{wallet.client.name}</h4>
-                    <p className="text-[10px] text-text-muted font-light">{wallet.client.email}</p>
-                  </div>
-                </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="bg-page-bg rounded-2xl p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-medium text-text-muted">Client</span>
+                <Link
+                  href="/accounts"
+                  className="text-[10px] text-primary-bg hover:underline font-light flex items-center gap-0.5"
+                >
+                  View account <ArrowUpRight size={10} />
+                </Link>
               </div>
-              <div className="bg-primary-bg-muted/15 rounded-2xl p-3 flex flex-col justify-between">
-                <span className="text-[10px] text-text-muted block font-medium">Available balance</span>
-                <strong className="text-xl text-text-primary font-bold block -mb-1">${wallet.balance.toFixed(2)}</strong>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-primary-bg text-white flex items-center justify-center text-xs font-semibold font-mono">
+                  {getInitials(wallet.client.name)}
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary">{wallet.client.name}</h4>
+                  <p className="text-[10px] text-text-muted font-light">{wallet.client.email}</p>
+                </div>
               </div>
             </div>
+            <div className="bg-primary-bg-muted/15 rounded-2xl p-3 flex flex-col justify-between">
+              <span className="text-[10px] text-text-muted block font-medium">Available balance</span>
+              <strong className="text-xl text-text-primary font-bold block -mb-1">${wallet.balance.toFixed(2)}</strong>
+            </div>
+          </div>
 
           <div className="space-y-1">
             <label className="text-xs text-text-primary block">Amount <span className="text-red-500">*</span></label>
@@ -87,7 +87,7 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
                 placeholder="0.00"
                 value={adjustAmount}
                 onChange={(e) => setAdjustAmount(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl pl-7 pr-3 py-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl pl-7 pr-3 py-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
                 required
               />
             </div>
@@ -106,9 +106,8 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
                     onChange={() => setAdjustType(t)}
                     className="sr-only"
                   />
-                  <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition ${
-                    adjustType === t ? "border-primary-bg" : "border-text-muted/30"
-                  }`}>
+                  <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition ${adjustType === t ? "border-primary-bg" : "border-text-muted/30"
+                    }`}>
                     {adjustType === t && (
                       <div className="w-3 h-3 rounded-full bg-primary-bg" />
                     )}
@@ -126,7 +125,7 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
               rows={3}
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
               required
             />
             <span className="text-[10px] text-text-muted block">Minimum 20 characters.</span>

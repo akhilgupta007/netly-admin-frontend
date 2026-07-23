@@ -121,8 +121,8 @@ export default function SearchTermTrendsTab() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-secondary-bg text-left">
-          <thead className="bg-secondary-bg text-text-primary text-sm font-bold">
+        <table className="min-w-full divide-y divide-secondary-bg text-left md:text-sm text-xs">
+          <thead className="bg-secondary-bg text-text-primary md:text-sm text-xs font-bold">
             <tr>
               <th
                 onClick={() => handleSort("term")}
@@ -162,7 +162,7 @@ export default function SearchTermTrendsTab() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+          <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
             {paginated.map((item) => (
               <tr key={item.id} className="hover:bg-page-bg/50 transition">
                 <td className="px-4 py-3">{item.term}</td>

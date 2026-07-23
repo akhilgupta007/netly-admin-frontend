@@ -11,18 +11,17 @@ export default function MarketIntelligencePage() {
 
   return (
     <div className="space-y-4 font-onest">
-      
+
       {/* Dynamic Tab Navigation headers matching layout standards */}
-      <div className="flex border-b border-secondary-bg text-xs select-none">
+      <div className="flex border-b border-border-main text-xs select-none">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${
-              activeTab === tab
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${activeTab === tab
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted font-normal"
-            }`}
+              }`}
           >
             {tab}
           </button>
@@ -30,7 +29,7 @@ export default function MarketIntelligencePage() {
       </div>
 
       {/* Render sub-tab content inside standard card wrapper */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-hidden">
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-hidden">
         {activeTab === "Unmet Demand" && <UnmetDemandTab />}
         {activeTab === "Search Term Trends" && <SearchTermTrendsTab />}
         {activeTab === "User Stats" && <UserStatsTab />}

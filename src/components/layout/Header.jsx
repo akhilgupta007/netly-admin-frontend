@@ -9,7 +9,7 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
 
   // Extract all navigation items into a single flat array
   const allItems = navigation.flatMap((group) => group.items);
-  
+
   // Find active item matching current pathname (or prefix match for child routes)
   const activeItem =
     allItems.find((item) => item.href === pathname) ||
@@ -54,42 +54,42 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
   }
 
   return (
-    <header className="flex h-16 items-center justify-between lg:px-4 px-8 bg-white border-b border-secondary-bg">
+    <header className="flex h-16 items-center justify-between lg:px-4 px-4 bg-white border-b border-border-main">
       {/* Breadcrumbs / Page title info */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden p-2 rounded-xl text-text-primary hover:bg-secondary-bg transition"
+          className="lg:hidden p-2 rounded-xl text-text-primary hover:bg-secondary-bg transition shrink-0"
         >
           <Menu size={24} />
         </button>
-        <div>
-          <h1 className="text-xl font-bold text-text-primary">{resolvedTitle}</h1>
-          <p className="text-xs text-text-muted">{resolvedSubtitle}</p>
+        <div className="truncate">
+          <h1 className="text-base sm:text-xl font-bold text-text-primary truncate">{resolvedTitle}</h1>
+          <p className="sm:text-xs text-[10px] text-text-muted truncate">{resolvedSubtitle}</p>
         </div>
       </div>
 
       {/* Right Header actions */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 sm:gap-6 shrink-0">
 
         {/* Notification Bell */}
-        <button className="relative p-3 rounded-xl border border-secondary-bg text-text-primary bg-primary-bg/10 hover:bg-secondary-bg transition">
+        <button className="relative p-2.5 sm:p-3 rounded-xl border border-border-main text-text-primary bg-primary-bg/10 hover:bg-secondary-bg transition shrink-0">
           <Bell size={18} />
           <span className="absolute top-2 right-2 flex h-2 w-2">
             <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary-bg"></span>
           </span>
         </button>
 
-        <div className="w-px h-10 bg-black/10"></div>
+        <div className="w-px h-10 bg-black/10 shrink-0"></div>
 
         {/* Profile Menu */}
-        <div className="flex items-center gap-3 py-1.5 pl-2 pr-4 rounded-xl border border-primary-bg/40 bg-page-bg">
+        <div className="flex items-center gap-2 sm:gap-3 py-1.5 pl-2 pr-2 sm:pr-4 rounded-xl border border-primary-bg/40 bg-page-bg shrink-0">
           {/* Avatar Icon Wrapper */}
-          <div className="flex p-1 items-center justify-center rounded-lg border border-primary-bg/50 bg-primary-bg/10 text-primary-bg">
+          <div className="flex p-1 items-center justify-center rounded-lg border border-primary-bg/50 bg-primary-bg/10 text-primary-bg shrink-0">
             <User size={18} fill="var(--color-primary-bg)" />
           </div>
           {/* User details text */}
-          <div className="flex flex-col text-left">
+          <div className="hidden sm:flex flex-col text-left">
             <span className="text-sm font-medium text-text-primary leading-tight">Sophia</span>
             <span className="text-xs text-text-muted font-light leading-none">Admin</span>
           </div>

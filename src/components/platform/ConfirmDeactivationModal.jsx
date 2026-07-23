@@ -8,10 +8,10 @@ export default function ConfirmDeactivationModal({ item, count, isOpen, onClose,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up font-onest">
-        
+      <div className="w-full max-w-md bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up font-onest">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="font-semibold text-text-primary">Confirm Deactivation</h3>
           <button
             type="button"
@@ -25,7 +25,7 @@ export default function ConfirmDeactivationModal({ item, count, isOpen, onClose,
         {/* Modal Content */}
         <div className="p-4 space-y-4 text-xs">
           {/* Warning card preview */}
-          <div className="bg-page-bg rounded-2xl p-3 space-y-2 border border-secondary-bg/50">
+          <div className="bg-page-bg rounded-2xl p-3 space-y-2 border border-border-main/50">
             <div className="block text-text-primary font-medium">{item.name}</div>
             <span className="text-[10px] text-text-muted font-light block leading-relaxed mt-0.5">
               {count || 67} active listings under this category will be hidden from search.

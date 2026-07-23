@@ -12,18 +12,17 @@ export default function ComplianceLogsPage() {
 
   return (
     <div className="space-y-4 font-onest">
-      
+
       {/* Dynamic Tab Navigation headers matching Accounts/Wallets styling */}
-      <div className="flex border-b border-secondary-bg text-xs">
+      <div className="flex border-b border-border-main text-xs">
         {["Audit Logs", "Data Access Logs", "Consent Management"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${
-              activeTab === tab
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${activeTab === tab
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             {tab}
           </button>
@@ -31,7 +30,7 @@ export default function ComplianceLogsPage() {
       </div>
 
       {/* RENDER CURRENT ACTIVE TAB COMPONENT */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
         {activeTab === "Audit Logs" && (
           <AuditLogsTab />
         )}

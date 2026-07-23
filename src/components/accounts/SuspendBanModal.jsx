@@ -28,7 +28,7 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
       toast.error("Reason justification text must contain at least 20 characters.");
       return;
     }
-    
+
     onSubmit({
       accountId: account.id,
       actionType,
@@ -41,12 +41,12 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl w-full max-w-lg p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4">
-        
+      <div className="relative bg-white rounded-3xl w-full max-w-lg p-4 shadow-2xl z-10 border border-border-main animate-scale-up mx-4">
+
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main">
           <h3 className="font-semibold text-text-primary">Suspend/Ban Account</h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 cursor-pointer"
           >
             <X size={14} />
@@ -54,7 +54,7 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          
+
           {/* User metadata header card matching RejectTransferModal styling */}
           <div className="bg-page-bg rounded-2xl p-3 flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-[10px]">
@@ -80,9 +80,8 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
                     onChange={() => setActionType(type)}
                     className="sr-only"
                   />
-                  <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition ${
-                    actionType === type ? "border-primary-bg" : "border-text-muted/30"
-                  }`}>
+                  <div className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition ${actionType === type ? "border-primary-bg" : "border-text-muted/30"
+                    }`}>
                     {actionType === type && (
                       <div className="w-3 h-3 rounded-full bg-primary-bg" />
                     )}
@@ -103,7 +102,7 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="7"
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
                 required
               />
             </div>
@@ -117,7 +116,7 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
               required
             />
             <span className="text-[10px] text-text-muted block">
@@ -134,9 +133,8 @@ export default function SuspendBanModal({ account, activeTab, isOpen, onClose, o
                 onChange={(e) => setNotifyEmail(e.target.checked)}
                 className="sr-only"
               />
-              <div className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition ${
-                notifyEmail ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30"
-              }`}>
+              <div className={`w-4.5 h-4.5 rounded border-2 flex items-center justify-center transition ${notifyEmail ? "border-primary-bg bg-primary-bg text-white" : "border-text-muted/30"
+                }`}>
                 {notifyEmail && (
                   <span className="text-[10px] font-bold">✓</span>
                 )}

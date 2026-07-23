@@ -90,17 +90,17 @@ export default function KYCVerificationPage() {
   // Filter Submissions
   const filteredSubmissions = useMemo(() => {
     return submissions.filter((s) => {
-      const matchSearch = 
+      const matchSearch =
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchStatus = 
-        filterStatus === "All" || 
+      const matchStatus =
+        filterStatus === "All" ||
         (filterStatus === "In Review" && ["In Review", "Pending"].includes(s.status)) ||
         s.status === filterStatus;
 
-      const matchDocType = 
-        filterDocType === "All" || 
+      const matchDocType =
+        filterDocType === "All" ||
         s.docType === filterDocType;
 
       let matchDate = true;
@@ -169,7 +169,7 @@ export default function KYCVerificationPage() {
 
   // Modal callback actions
   const handleApprove = (id) => {
-    const updated = submissions.map((s) => 
+    const updated = submissions.map((s) =>
       s.id === id ? { ...s, status: "Approved" } : s
     );
     saveSubmissions(updated);
@@ -179,7 +179,7 @@ export default function KYCVerificationPage() {
   };
 
   const handleReject = (id, category, reason) => {
-    const updated = submissions.map((s) => 
+    const updated = submissions.map((s) =>
       s.id === id ? { ...s, status: "Rejected", rejectCategory: category, rejectReason: reason } : s
     );
     saveSubmissions(updated);
@@ -189,7 +189,7 @@ export default function KYCVerificationPage() {
   };
 
   const handleRequestResubmission = (id) => {
-    const updated = submissions.map((s) => 
+    const updated = submissions.map((s) =>
       s.id === id ? { ...s, status: "Expired" } : s
     );
     saveSubmissions(updated);
@@ -200,7 +200,7 @@ export default function KYCVerificationPage() {
 
   return (
     <div className="space-y-4">
-      
+
       {/* Metric Summary Cards Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 shrink-0">
         {[
@@ -219,10 +219,10 @@ export default function KYCVerificationPage() {
       </div>
 
       {/* Main Container Section */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
-        
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+
         {/* Table Filters controls row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -233,12 +233,12 @@ export default function KYCVerificationPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+
             {/* Status Dropdown Filter */}
             <div className="relative">
               <select
@@ -247,7 +247,7 @@ export default function KYCVerificationPage() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
                 <option value="Approved">Approved</option>
@@ -267,7 +267,7 @@ export default function KYCVerificationPage() {
                   setFilterDocType(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Document Type</option>
                 <option value="ID">ID Card</option>
@@ -293,8 +293,8 @@ export default function KYCVerificationPage() {
 
         {/* Table Records Grid */}
         <div className="overflow-x-auto rounded-b-3xl">
-          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-            <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+          <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+            <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
               <tr>
                 <th className="px-4 py-2 font-semibold">User</th>
                 <th className="px-4 py-2 font-semibold">Document</th>
@@ -303,7 +303,7 @@ export default function KYCVerificationPage() {
                 <th className="px-4 py-2 text-right pr-6 font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+            <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
@@ -326,10 +326,10 @@ export default function KYCVerificationPage() {
                   const actionText = getActionButtonText(row.status);
                   return (
                     <tr key={row.id} className="hover:bg-page-bg/50 transition">
-                      
+
                       {/* User Column */}
                       <td className="px-4 py-3 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center text-[10px]">
+                        <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center md:text-[10px] text-[7px]">
                           {getInitials(row.name)}
                         </div>
                         <span className="text-text-primary">{row.name}</span>
@@ -353,7 +353,7 @@ export default function KYCVerificationPage() {
                         {row.status === "Not Submitted" ? (
                           <span className="text-text-muted">-</span>
                         ) : (
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${getStatusClass(row.status)}`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full md:text-xs text-[10px] ${getStatusClass(row.status)}`}>
                             <span className="h-1 w-1 rounded-full bg-current" />
                             {row.status}
                           </span>
@@ -367,13 +367,12 @@ export default function KYCVerificationPage() {
                             setSelectedItem(row);
                             setIsModalOpen(true);
                           }}
-                          className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
-                            row.status === "Approved"
+                          className={`px-3 py-1.5 rounded-lg border md:text-xs text-[10px] font-semibold transition cursor-pointer ${row.status === "Approved"
                               ? "border-emerald-200 text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
                               : row.status === "Rejected"
-                              ? "border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
-                              : "border-primary-bg text-primary-bg hover:bg-page-bg"
-                          }`}
+                                ? "border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
+                                : "border-primary-bg text-primary-bg hover:bg-page-bg"
+                            }`}
                         >
                           {actionText}
                         </button>

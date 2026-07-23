@@ -26,16 +26,16 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
     }
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
+    <div className="fixed inset-0 z-50 p-4 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-10 max-h-[95vh] flex flex-col font-onest">
-        
+      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-border-main animate-scale-up max-h-[95vh] flex flex-col font-onest">
+
         {/* Modal Header */}
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main shrink-0">
           <h3 className="text-xl font-bold text-text-primary tracking-tight">Provider Detail</h3>
-          <button 
+          <button
             type="button"
-            onClick={onClose} 
+            onClick={onClose}
             className="w-5 h-5 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:opacity-90 cursor-pointer transition text-xs"
           >
             <X size={12} strokeWidth={2.5} />
@@ -44,7 +44,7 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
 
         {/* Inner scrollable wrapper */}
         <div className="space-y-4 overflow-y-auto pr-2 flex-1 scrollbar-thin">
-          
+
           {/* User metadata header box */}
           <div className="bg-page-bg rounded-2xl p-3 flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-light">
@@ -56,54 +56,54 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* Details layout with vertical column dividers (x-axis separators) */}
-          <div className="pb-4 space-y-4 border-b border-secondary-bg">
+          <div className="pb-4 space-y-4 border-b border-border-main">
             {/* Row 1 */}
-            <div className="grid grid-cols-3 divide-x divide-border-main text-xs">
-              <div className="pr-4">
+            <div className="grid sm:grid-cols-3 sm:divide-x divide-border-main text-xs gap-2">
+              <div className="sm:pr-4">
                 <span className="text-[10px] text-text-muted block font-light">Email Address</span>
-                <strong className="text-text-primary font-normal block mt-1 break-all">{provider.email}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5 break-all">{provider.email}</strong>
               </div>
-              <div className="px-4">
+              <div className="sm:px-4">
                 <span className="text-[10px] text-text-muted block font-light">Phone</span>
-                <strong className="text-text-primary font-normal block mt-1">+233 24 123 4567</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">+233 24 123 4567</strong>
               </div>
-              <div className="pl-4">
+              <div className="sm:pl-4">
                 <span className="text-[10px] text-text-muted block font-light">Joined</span>
-                <strong className="text-text-primary font-normal block mt-1">{provider.joinDate || "Jan 12, 2027"}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{provider.joinDate || "Jan 12, 2027"}</strong>
               </div>
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-3 divide-x divide-border-main text-xs">
-              <div className="pr-4">
+            <div className="grid sm:grid-cols-3 sm:divide-x divide-border-main text-xs gap-2">
+              <div className="sm:pr-4">
                 <span className="text-[10px] text-text-muted block font-light">Category</span>
-                <strong className="text-text-primary font-normal block mt-1">{provider.category || "Home, Furniture, Maintenance"}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{provider.category || "Home, Furniture, Maintenance"}</strong>
               </div>
-              <div className="px-4">
+              <div className="sm:px-4">
                 <span className="text-[10px] text-text-muted block font-light">City</span>
-                <strong className="text-text-primary font-normal block mt-1">{provider.city || "Accra"}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{provider.city || "Accra"}</strong>
               </div>
-              <div className="pl-4">
+              <div className="sm:pl-4">
                 <span className="text-[10px] text-text-muted block font-light">Rating</span>
-                <strong className="text-text-primary font-normal mt-0.5 flex items-center gap-1">
+                <strong className="text-text-primary font-normal flex items-center gap-1">
                   <span className="text-base text-amber-500">★</span>
                   {provider.rating || "4.9"} / 5.0</strong>
               </div>
             </div>
 
             {/* Row 3 */}
-            <div className="grid grid-cols-3 divide-x divide-border-main text-xs">
-              <div className="pr-4">
+            <div className="grid sm:grid-cols-3 sm:divide-x divide-border-main text-xs gap-2">
+              <div className="sm:pr-4">
                 <span className="text-[10px] text-text-muted block font-light font-onest">Cancelled Reservations</span>
-                <strong className="text-text-primary font-normal block mt-1">{provider.cancelledReservations || 10}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{provider.cancelledReservations || 10}</strong>
               </div>
-              <div className="px-4">
+              <div className="sm:px-4">
                 <span className="text-[10px] text-text-muted block font-light">Number of Disputes</span>
-                <strong className="text-text-primary font-normal block mt-1">{provider.disputes || 5}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{provider.disputes || 5}</strong>
               </div>
-              <div className="pl-4">
+              <div className="sm:pl-4">
                 <span className="text-[10px] text-text-muted block font-light">Language</span>
-                <strong className="text-text-primary font-normal block mt-1">{provider.language || "French"}</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{provider.language || "French"}</strong>
               </div>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* Questions by Provider section */}
-          <div className="space-y-2 border border-secondary-bg rounded-2xl p-3">
+          <div className="space-y-2 border border-border-main rounded-2xl p-3">
             <span className="text-[10px] text-text-muted block">Questions by provider</span>
             <div className="space-y-3">
               {providerQuestions.map((q, idx) => (
@@ -134,7 +134,7 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* Provider badges */}
-          <div className="space-y-1.5 border border-secondary-bg rounded-2xl p-3">
+          <div className="space-y-1.5 border border-border-main rounded-2xl p-3">
             <span className="text-[10px] text-text-muted block">Provider badges</span>
             <div className="flex flex-wrap gap-1.5">
               <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 border border-emerald-200 text-[10px] font-semibold px-2 py-0.5 rounded-full">
@@ -150,14 +150,14 @@ export default function ProviderDetailModal({ provider, isOpen, onClose, onSuspe
           </div>
 
           {/* KYC verification status */}
-          <div className="flex justify-between items-center border border-secondary-bg rounded-2xl p-3 pt-3.5 text-xs">
+          <div className="flex justify-between items-center border border-border-main rounded-2xl p-3 pt-3.5 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="text-text-muted">KYC Status</span>
               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] ${getKycClass(provider.kyc || "Verified")}`}>
                 {provider.kyc || "Verified"}
               </span>
             </div>
-            <button 
+            <button
               type="button"
               onClick={() => toast.info("Opening documents viewer...")}
               className="text-primary-bg underline text-xs cursor-pointer"

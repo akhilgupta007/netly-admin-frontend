@@ -10,6 +10,7 @@ export default function AuthLayout({ children }) {
             src="/login.png"
             alt="Professional cleaning crew at work"
             fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-cover"
             priority
           />

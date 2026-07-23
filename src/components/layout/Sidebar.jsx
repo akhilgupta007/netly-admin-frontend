@@ -20,8 +20,7 @@ import {
   Network,
   Compass,
   Settings,
-  LogOut,
-  X
+  LogOut
 } from "lucide-react";
 
 export const navigation = [
@@ -70,20 +69,19 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
     <>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 bg-alt-bg/40 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar Container */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-50 flex w-66 flex-col border-r border-secondary-bg bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-66 flex-col border-r border-border-main bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         {/* Sidebar Header / Logo */}
-        <div className="flex h-16 items-center lg:justify-center justify-between px-6 border-b border-secondary-bg w-full">
+        <div className="flex h-16 items-center justify-center px-6 border-b border-border-main w-full">
           <Link href="/dashboard" className="gap-2">
             <Image
               src="/logo.png"
@@ -95,12 +93,6 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               priority
             />
           </Link>
-          <button 
-            onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1.5 hover:bg-secondary-bg lg:hidden text-text-primary"
-          >
-            <X size={20} />
-          </button>
         </div>
 
         {/* Sidebar Nav Items */}
@@ -119,15 +111,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2 text-sm font-light rounded-xl transition-all duration-200 ${
-                        isActive
+                      onClick={() => setSidebarOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2 text-sm font-light rounded-xl transition-all duration-200 ${isActive
                           ? "bg-primary-bg text-white shadow-sm animate-fade-in"
                           : "text-text-muted hover:bg-secondary-bg hover:text-text-primary"
-                      }`}
+                        }`}
                     >
-                      <item.icon 
-                        size={18} 
-                        className={isActive ? "text-white" : "text-text-muted"} 
+                      <item.icon
+                        size={18}
+                        className={isActive ? "text-white" : "text-text-muted"}
                       />
                       <span>{item.name}</span>
                     </Link>
@@ -139,7 +131,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         </nav>
 
         {/* Sidebar Footer / Log Out */}
-        <div className="border-t border-secondary-bg p-4 bg-white">
+        <div className="border-t border-border-main p-4 bg-white">
           <button
             type="button"
             onClick={() => setLogoutOpen(true)}

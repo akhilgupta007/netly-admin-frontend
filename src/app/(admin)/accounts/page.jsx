@@ -98,34 +98,34 @@ export default function AccountsPage() {
   // Moderate Submit action handlers
   const handleSuspendBanSubmit = ({ accountId, actionType, duration, reason }) => {
     const nextStatus = actionType === "Suspend (Temporary)" ? "Suspended" : "Banned";
-    
+
     if (activeTab === "Clients") {
-      const updated = clients.map((c) => 
+      const updated = clients.map((c) =>
         c.id === accountId ? { ...c, status: nextStatus } : c
       );
       saveClients(updated);
       toast.error(`Client ${actionType === "Suspend (Temporary)" ? "suspended" : "banned"} successfully!`);
     } else {
-      const updated = providers.map((p) => 
+      const updated = providers.map((p) =>
         p.id === accountId ? { ...p, status: nextStatus } : p
       );
       saveProviders(updated);
       toast.error(`Provider ${actionType === "Suspend (Temporary)" ? "suspended" : "banned"} successfully!`);
     }
-    
+
     setModalType(null);
     setSelectedAccount(null);
   };
 
   const handleReactivateSubmit = (accountId) => {
     if (activeTab === "Clients") {
-      const updated = clients.map((c) => 
+      const updated = clients.map((c) =>
         c.id === accountId ? { ...c, status: "Active" } : c
       );
       saveClients(updated);
       toast.success("Client account reactivated successfully!");
     } else {
-      const updated = providers.map((p) => 
+      const updated = providers.map((p) =>
         p.id === accountId ? { ...p, status: "Active" } : p
       );
       saveProviders(updated);
@@ -205,9 +205,9 @@ export default function AccountsPage() {
 
   return (
     <div className="space-y-4">
-      
+
       {/* 2 Navigation Tabs matching Wallets styling */}
-      <div className="flex border-b border-secondary-bg text-xs">
+      <div className="flex border-b border-border-main text-xs">
         {[
           { id: "Clients", label: "Clients" },
           { id: "Providers", label: "Providers" }
@@ -224,11 +224,10 @@ export default function AccountsPage() {
               setStartDate(null);
               setEndDate(null);
             }}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg ${
-              activeTab === tab.id
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg ${activeTab === tab.id
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -302,7 +301,7 @@ export default function AccountsPage() {
       )}
 
       {/* OVERLAY MODAL CONTAINERS */}
-      
+
       {/* 1. Suspend/Ban Modal */}
       {modalType === "suspendBan" && (
         <SuspendBanModal

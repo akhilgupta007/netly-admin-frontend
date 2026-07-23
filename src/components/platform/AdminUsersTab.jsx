@@ -155,7 +155,7 @@ export default function AdminUsersTab() {
   };
 
   const handleChangeRoleSubmit = (admin, newRole) => {
-    const updated = admins.map(a => 
+    const updated = admins.map(a =>
       a.id === admin.id ? { ...a, role: newRole } : a
     );
     saveAdmins(updated);
@@ -227,10 +227,10 @@ export default function AdminUsersTab() {
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
-        
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+
         {/* Filters control bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -241,11 +241,11 @@ export default function AdminUsersTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center flex-wrap">
             <div className="relative">
               <select
                 value={filterStatus}
@@ -253,7 +253,7 @@ export default function AdminUsersTab() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
                 <option value="Enabled">Enabled</option>
@@ -298,8 +298,8 @@ export default function AdminUsersTab() {
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-visible rounded-b-3xl">
-              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+              <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Email Address</th>
@@ -309,7 +309,7 @@ export default function AdminUsersTab() {
                     <th className="px-4 py-3 font-semibold w-10">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+                <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedAdmins.map((item, index) => {
                     const displayUpwards = index > 0 && (index === paginatedAdmins.length - 1 || (index >= 3 && paginatedAdmins.length > 3));
 
@@ -318,7 +318,7 @@ export default function AdminUsersTab() {
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">{item.email}</td>
                         <td className="px-4 py-3">{item.role}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-nowrap">
                           {item.lastLogin.includes(" ") ? (
                             <>
                               <div>{item.lastLogin.split(" ").slice(0, 3).join(" ")}</div>
@@ -331,11 +331,10 @@ export default function AdminUsersTab() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs ${
-                            item.twoFA === "Enabled" ? "text-emerald-500 bg-emerald-50" :
-                            item.twoFA === "Setup Pending" ? "text-amber-500 bg-amber-50" :
-                            "text-red-500 bg-red-50"
-                          }`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full md:text-xs text-[10px] ${item.twoFA === "Enabled" ? "text-emerald-500 bg-emerald-50" :
+                              item.twoFA === "Setup Pending" ? "text-amber-500 bg-amber-50" :
+                                "text-red-500 bg-red-50"
+                            }`}>
                             <span className="h-1 w-1 rounded-full bg-current" />
                             {item.twoFA}
                           </span>
@@ -364,7 +363,7 @@ export default function AdminUsersTab() {
                               {/* Actions overlay menu list */}
                               {activeMenuRowId === item.id && (
                                 <div
-                                  className="fixed w-30 bg-white border border-secondary-bg rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
+                                  className="fixed w-30 bg-white border border-border-main rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
                                   style={{ top: dropdownPos.top, left: dropdownPos.left }}
                                 >
                                   <button
@@ -395,9 +394,9 @@ export default function AdminUsersTab() {
                           )}
                         </td>
                       </tr>
-                  );
-                })}
-              </tbody>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
 

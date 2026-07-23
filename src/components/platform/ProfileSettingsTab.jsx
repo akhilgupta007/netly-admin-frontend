@@ -29,7 +29,7 @@ export default function ProfileSettingsTab() {
         setLastName(parsed.lastName || "Patel");
         setEmail(parsed.email || "sophia@netly.com");
         setPhone(parsed.phone || "+44 7700 000000");
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const storedSecurity = localStorage.getItem("netly_platform_security");
@@ -38,7 +38,7 @@ export default function ProfileSettingsTab() {
         const parsed = JSON.parse(storedSecurity);
         setSessionTimeout(parsed.sessionTimeout || 30);
         setForce2FA(parsed.force2FA !== undefined ? parsed.force2FA : true);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
 
@@ -73,15 +73,15 @@ export default function ProfileSettingsTab() {
 
   return (
     <div className="space-y-4 animate-scale-up text-xs text-text-primary font-onest">
-      
+
       {/* Profile Settings Card */}
-      <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-4 space-y-4 relative">
+      <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-4 relative">
         <h3 className="text-sm font-semibold text-text-primary">Profile Settings</h3>
 
         {/* Avatar block */}
         <div className="relative w-14 h-14 text-white rounded-full flex items-center justify-center font-medium text-lg bg-primary-bg-muted select-none hover:opacity-95 cursor-pointer">
           {firstName.charAt(0)}{lastName.charAt(0)}
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-secondary-bg rounded-full flex items-center justify-center text-text-muted hover:text-text-primary transition shadow-2xs">
+          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-border-main rounded-full flex items-center justify-center text-text-muted hover:text-text-primary transition shadow-2xs">
             <Edit2 size={9} />
           </div>
         </div>
@@ -96,7 +96,7 @@ export default function ProfileSettingsTab() {
                 required
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
               />
             </div>
             <div className="space-y-1">
@@ -106,7 +106,7 @@ export default function ProfileSettingsTab() {
                 required
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
               />
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function ProfileSettingsTab() {
               type="text"
               disabled
               value="Super Admin"
-              className="w-full bg-page-bg border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none text-text-muted cursor-not-allowed font-light"
+              className="w-full bg-page-bg border border-border-main text-xs rounded-xl p-3 focus:outline-none text-text-muted cursor-not-allowed font-light"
             />
           </div>
 
@@ -129,7 +129,7 @@ export default function ProfileSettingsTab() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
               />
             </div>
             <div className="space-y-1">
@@ -139,7 +139,7 @@ export default function ProfileSettingsTab() {
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary font-light"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary font-light"
               />
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function ProfileSettingsTab() {
               type="password"
               disabled
               value="............"
-              className="w-full bg-page-bg border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none text-text-muted cursor-not-allowed font-light tracking-widest"
+              className="w-full bg-page-bg border border-border-main text-xs rounded-xl p-3 focus:outline-none text-text-muted cursor-not-allowed font-light tracking-widest"
             />
             <button
               type="button"
@@ -174,7 +174,7 @@ export default function ProfileSettingsTab() {
       </form>
 
       {/* Security configuration card */}
-      <form onSubmit={handleSaveSecurity} className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs p-4 space-y-5 relative">
+      <form onSubmit={handleSaveSecurity} className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-5 relative">
         <h3 className="text-sm font-semibold text-text-primary">Security configuration</h3>
 
         {/* Session Timeout */}
@@ -188,7 +188,7 @@ export default function ProfileSettingsTab() {
               required
               value={sessionTimeout}
               onChange={(e) => setSessionTimeout(e.target.value)}
-              className="w-20 bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary text-center mr-2 font-semibold"
+              className="w-20 bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary text-center mr-2 font-semibold"
             />
             <span className="text-text-muted font-light text-xs">minutes</span>
           </div>
@@ -198,7 +198,7 @@ export default function ProfileSettingsTab() {
         </div>
 
         {/* 2FA switch toggle */}
-        <div className="flex items-center justify-between p-3 border border-border-main rounded-xl w-full">
+        <div className="flex items-center justify-between p-3 border border-border-main rounded-xl w-full gap-4">
           <div className="space-y-0.5">
             <div className="text-xs text-text-primary block">Force 2FA for all admin users</div>
             <span className="text-[10px] mt-2 text-text-muted font-light block">
@@ -212,14 +212,12 @@ export default function ProfileSettingsTab() {
             <button
               type="button"
               onClick={() => setForce2FA(!force2FA)}
-              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                force2FA ? "bg-primary-bg" : "bg-secondary-bg"
-              }`}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${force2FA ? "bg-primary-bg" : "bg-secondary-bg"
+                }`}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
-                  force2FA ? "translate-x-4" : "translate-x-0"
-                }`}
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${force2FA ? "translate-x-4" : "translate-x-0"
+                  }`}
               />
             </button>
           </div>

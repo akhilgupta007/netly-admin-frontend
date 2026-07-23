@@ -279,7 +279,7 @@ export default function TransactionDetailPage() {
       case "Cancelled – Wallet Credited":
       case "Cancelled Pending Admin Review":
         return {
-          container: "border-secondary-bg bg-page-bg",
+          container: "border-border-main bg-page-bg",
           titleColor: "text-text-primary",
           textColor: "text-text-muted",
           title: "Booking Cancelled",
@@ -366,7 +366,7 @@ export default function TransactionDetailPage() {
         <div className="text-xl font-medium text-text-primary">{tx.id}</div>
         <button
           onClick={() => copyToClipboard(tx.id)}
-          className="text-text-muted hover:text-text-primary p-1.5 rounded-full hover:bg-white border border-transparent hover:border-secondary-bg transition cursor-pointer"
+          className="text-text-muted hover:text-text-primary p-1.5 rounded-full hover:bg-white border border-transparent hover:border-border-main transition cursor-pointer"
           title="Copy ID"
         >
           <Copy size={16} />
@@ -386,7 +386,7 @@ export default function TransactionDetailPage() {
         <div className="lg:col-span-1 space-y-4">
 
           {/* Transaction Information */}
-          <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Transaction Information</span>
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
@@ -443,9 +443,9 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* Service Information */}
-          <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Service Information</span>
-            <div className="grid grid-cols-2 gap-4 text-xs border-b border-secondary-bg pb-4">
+            <div className="grid grid-cols-2 gap-4 text-xs border-b border-border-main pb-4">
               <div>
                 <span className="text-text-muted block font-light mb-0.5">Service</span>
                 <div className="text-text-primary">Office Daily Cleaning</div>
@@ -499,7 +499,7 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* Status History */}
-          <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Status history</span>
             <div className="relative pl-8 space-y-5">
 
@@ -537,7 +537,7 @@ export default function TransactionDetailPage() {
         <div className="space-y-4">
 
           {/* Admin Actions */}
-          <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Admin Actions</span>
             <div className="flex flex-col gap-2.5">
               {currentStatus === "Pending Payment" && (
@@ -620,11 +620,11 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* Users */}
-          <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Users</span>
 
             {/* Client Block */}
-            <div className="space-y-2 pb-3.5 border-b border-secondary-bg">
+            <div className="space-y-2 pb-3.5 border-b border-border-main">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[10px] font-semibold text-text-muted">Client</span>
                 <Link href="/accounts" className="text-[10px] text-primary-bg hover:underline flex items-center gap-0.5 font-light">
@@ -663,24 +663,24 @@ export default function TransactionDetailPage() {
           </div>
 
           {/* Financial Summary */}
-          <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4">
+          <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Financial Summary</span>
             <div className="grid grid-cols-3 gap-3">
 
               {/* Box 1 */}
-              <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
+              <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
                 <span className="text-[10px] text-text-muted block">Service Price</span>
                 <strong className="text-sm text-text-primary font-bold block mt-1">$85.00</strong>
               </div>
 
               {/* Box 2 */}
-              <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
+              <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
                 <span className="text-[10px] text-text-muted block">Client Platform Fee (5%)</span>
                 <strong className="text-sm text-text-primary font-bold block mt-1">$4.25</strong>
               </div>
 
               {/* Box 3 - Total Amount Due */}
-              <div className={`rounded-2xl p-3 text-xs flex flex-col justify-between min-h-16 border ${currentStatus === "Pending Payment" ? "border-amber-300 bg-amber-50/40" : "border-secondary-bg bg-page-bg/10"
+              <div className={`rounded-2xl p-3 text-xs flex flex-col justify-between min-h-16 border ${currentStatus === "Pending Payment" ? "border-amber-300 bg-amber-50/40" : "border-border-main bg-page-bg/10"
                 }`}>
                 <span className={`text-[10px] block ${currentStatus === "Pending Payment" ? "text-amber-600" : "text-text-muted"}`}>Total Amount Due</span>
                 <strong className={`text-sm font-bold block mt-1 ${currentStatus === "Pending Payment" ? "text-amber-700" : "text-text-primary"}`}>$89.25</strong>
@@ -688,7 +688,7 @@ export default function TransactionDetailPage() {
 
               {/* Box 4 - Commission or Wallet Credit */}
               {showRefundInfo ? (
-                <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
+                <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
                   <span className="text-[10px] text-text-muted block">Wallet Credit Issued</span>
                   <strong className="text-sm text-text-primary font-bold block mt-0.5">$85.00</strong>
                   <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
@@ -696,7 +696,7 @@ export default function TransactionDetailPage() {
                   </span>
                 </div>
               ) : (
-                <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
+                <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
                   <span className="text-[10px] text-text-muted block">Provider Commission (15%)</span>
                   <strong className="text-sm text-text-primary font-bold block mt-1">$12.75</strong>
                 </div>
@@ -704,7 +704,7 @@ export default function TransactionDetailPage() {
 
               {/* Box 5 - Expected Provider Payout */}
               {showRefundInfo ? (
-                <div className="border border-secondary-bg rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
+                <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
                   <span className="text-[10px] text-text-muted block">Provider Payout</span>
                   <strong className="text-sm text-text-primary font-bold block mt-0.5">$0.00</strong>
                   <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
@@ -712,7 +712,7 @@ export default function TransactionDetailPage() {
                   </span>
                 </div>
               ) : (
-                <div className={`rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 border ${["In Progress", "Confirmed", "Dispute"].includes(currentStatus) ? "border-amber-200" : "border-secondary-bg"
+                <div className={`rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 border ${["In Progress", "Confirmed", "Dispute"].includes(currentStatus) ? "border-amber-200" : "border-border-main"
                   }`}>
                   <span className="text-[10px] text-text-muted block">Expected Provider Payout</span>
                   <strong className="text-sm text-text-primary font-bold block mt-0.5">$72.25</strong>
@@ -745,10 +745,10 @@ export default function TransactionDetailPage() {
 
           {/* Completion Photos */}
           {showPhotos && (
-            <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4 animate-fade-in">
+            <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4 animate-fade-in">
               <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Completion Photos</span>
               <div className="grid grid-cols-2 gap-3.5">
-                <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-secondary-bg">
+                <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-border-main">
                   <Image
                     src="/kitchen_completed.png"
                     alt="Kitchen Completed Photos"
@@ -756,7 +756,7 @@ export default function TransactionDetailPage() {
                     className="object-cover hover:scale-105 transition duration-300"
                   />
                 </div>
-                <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-secondary-bg">
+                <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-border-main">
                   <Image
                     src="/bathroom_completed.png"
                     alt="Bathroom Completed Photos"
@@ -770,7 +770,7 @@ export default function TransactionDetailPage() {
 
           {/* Refund Information */}
           {showRefundInfo && (
-            <div className="bg-white rounded-3xl p-5 border border-secondary-bg space-y-4 animate-fade-in">
+            <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4 animate-fade-in">
               <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Refund Information</span>
               <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-xs">
                 <div>
@@ -821,46 +821,54 @@ export default function TransactionDetailPage() {
             className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs transition-opacity"
             onClick={() => setDisputeModalOpen(false)}
           />
-          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4">
-            <button
-              onClick={() => setDisputeModalOpen(false)}
-              className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
-            >
-              <X size={12} />
-            </button>
-            <h3 className="text-base font-bold text-text-primary mb-4 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              Open Dispute
-            </h3>
+          <div className="relative bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl z-10 border border-border-main animate-scale-up mx-4 space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-border-main">
+              <h3 className="text-base font-bold text-text-primary flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                Open Dispute
+              </h3>
+              <button
+                onClick={() => setDisputeModalOpen(false)}
+                className="w-5 h-5 rounded-full bg-[#0F172A] text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
+              >
+                <X size={12} strokeWidth={2.5} />
+              </button>
+            </div>
 
             <div className="space-y-4">
-              <p className="text-xs text-text-muted leading-relaxed font-light">
-                Are you sure you want to flag transaction <strong>{tx.id}</strong> as a dispute? This action will block scheduled payouts and alert the operations compliance team.
-              </p>
+              <div className="bg-red-50/50 border border-red-100 rounded-2xl p-4 text-xs">
+                <p className="text-red-800 leading-relaxed font-light">
+                  Are you sure you want to flag transaction <strong className="font-semibold">{tx.id}</strong> as a dispute? This action will block scheduled payouts and alert the operations compliance team.
+                </p>
+              </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-text-primary block">Justification Reason *</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-text-primary block">Justification Reason *</label>
                 <textarea
                   placeholder="Provide at least 20 characters explaining the dispute conflict..."
-                  rows={3}
+                  rows={4}
                   value={justification}
                   onChange={(e) => setJustification(e.target.value)}
-                  className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+                  className="w-full bg-white border border-border-main text-xs rounded-2xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60 resize-none font-light"
                   required
                 />
+                {justification.length < 20 && (
+                  <span className="text-[10px] text-amber-600 block font-light">
+                    Minimum 20 characters ({20 - justification.length} more)
+                  </span>
+                )}
               </div>
 
               <div className="flex gap-2.5 pt-2">
                 <button
                   onClick={() => setDisputeModalOpen(false)}
-                  className="flex-1 bg-white border border-secondary-bg hover:bg-page-bg text-text-primary font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                  className="flex-1 bg-secondary-bg hover:bg-page-bg text-text-primary font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => {
                     if (justification.trim().length < 20) {
-                      toast.error("Please enter a detailed reason of at least 20 characters.");
                       return;
                     }
                     updateStatus("Dispute", {
@@ -871,7 +879,11 @@ export default function TransactionDetailPage() {
                     setDisputeModalOpen(false);
                     setJustification("");
                   }}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                  disabled={justification.trim().length < 20}
+                  className={`flex-1 font-semibold text-xs py-2.5 rounded-xl transition text-center text-white ${justification.trim().length >= 20
+                      ? "bg-red-500 hover:bg-red-600 cursor-pointer"
+                      : "bg-red-300 cursor-not-allowed"
+                    }`}
                 >
                   Confirm Dispute
                 </button>

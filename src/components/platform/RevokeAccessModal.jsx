@@ -8,10 +8,10 @@ export default function RevokeAccessModal({ user, isOpen, onClose, onRevoke }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-md bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="text-sm font-semibold text-text-primary">Revoke Access</h3>
           <button
             type="button"
@@ -19,16 +19,16 @@ export default function RevokeAccessModal({ user, isOpen, onClose, onRevoke }) {
             className="w-5 h-5 rounded-full bg-text-primary text-white flex items-center justify-center hover:opacity-90 transition cursor-pointer"
           >
             <X size={12} strokeWidth={2.5} />
-          </button>`` 1x v,
-          
+          </button>
+
         </div>
 
         {/* Modal Form */}
         <div className="p-4 space-y-4 text-xs text-text-primary font-onest">
           {/* User details card */}
           <div className="rounded-xl p-3 border border-border-main">
-              <h4 className="text-xs font-semibold text-text-primary">{user.name}</h4>
-              <p className="text-[10px] text-text-muted font-light mt-0.5">{user.email}</p>
+            <h4 className="text-xs font-semibold text-text-primary">{user.name}</h4>
+            <p className="text-[10px] text-text-muted font-light mt-0.5">{user.email}</p>
           </div>
 
           {/* Warning banner block */}

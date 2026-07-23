@@ -77,8 +77,8 @@ export default function MonthlyAccountingTab() {
   const filteredData = useMemo(() => {
     return mockTransactions.filter((t) => {
       const matchSearch = t.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          t.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          t.id.toLowerCase().includes(searchTerm.toLowerCase());
+        t.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.id.toLowerCase().includes(searchTerm.toLowerCase());
       const matchStatus = filterStatus === "All" || t.status === filterStatus;
       const matchCategory = filterCategory === "All" || t.category === filterCategory;
 
@@ -117,7 +117,7 @@ export default function MonthlyAccountingTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Accounting Data...</span>
       </div>
     );
@@ -125,9 +125,9 @@ export default function MonthlyAccountingTab() {
 
   return (
     <div className="space-y-4 animate-scale-up font-onest">
-      
+
       {/* Export Action Buttons matching TransactionVolumeTab & NetRevenueTab */}
-      <div className="flex justify-end items-center pb-1">
+      <div className="flex sm:justify-end items-center justify-center pb-1">
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportCSV}
@@ -173,11 +173,11 @@ export default function MonthlyAccountingTab() {
 
         <div className="relative w-full overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
           <div className="w-full flex flex-col justify-between gap-2 py-2 pl-8 min-w-162.5 sm:min-w-0">
-            
+
             {/* Grid background lines */}
-            <div className="relative h-48 w-full flex flex-col justify-between border-b border-secondary-bg">
+            <div className="relative h-48 w-full flex flex-col justify-between border-b border-border-main">
               {[100, 80, 60, 40, 20, 0].map((val) => (
-                <div key={val} className="relative w-full border-b border-dashed border-secondary-bg/75 flex items-center">
+                <div key={val} className="relative w-full border-b border-dashed border-border-main/75 flex items-center">
                   <span className="absolute -left-7 text-[10px] text-text-muted font-light">{val}</span>
                 </div>
               ))}
@@ -189,9 +189,9 @@ export default function MonthlyAccountingTab() {
                   return (
                     <div key={idx} className="flex items-end gap-0.5 h-full group relative">
                       {/* Bar 1 - Volume */}
-                      <div 
-                        style={{ height: `${item.volume}%` }} 
-                        className="w-1.5 md:w-3 bg-[#E57373] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80" 
+                      <div
+                        style={{ height: `${item.volume}%` }}
+                        className="w-1.5 md:w-3 bg-[#E57373] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
                           y: `${100 - item.volume}%`,
@@ -203,9 +203,9 @@ export default function MonthlyAccountingTab() {
                         onMouseLeave={() => setHoveredValue(null)}
                       />
                       {/* Bar 2 - Amount */}
-                      <div 
-                        style={{ height: `${item.amount}%` }} 
-                        className="w-1.5 md:w-3 bg-[#81C784] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80" 
+                      <div
+                        style={{ height: `${item.amount}%` }}
+                        className="w-1.5 md:w-3 bg-[#81C784] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
                           y: `${100 - item.amount}%`,
@@ -217,9 +217,9 @@ export default function MonthlyAccountingTab() {
                         onMouseLeave={() => setHoveredValue(null)}
                       />
                       {/* Bar 3 - Fees */}
-                      <div 
-                        style={{ height: `${item.fees}%` }} 
-                        className="w-1.5 md:w-3 bg-[#4DD0E1] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80" 
+                      <div
+                        style={{ height: `${item.fees}%` }}
+                        className="w-1.5 md:w-3 bg-[#4DD0E1] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
                           y: `${100 - item.fees}%`,
@@ -231,9 +231,9 @@ export default function MonthlyAccountingTab() {
                         onMouseLeave={() => setHoveredValue(null)}
                       />
                       {/* Bar 4 - Commission */}
-                      <div 
-                        style={{ height: `${item.commission}%` }} 
-                        className="w-1.5 md:w-3 bg-[#D7CCC8] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80" 
+                      <div
+                        style={{ height: `${item.commission}%` }}
+                        className="w-1.5 md:w-3 bg-[#D7CCC8] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
                           y: `${100 - item.commission}%`,
@@ -245,9 +245,9 @@ export default function MonthlyAccountingTab() {
                         onMouseLeave={() => setHoveredValue(null)}
                       />
                       {/* Bar 5 - Tips */}
-                      <div 
-                        style={{ height: `${item.tips}%` }} 
-                        className="w-1.5 md:w-3 bg-[#B39DDB] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80" 
+                      <div
+                        style={{ height: `${item.tips}%` }}
+                        className="w-1.5 md:w-3 bg-[#B39DDB] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
                           y: `${100 - item.tips}%`,
@@ -265,19 +265,17 @@ export default function MonthlyAccountingTab() {
 
               {/* Tooltip Overlay */}
               {hoveredValue && (
-                <div 
-                  className={`absolute bg-alt-bg/95 backdrop-blur-xs text-white px-2.5 py-1.5 rounded-lg text-[10px] pointer-events-none z-30 transition-all duration-150 shadow-md border border-white/10 ${
-                    hoveredValue.monthIndex >= 10 
-                      ? "-translate-x-full -ml-1" 
-                      : hoveredValue.monthIndex <= 1 
-                      ? "translate-x-0 ml-1" 
+                <div
+                  className={`absolute bg-alt-bg/95 backdrop-blur-xs text-white px-2.5 py-1.5 rounded-lg text-[10px] pointer-events-none z-30 transition-all duration-150 shadow-md border border-white/10 ${hoveredValue.monthIndex >= 10
+                    ? "-translate-x-full -ml-1"
+                    : hoveredValue.monthIndex <= 1
+                      ? "translate-x-0 ml-1"
                       : "-translate-x-1/2"
-                  } ${
-                    hoveredValue.isHigh ? "translate-y-2" : "-translate-y-full -mt-2"
-                  }`}
-                  style={{ 
-                    left: hoveredValue.x, 
-                    top: hoveredValue.y 
+                    } ${hoveredValue.isHigh ? "translate-y-2" : "-translate-y-full -mt-2"
+                    }`}
+                  style={{
+                    left: hoveredValue.x,
+                    top: hoveredValue.y
                   }}
                 >
                   <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
@@ -289,7 +287,7 @@ export default function MonthlyAccountingTab() {
             {/* X-Axis Month Labels */}
             <div className="flex justify-between items-center px-5">
               {chartMonths.map((item, idx) => (
-                <span key={idx} className="text-[10px] text-text-muted font-medium text-center w-10">
+                <span key={idx} className="text-[10px] text-text-muted font-medium text-center md:w-10">
                   {item.month}
                 </span>
               ))}
@@ -348,10 +346,10 @@ export default function MonthlyAccountingTab() {
       </div>
 
       {/* 4. Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
-        
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+
         {/* Filters control bar: Search bar on left, Status, Category & Date Range filters on right */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -362,12 +360,12 @@ export default function MonthlyAccountingTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+
             {/* Status selector */}
             <div className="relative">
               <select
@@ -376,7 +374,7 @@ export default function MonthlyAccountingTab() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
                 <option value="Completed">Completed</option>
@@ -395,7 +393,7 @@ export default function MonthlyAccountingTab() {
                   setFilterCategory(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Category</option>
                 <option value="Post-Construction Cleaning">Post-Construction</option>
@@ -434,8 +432,8 @@ export default function MonthlyAccountingTab() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-b-3xl">
-            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-              <thead className="bg-secondary-bg text-text-primary text-left text-xs font-semibold">
+            <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+              <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs font-semibold">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Trans ID</th>
                   <th className="px-4 py-3 font-semibold">Date & Time</th>
@@ -449,14 +447,14 @@ export default function MonthlyAccountingTab() {
                   <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-xs text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {paginated.map((item) => (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                    <td className="px-4 py-3 font-mono text-xs">{item.id}</td>
+                    <td className="px-4 py-3 font-mono">{item.id}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
                         <span className="text-text-primary">{item.date}</span>
-                        <span className="text-[10px] text-text-muted font-light">{item.time}</span>
+                        <span className="md:text-xs text-[10px] text-text-muted font-light">{item.time}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">{item.client}</td>

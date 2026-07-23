@@ -76,10 +76,10 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="font-semibold text-text-primary">Add Sub-service</h3>
           <button
             type="button"
@@ -92,7 +92,7 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
 
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
-          
+
           {/* Parent category selector */}
           <div className="space-y-1">
             <label className="text-xs text-text-primary block">
@@ -103,7 +103,7 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
                 required
                 value={parentName}
                 onChange={(e) => setParentName(e.target.value)}
-                className="w-full bg-white border border-secondary-bg text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
+                className="w-full bg-white border border-border-main text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
               >
                 {parentCategories && parentCategories.map((cat, idx) => (
                   <option key={idx} value={cat.name}>
@@ -126,7 +126,7 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
               placeholder="e.g., oven deep clean..."
               value={subServiceName}
               onChange={(e) => setSubServiceName(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+              className="w-full bg-white border border-border-main text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
           </div>
 
@@ -139,9 +139,8 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
               onDragLeave={handleDrag}
               onDrop={handleDrop}
               onClick={triggerBrowse}
-              className={`border-2 border-dashed rounded-lg p-6 text-center space-y-2 hover:bg-page-bg/40 transition cursor-pointer select-none relative ${
-                dragActive ? "border-primary-bg bg-primary-bg/5" : "border-secondary-bg bg-white"
-              }`}
+              className={`border-2 border-dashed rounded-lg p-6 text-center space-y-2 hover:bg-page-bg/40 transition cursor-pointer select-none relative ${dragActive ? "border-primary-bg bg-primary-bg/5" : "border-border-main bg-white"
+                }`}
             >
               <input
                 ref={fileInputRef}
@@ -150,7 +149,7 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
+
               {selectedFile ? (
                 <div className="flex flex-col items-center justify-center text-center space-y-1">
                   <FileImage size={24} className="text-primary-bg" />

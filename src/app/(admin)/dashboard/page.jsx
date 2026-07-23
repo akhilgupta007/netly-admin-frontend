@@ -108,19 +108,19 @@ export default function DashboardPage() {
       walletCreditsPending: "3",
       refundRequests: Math.max(1, Math.round(11 * multiplier)).toLocaleString(),
       kycDocsInQueue: "23",
-      
+
       // Money
       gmv: `$${(48291.00 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       revenue: `$${(9820.45 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       fees: `$${(2414.55 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       liability: "$31,847.20", // balance: no trend
-      
+
       // Accounts
       newClients: Math.round(284 * multiplier).toLocaleString(),
       newProviders: Math.round(61 * multiplier).toLocaleString(),
       suspended: "14",
       unresolvedDisputes: "7",
-      
+
       note
     };
   };
@@ -241,7 +241,7 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center select-none bg-white rounded-3xl border border-secondary-bg hover:shadow-xs animate-scale-up">
+      <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Dashboard Data...</span>
       </div>
     );
@@ -258,33 +258,33 @@ export default function DashboardPage() {
               Needs action
             </span>
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <Link 
-                href="/wallets" 
+              <Link
+                href="/wallets"
                 className="text-blue-400 hover:underline bg-blue-50 px-2.5 py-1 rounded-xl transition"
               >
                 3 wallet credits pending
               </Link>
-              <Link 
-                href="/wallets" 
+              <Link
+                href="/wallets"
                 className="text-orange-500 hover:underline bg-orange-50 px-2.5 py-1 rounded-xl transition"
               >
                 11 Refund queue
               </Link>
-              <Link 
-                href="/compliance/kyc" 
+              <Link
+                href="/compliance/kyc"
                 className="text-amber-700 hover:underline bg-amber-50 px-2.5 py-1 rounded-xl transition"
               >
                 23 KYC queue
               </Link>
-              <Link 
-                href="/compliance/disputes" 
+              <Link
+                href="/compliance/disputes"
                 className="text-rose-500 hover:underline bg-red-50 px-2.5 py-1 rounded-xl transition"
               >
                 7 Open disputes
               </Link>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => setShowBanner(false)}
             className="p-1 rounded-lg hover:text-red-600 transition cursor-pointer"
           >
@@ -306,23 +306,22 @@ export default function DashboardPage() {
           />
         )}
         {/* Time filters matching mockup selector */}
-        <div className="inline-flex bg-white border border-secondary-bg p-2 rounded-xl self-start gap-2">
+        <div className="inline-flex bg-white border border-border-main p-2 rounded-xl self-start gap-2">
           {["Today", "This week", "This month", "Custom"].map((tab) => (
             <button
               key={tab}
               onClick={() => setTimeFilter(tab)}
-              className={`px-2 py-2 text-xs rounded-lg transition-all duration-200 cursor-pointer ${
-                timeFilter === tab
+              className={`px-2 py-2 text-xs rounded-lg transition-all duration-200 cursor-pointer ${timeFilter === tab
                   ? "bg-primary-bg text-white shadow-sm"
                   : "text-text-muted hover:text-text-primary"
-              }`}
+                }`}
             >
               {tab}
             </button>
           ))}
         </div>
       </div>
-      
+
       {/* 2. Operations Grid */}
       <div className="pb-2">
         <h2 className="text-sm font-medium tracking-wider text-text-primary uppercase mb-2">
@@ -349,10 +348,10 @@ export default function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Money Info Cards Column */}
-          <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+          <div className="lg:col-span-2 grid md:grid-cols-2 gap-4">
             {moneyCards.map((card, idx) => (
-              <CardWrapper 
-                key={idx} 
+              <CardWrapper
+                key={idx}
                 name={card.name}
                 value={card.value}
                 subtext={card.note}
@@ -363,27 +362,26 @@ export default function DashboardPage() {
           </div>
 
           {/* Chart card column */}
-          <div className="bg-white rounded-2xl p-4 border border-secondary-bg hover:shadow-xs transition-all duration-200 lg:col-span-2 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl p-4 border border-border-main hover:shadow-xs transition-all duration-200 lg:col-span-2 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="font-medium text-text-primary">
+                  <h3 className="font-medium md:text-base text-sm text-text-primary">
                     Real Refunds vs. Wallet Credits
                   </h3>
                 </div>
                 <div className="flex gap-2 items-center">
                   <p className="text-[10px] text-text-muted">This week · USD</p>
                   {/* Bar / Line Selector Toggle */}
-                  <div className="inline-flex bg-primary-bg/10 p-1 rounded-xl">
+                  <div className="inline-flex md:flex-row flex-col bg-primary-bg/10 p-1 rounded-xl">
                     {["Bar", "Line"].map((type) => (
                       <button
                         key={type}
                         onClick={() => setChartType(type)}
-                        className={`px-3 py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${
-                          chartType === type
+                        className={`px-3 py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${chartType === type
                             ? "bg-white text-text-primary shadow-xs"
                             : "text-text-muted hover:text-text-primary"
-                        }`}
+                          }`}
                       >
                         {type}
                       </button>
@@ -394,7 +392,7 @@ export default function DashboardPage() {
 
               {/* Chart visualization */}
               <div className="mt-4 relative w-full overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-                <div className="min-w-[500px] sm:min-w-0 relative">
+                <div className="min-w-125 sm:min-w-0 relative">
                   <svg className="w-full" viewBox="0 0 540 180" preserveAspectRatio="none">
                     {/* Grid Lines */}
                     <line x1="55" y1="20" x2="520" y2="20" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
@@ -505,12 +503,12 @@ export default function DashboardPage() {
                           return (
                             <g key={index}>
                               {/* Outbound Dot */}
-                              <circle 
-                                cx={x_center} 
-                                cy={cyOut} 
-                                r="4" 
-                                fill="#6FB5BD" 
-                                className="cursor-pointer" 
+                              <circle
+                                cx={x_center}
+                                cy={cyOut}
+                                r="4"
+                                fill="#6FB5BD"
+                                className="cursor-pointer"
                                 onMouseEnter={() => setHoveredValue({
                                   x: x_center,
                                   y: cyOut,
@@ -520,12 +518,12 @@ export default function DashboardPage() {
                                 onMouseLeave={() => setHoveredValue(null)}
                               />
                               {/* Retained Dot */}
-                              <circle 
-                                cx={x_center} 
-                                cy={cyRet} 
-                                r="4" 
-                                fill="#0B163F" 
-                                className="cursor-pointer" 
+                              <circle
+                                cx={x_center}
+                                cy={cyRet}
+                                r="4"
+                                fill="#0B163F"
+                                className="cursor-pointer"
                                 onMouseEnter={() => setHoveredValue({
                                   x: x_center,
                                   y: cyRet,
@@ -550,11 +548,11 @@ export default function DashboardPage() {
                     )}
                   </svg>
                   {hoveredValue && (
-                    <div 
+                    <div
                       className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
-                      style={{ 
-                        left: `${(hoveredValue.x / 540) * 100}%`, 
-                        top: `${(hoveredValue.y / 180) * 100}%` 
+                      style={{
+                        left: `${(hoveredValue.x / 540) * 100}%`,
+                        top: `${(hoveredValue.y / 180) * 100}%`
                       }}
                     >
                       <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
@@ -606,17 +604,17 @@ export default function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Cities */}
-          <div className="bg-white rounded-2xl p-4 border border-secondary-bg hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl p-4 border border-border-main hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 gap-2">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-primary-bg/10 rounded-full">
                     <BookOpen size={18} className="text-primary-bg" />
                   </div>
                   <h3 className="text-sm font-medium text-text-primary">Top cities with unmet demand</h3>
                 </div>
-                <Link 
-                  href="/platform/market-intelligence" 
+                <Link
+                  href="/platform/market-intelligence"
                   className="text-[10px] text-primary-bg hover:underline flex items-center gap-1"
                 >
                   View full report <ArrowRight size={12} />
@@ -638,8 +636,8 @@ export default function DashboardPage() {
                       <span className="text-red-500">{item.gap}% gap</span>
                     </div>
                     <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-primary-bg rounded-full transition-all duration-500" 
+                      <div
+                        className="h-full bg-primary-bg rounded-full transition-all duration-500"
                         style={{ width: `${item.gap}` }}
                       />
                     </div>
@@ -650,7 +648,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Trending Searches */}
-          <div className="bg-white rounded-2xl p-4 border border-secondary-bg hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl p-4 border border-border-main hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
@@ -659,8 +657,8 @@ export default function DashboardPage() {
                   </div>
                   <h3 className="text-sm font-medium text-text-primary">Trending searches this week</h3>
                 </div>
-                <Link 
-                  href="/platform/market-intelligence" 
+                <Link
+                  href="/platform/market-intelligence"
                   className="text-[10px] text-primary-bg hover:underline flex items-center gap-1"
                 >
                   Market intelligence <ArrowRight size={12} />

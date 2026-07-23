@@ -350,7 +350,7 @@ export default function TransactionsPage() {
       const statusParam = params.get("status");
       const startParam = params.get("startDate");
       const endParam = params.get("endDate");
-      
+
       if (statusParam) {
         const matchedOpt = statusOptions.find(opt => opt.value.toLowerCase() === statusParam.toLowerCase());
         if (matchedOpt) {
@@ -479,7 +479,7 @@ export default function TransactionsPage() {
   const filteredTxs = useMemo(() => {
     return transactions.filter((tx) => {
       const searchStr = searchTerm.toLowerCase();
-      const matchSearch = 
+      const matchSearch =
         tx.client.name.toLowerCase().includes(searchStr) ||
         tx.client.email.toLowerCase().includes(searchStr) ||
         tx.provider.name.toLowerCase().includes(searchStr) ||
@@ -492,15 +492,15 @@ export default function TransactionsPage() {
       } else if (filterStatus.includes(",")) {
         const allowed = filterStatus.split(",").map(s => s.trim().toLowerCase());
         const txStatusClean = tx.status.toLowerCase();
-        matchStatus = allowed.includes(txStatusClean) || 
-                      (allowed.includes("finalised") && (txStatusClean === "completed" || txStatusClean.startsWith("wallet credited"))) ||
-                      (allowed.includes("cancelled") && txStatusClean.includes("cancel"));
+        matchStatus = allowed.includes(txStatusClean) ||
+          (allowed.includes("finalised") && (txStatusClean === "completed" || txStatusClean.startsWith("wallet credited"))) ||
+          (allowed.includes("cancelled") && txStatusClean.includes("cancel"));
       } else {
         const txStatusClean = tx.status.toLowerCase();
         const filterStatusClean = filterStatus.toLowerCase();
-        matchStatus = txStatusClean === filterStatusClean || 
-                      (filterStatusClean === "finalised" && (txStatusClean === "completed" || txStatusClean.startsWith("wallet credited"))) ||
-                      (filterStatusClean === "cancelled" && txStatusClean.includes("cancel"));
+        matchStatus = txStatusClean === filterStatusClean ||
+          (filterStatusClean === "finalised" && (txStatusClean === "completed" || txStatusClean.startsWith("wallet credited"))) ||
+          (filterStatusClean === "cancelled" && txStatusClean.includes("cancel"));
       }
       const matchCategory = filterCategory === "All" || tx.category === filterCategory;
 
@@ -534,173 +534,173 @@ export default function TransactionsPage() {
 
 
   return (
-      // Main Transactions List Table Card
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
-        {/* Filter and Search controls bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl">
-          {/* Single search bar input */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
-            <input
-              type="text"
-              placeholder="Search by client/provider's name or email..."
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
-            />
-          </div>
-
-          {/* Dropdowns filters */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Status filter */}
-            <div className="relative">
-              <select
-                value={filterStatus}
-                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
-              >
-                {filterStatus.includes(",") && (
-                  <option value={filterStatus}>
-                    {filterStatus.split(",").map(s => s.trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")).join(" + ")}
-                  </option>
-                )}
-                {statusOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
-            </div>
-
-            {/* Category filter */}
-            <div className="relative">
-              <select
-                value={filterCategory}
-                onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }}
-                className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
-              >
-                <option value="All">Category</option>
-                {categories.slice(1).map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
-            </div>
-
-            {/* Date range picker selector with Custom DateRangePicker Component */}
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(start, end) => {
-                setStartDate(start);
-                setEndDate(end);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto rounded-b-3xl">
-          <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-            <thead className="bg-secondary-bg text-text-primary text-left">
-              <tr>
-                <th className="p-4 font-semibold">Transaction ID</th>
-                <th className="p-4 font-semibold">Booking Date</th>
-                <th className="p-4 font-semibold">Client</th>
-                <th className="p-4 font-semibold">Provider</th>
-                <th className="p-4 font-semibold">Service</th>
-                <th className="p-4 font-semibold">Total Paid</th>
-                <th className="p-4 font-semibold">Provider Payout</th>
-                <th className="p-4 font-semibold">Netly Commission</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary-bg bg-white text-text-primary">
-              {paginatedTxs.length > 0 ? (
-                paginatedTxs.map((tx) => {
-                  const colorBadge = statusColors[tx.status] || "bg-secondary-bg text-text-muted";
-
-                  return (
-                    <tr
-                      key={tx.id}
-                      className="hover:bg-secondary-bg/30 transition-colors duration-150 text-sm"
-                    >
-                      <td className="px-4 py-3 text-text-primary">
-                        <div className="flex items-center gap-1 font-medium">
-                          <span>{tx.id.slice(0, 10)}...</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.id); }}
-                            className="p-0.5 text-text-muted hover:text-text-primary rounded"
-                          >
-                            <Copy size={14} />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <div>{tx.date}</div>
-                        <div className="text-[10px] text-text-muted">{tx.time}</div>
-                      </td>
-                      <td className="px-4 py-3">{tx.client.name}</td>
-                      <td className="px-4 py-3">{tx.provider.name}</td>
-                      <td className="px-4 py-3">{tx.category}</td>
-                      <td className="px-4 py-3">${tx.serviceAmount.toFixed(2)}</td>
-                      <td className="px-4 py-3">${getFee(tx.serviceAmount).toFixed(2)}</td>
-                      <td className="px-4 py-3">${getCommission(tx.serviceAmount).toFixed(2)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold w-fit ${colorBadge}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusDotColors[tx.status] || "bg-gray-400"}`} />
-                            {getStatusLabel(tx.status)}
-                          </span>
-                          <span className={`text-[10px] font-light pl-0.5 ${statusSubtitleColors[tx.status] || "text-text-muted"}`}>
-                            {getStatusSubtitle(tx)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); router.push(`/transactions/${tx.id}`); }}
-                          className="px-3 py-1 border border-primary-bg hover:bg-page-bg text-sm font-medium rounded-lg transition text-primary-bg cursor-pointer"
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : isLoading ? (
-                <tr>
-                  <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
-                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
-                      <span className="text-xs text-text-muted animate-pulse">Loading Transactions Data...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                <tr>
-                  <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
-                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
-                      <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
-                      <span>No transactions found matching search filter criteria.</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer pagination navigation row matching design layout */}
-        {totalPages > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage}
-            totalItems={filteredTxs.length}
-            onPageChange={setCurrentPage}
+    // Main Transactions List Table Card
+    <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+      {/* Filter and Search controls bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 bg-white rounded-t-3xl">
+        {/* Single search bar input */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
+          <input
+            type="text"
+            placeholder="Search by client/provider's name or email..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
           />
-        )}
+        </div>
+
+        {/* Dropdowns filters */}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* Status filter */}
+          <div className="relative">
+            <select
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+              className="border border-border-main md:text-xs text-[10px] rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
+            >
+              {filterStatus.includes(",") && (
+                <option value={filterStatus}>
+                  {filterStatus.split(",").map(s => s.trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")).join(" + ")}
+                </option>
+              )}
+              {statusOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
+          </div>
+
+          {/* Category filter */}
+          <div className="relative">
+            <select
+              value={filterCategory}
+              onChange={(e) => { setFilterCategory(e.target.value); setCurrentPage(1); }}
+              className="border border-border-main md:text-xs text-[10px] rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
+            >
+              <option value="All">Category</option>
+              {categories.slice(1).map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
+          </div>
+
+          {/* Date range picker selector with Custom DateRangePicker Component */}
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(start, end) => {
+              setStartDate(start);
+              setEndDate(end);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
       </div>
+
+      <div className="overflow-x-auto rounded-b-3xl">
+        <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+          <thead className="bg-secondary-bg text-text-primary text-left">
+            <tr>
+              <th className="p-4 font-semibold">Transaction ID</th>
+              <th className="p-4 font-semibold">Booking Date</th>
+              <th className="p-4 font-semibold">Client</th>
+              <th className="p-4 font-semibold">Provider</th>
+              <th className="p-4 font-semibold">Service</th>
+              <th className="p-4 font-semibold">Total Paid</th>
+              <th className="p-4 font-semibold">Provider Payout</th>
+              <th className="p-4 font-semibold">Netly Commission</th>
+              <th className="p-4 font-semibold">Status</th>
+              <th className="p-4 font-semibold text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-bg bg-white text-text-primary">
+            {paginatedTxs.length > 0 ? (
+              paginatedTxs.map((tx) => {
+                const colorBadge = statusColors[tx.status] || "bg-secondary-bg text-text-muted";
+
+                return (
+                  <tr
+                    key={tx.id}
+                    className="hover:bg-secondary-bg/30 transition-colors duration-150 md:text-sm text-xs"
+                  >
+                    <td className="px-4 py-3 text-text-primary">
+                      <div className="flex items-center gap-1 font-medium">
+                        <span>{tx.id.slice(0, 10)}...</span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); copyToClipboard(tx.id); }}
+                          className="p-0.5 text-text-muted hover:text-text-primary rounded"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 md:text-xs text-[10px]">
+                      <div>{tx.date}</div>
+                      <div className="md:text-[10px] text-[7px] text-text-muted">{tx.time}</div>
+                    </td>
+                    <td className="px-4 py-3">{tx.client.name}</td>
+                    <td className="px-4 py-3">{tx.provider.name}</td>
+                    <td className="px-4 py-3">{tx.category}</td>
+                    <td className="px-4 py-3">${tx.serviceAmount.toFixed(2)}</td>
+                    <td className="px-4 py-3">${getFee(tx.serviceAmount).toFixed(2)}</td>
+                    <td className="px-4 py-3">${getCommission(tx.serviceAmount).toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full md:text-xs text-[10px] font-semibold w-fit ${colorBadge}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusDotColors[tx.status] || "bg-gray-400"}`} />
+                          {getStatusLabel(tx.status)}
+                        </span>
+                        <span className={`md:text-[10px] text-[7px] font-light pl-0.5 ${statusSubtitleColors[tx.status] || "text-text-muted"}`}>
+                          {getStatusSubtitle(tx)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); router.push(`/transactions/${tx.id}`); }}
+                        className="px-3 py-1 border border-primary-bg hover:bg-page-bg md:text-sm text-xs font-medium rounded-lg transition text-primary-bg cursor-pointer"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : isLoading ? (
+              <tr>
+                <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
+                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
+                    <span className="text-xs text-text-muted animate-pulse">Loading Transactions Data...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <tr>
+                <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
+                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
+                    <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
+                    <span>No transactions found matching search filter criteria.</span>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer pagination navigation row matching design layout */}
+      {totalPages > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredTxs.length}
+          onPageChange={setCurrentPage}
+        />
+      )}
+    </div>
   );
 }

@@ -12,10 +12,10 @@ export default function T4APreviewModal({ slip, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="text-sm font-semibold text-text-primary">T4A Preview</h3>
           <button
             type="button"
@@ -28,9 +28,9 @@ export default function T4APreviewModal({ slip, onClose }) {
 
         {/* Modal Content */}
         <div className="p-4 space-y-4 text-xs">
-          
+
           {/* User profile banner row */}
-          <div className="bg-page-bg rounded-2xl p-3 border border-secondary-bg/50 flex items-center gap-2">
+          <div className="bg-page-bg rounded-2xl p-3 border border-border-main/50 flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-primary-bg-muted text-white flex items-center justify-center text-[10px] font-light">
               {getInitials(slip.provider || "PR")}
             </div>
@@ -38,7 +38,7 @@ export default function T4APreviewModal({ slip, onClose }) {
           </div>
 
           {/* Statement details box layout */}
-          <div className="border border-secondary-bg rounded-2xl bg-white shadow-2xs">
+          <div className="border border-border-main rounded-2xl bg-white shadow-2xs">
             <div className="border-b border-border-main pb-2 bg-page-bg p-3">
               <h4 className="text-text-primary text-xs tracking-wide">T4A Statement of Pension, Retirement, Annuity</h4>
               <span className="text-[10px] text-text-muted font-light block mt-0.5">Tax year {slip.taxYear || "2026"}</span>

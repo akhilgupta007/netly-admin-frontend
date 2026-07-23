@@ -86,11 +86,11 @@ export default function AuditLogsTab() {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+            className="w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <div className="relative">
             <select
               value={filterAction}
@@ -98,7 +98,7 @@ export default function AuditLogsTab() {
                 setFilterAction(e.target.value);
                 setCurrentPage(1);
               }}
-              className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
+              className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
             >
               <option value="All">All Actions</option>
               <option value="Rejected">Rejected</option>
@@ -142,8 +142,8 @@ export default function AuditLogsTab() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-left">
-            <thead className="bg-secondary-bg text-text-primary text-sm">
+          <table className="min-w-full divide-y divide-secondary-bg text-left md:text-sm text-xs">
+            <thead className="bg-secondary-bg text-text-primary md:text-sm text-xs">
               <tr>
                 <th className="px-4 py-3 font-semibold">Timestamp</th>
                 <th className="px-4 py-3 font-semibold">Admin</th>
@@ -154,13 +154,13 @@ export default function AuditLogsTab() {
                 <th className="px-4 py-3 font-semibold">IP Address</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg">
+            <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs">
               {paginated.map((log, idx) => (
-                <tr key={idx} className="hover:bg-page-bg/50 transition text-text-primary text-xs">
+                <tr key={idx} className="hover:bg-page-bg/50 transition text-text-primary md:text-xs text-[10px]">
                   <td className="px-4 py-3 whitespace-pre-line leading-relaxed">{log.timestamp}</td>
                   <td className="px-4 py-3">{log.admin}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs ${
+                    <span className={`inline-block px-2.5 py-1 rounded-full md:text-xs text-[10px] ${
                       log.action === "KYC Approved" ? "bg-emerald-50 text-emerald-600" :
                       log.action === "Rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
                     }`}>

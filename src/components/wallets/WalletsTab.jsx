@@ -39,9 +39,9 @@ export default function WalletsTab({
   const paginated = wallets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
+    <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
       {/* Filters controls bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -49,15 +49,15 @@ export default function WalletsTab({
             placeholder="Search client by name or email..."
             value={searchTerm}
             onChange={(e) => { onSearchChange(e.target.value); setCurrentPage(1); }}
-            className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+            className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
           />
         </div>
       </div>
 
       {/* Table contents */}
       <div className="overflow-x-auto rounded-b-3xl">
-        <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-          <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+        <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+          <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
             <tr>
               <th className="px-4 py-3 font-semibold">Client</th>
               <th className="px-4 py-3 font-semibold">Mail Address</th>
@@ -66,7 +66,7 @@ export default function WalletsTab({
               <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+          <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
             {isLoading ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
@@ -79,7 +79,7 @@ export default function WalletsTab({
               paginated.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-page-bg/50 transition">
                   <td className="px-4 py-3 flex items-center gap-1.5 mt-1">
-                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center text-[10px] pt-0.5 font-light">
+                    <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center md:text-[10px] text-[7px] pt-0.5 font-light">
                       {getInitials(item.client.name)}
                     </div>
                     <span>{item.client.name}</span>
@@ -88,7 +88,7 @@ export default function WalletsTab({
                   <td className="px-4 py-3">${item.balance.toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <span className="block text-text-primary">{item.lastTxDate}</span>
-                    <span className="block text-[10px] text-text-muted pt-1">{item.lastTxTime}</span>
+                    <span className="block md:text-[10px] text-[7px] text-text-muted pt-1">{item.lastTxTime}</span>
                   </td>
                   <td className="px-4 py-3" data-dropdown-container>
                     <button
@@ -109,7 +109,7 @@ export default function WalletsTab({
                     </button>
                     {openDropdownId === item.id && (
                       <div
-                        className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1 animate-scale-up"
+                        className="fixed w-36 bg-white border border-border-main rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                         style={{ top: dropdownPos.top, left: dropdownPos.left }}
                       >
                         <button

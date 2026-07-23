@@ -180,13 +180,13 @@ export default function FlaggedContentTab() {
     const matchesSearch =
       f.reportedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
       f.content.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesType = filterType === "All" || f.type === filterType;
 
     let matchesDate = true;
     if (startDate && endDate) {
-      const start = new Date(startDate).setHours(0,0,0,0);
-      const end = new Date(endDate).setHours(23,59,59,999);
+      const start = new Date(startDate).setHours(0, 0, 0, 0);
+      const end = new Date(endDate).setHours(23, 59, 59, 999);
       const fDate = new Date(f.dateTime).getTime();
       matchesDate = fDate >= start && fDate <= end;
     }
@@ -203,10 +203,10 @@ export default function FlaggedContentTab() {
 
   return (
     <div className="space-y-4 animate-scale-up">
-      
+
       {/* Search & filters inside the table card */}
-      <div className="bg-white border border-secondary-bg rounded-3xl overflow-hidden shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-secondary-bg">
+      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -217,11 +217,11 @@ export default function FlaggedContentTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="md:min-w-sm border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-sm w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center">
             <div className="relative">
               <select
                 value={filterType}
@@ -229,7 +229,7 @@ export default function FlaggedContentTab() {
                   setFilterType(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Type</option>
                 <option value="Listing">Listing</option>
@@ -265,8 +265,8 @@ export default function FlaggedContentTab() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-                <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+              <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Type</th>
                     <th className="px-4 py-3 font-semibold">Reported By</th>
@@ -275,7 +275,7 @@ export default function FlaggedContentTab() {
                     <th className="px-4 py-3 font-semibold">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+                <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedFlags.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
                       <td className="px-4 py-3">{item.type}</td>

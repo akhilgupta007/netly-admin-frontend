@@ -19,10 +19,10 @@ export default function DeleteUserDataModal({ user, onClose, onDeleteConfirm }) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="text-sm font-semibold text-text-primary">Delete User Data</h3>
           <button
             onClick={onClose}
@@ -34,7 +34,7 @@ export default function DeleteUserDataModal({ user, onClose, onDeleteConfirm }) 
 
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="bg-page-bg/40 rounded-2xl p-4 border border-secondary-bg/50">
+          <div className="bg-page-bg/40 rounded-2xl p-4 border border-border-main/50">
             <h4 className="text-xs font-semibold text-text-primary">{user.name}</h4>
             <p className="text-[10px] text-text-muted font-light mt-0.5">{user.email}</p>
           </div>
@@ -46,7 +46,7 @@ export default function DeleteUserDataModal({ user, onClose, onDeleteConfirm }) 
               rows={4}
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
               required
             />
             <span className="text-[10px] text-text-muted block">Minimum 20 characters.</span>

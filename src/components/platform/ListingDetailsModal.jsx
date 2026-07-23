@@ -8,10 +8,10 @@ export default function ListingDetailsModal({ listing, isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-2xl bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
+      <div className="w-full max-w-2xl bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="font-semibold text-text-primary">Listing details</h3>
           <button
             type="button"
@@ -36,27 +36,27 @@ export default function ListingDetailsModal({ listing, isOpen, onClose }) {
           </div>
 
           {/* Provider, Category, Area Split Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-secondary-bg py-4 text-text-primary">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border-main py-4 text-text-primary">
             <div className="space-y-1">
               <span className="text-[10px] text-text-muted font-light block">Provider</span>
               <div className="block text-text-primary">{listing.provider}</div>
               <span className="block text-text-primary">({listing.email})</span>
             </div>
 
-            <div className="space-y-1 md:border-l md:border-secondary-bg md:pl-4">
+            <div className="space-y-1 md:border-l md:border-border-main md:pl-4">
               <span className="text-[10px] text-text-muted font-light block">Category</span>
               <div className="block text-text-primary">{listing.category}</div>
               <span className="block text-text-primary">({listing.subCategory})</span>
             </div>
 
-            <div className="space-y-1 md:border-l md:border-secondary-bg md:pl-4">
+            <div className="space-y-1 md:border-l md:border-border-main md:pl-4">
               <span className="text-[10px] font-light block">Service Area</span>
               <div className="block text-text-primary">{listing.serviceArea || "Not Specified"}</div>
             </div>
           </div>
 
           {/* Description section */}
-          <div className="bg-page-bg rounded-2xl p-3 space-y-1.5 border border-secondary-bg/50">
+          <div className="bg-page-bg rounded-2xl p-3 space-y-1.5 border border-border-main/50">
             <span className="text-[10px] text-text-muted font-medium block">Description</span>
             <p className="text-xs text-text-primary leading-relaxed font-light">
               {listing.description}

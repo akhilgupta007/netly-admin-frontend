@@ -8,8 +8,8 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in font-onest">
-      <div className="w-full max-w-sm bg-white rounded-3xl border border-secondary-bg shadow-xl p-6 space-y-6 animate-scale-up relative text-center">
-        
+      <div className="w-full max-w-sm bg-white rounded-3xl border border-border-main shadow-xl p-6 space-y-6 animate-scale-up relative text-center">
+
         {/* Close button top right */}
         <button
           onClick={onClose}
@@ -31,7 +31,7 @@ export default function LogoutModal({ isOpen, onClose, onConfirm }) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 bg-white border border-secondary-bg hover:bg-page-bg text-text-primary font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+            className="flex-1 bg-white border border-border-main hover:bg-page-bg text-text-primary font-medium text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
           >
             Cancel
           </button>

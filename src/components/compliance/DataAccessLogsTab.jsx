@@ -86,11 +86,11 @@ export default function DataAccessLogsTab() {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+            className="w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <div className="relative">
             <select
               value={filterDataType}
@@ -98,7 +98,7 @@ export default function DataAccessLogsTab() {
                 setFilterDataType(e.target.value);
                 setCurrentPage(1);
               }}
-              className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
+              className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
             >
               <option value="All">All Data Types</option>
               <option value="KYC Document">KYC Document</option>
@@ -142,8 +142,8 @@ export default function DataAccessLogsTab() {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-secondary-bg text-left">
-            <thead className="bg-secondary-bg text-text-primary text-sm">
+          <table className="min-w-full divide-y divide-secondary-bg text-left md:text-sm text-xs">
+            <thead className="bg-secondary-bg text-text-primary md:text-sm text-xs">
               <tr>
                 <th className="px-4 py-3 font-semibold">Timestamp</th>
                 <th className="px-4 py-3 font-semibold">Admin</th>
@@ -151,9 +151,9 @@ export default function DataAccessLogsTab() {
                 <th className="px-4 py-3 font-semibold">Record ID</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-secondary-bg">
+            <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs">
               {paginated.map((log, idx) => (
-                <tr key={idx} className="hover:bg-page-bg/50 transition text-text-primary text-xs">
+                <tr key={idx} className="hover:bg-page-bg/50 transition text-text-primary md:text-xs text-[10px]">
                   <td className="px-4 py-3 whitespace-pre-line leading-relaxed">{log.timestamp}</td>
                   <td className="px-4 py-3">{log.admin}</td>
                   <td className="px-4 py-3">{log.dataType}</td>

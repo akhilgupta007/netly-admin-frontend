@@ -18,13 +18,13 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
       <div className="absolute inset-0 bg-alt-bg/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-secondary-bg animate-scale-up mx-4 max-h-[90vh] flex flex-col">
-        
+      <div className="relative bg-white rounded-3xl max-w-xl w-full p-4 shadow-2xl z-10 border border-border-main animate-scale-up mx-4 max-h-[90vh] flex flex-col">
+
         {/* Modal Header */}
         <div className="flex justify-between items-center pb-2 mb-4 border-b border-border-main shrink-0">
           <h3 className="font-semibold text-text-primary">Client Detail</h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 cursor-pointer text-xs"
           >
             <X size={12} />
@@ -33,7 +33,7 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
 
         {/* Inner scrollable wrapper */}
         <div className="space-y-4 overflow-y-auto pr-2 flex-1 scrollbar-thin">
-          
+
           {/* User metadata header box */}
           <div className="bg-page-bg rounded-2xl p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -41,18 +41,17 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
                 {getInitials(client.name)}
               </div>
               <h4 className="text-sm font-semibold text-text-primary">{client.name}</h4>
-              </div>
-              <div>
-                <span className={`inline-block px-2 py-0.5 rounded-full text-xs mt-1 ${
-                  client.status === "Active" 
-                    ? "bg-emerald-50 text-emerald-600" 
-                    : client.status === "Pending Verification"
+            </div>
+            <div>
+              <span className={`inline-block px-2 py-0.5 rounded-full text-xs mt-1 ${client.status === "Active"
+                  ? "bg-emerald-50 text-emerald-600"
+                  : client.status === "Pending Verification"
                     ? "bg-amber-50 text-amber-600"
                     : "bg-red-50 text-red-600"
                 }`}>
-                  {client.status}
-                </span>
-              </div>
+                {client.status}
+              </span>
+            </div>
           </div>
 
           {/* Details layout with vertical column dividers (x-axis separators) */}
@@ -94,7 +93,7 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
               <span className="text-text-muted text-[10px]">Recent Bookings (21)</span>
-              <button 
+              <button
                 onClick={() => toast.info("Viewing all client bookings...")}
                 className="text-primary-bg hover:underline font-light text-[10px]"
               >
@@ -124,12 +123,12 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
             <div>
               <span className="text-text-muted text-[10px]">Suspension History</span>
               <div className="bg-red-50 rounded-xl p-3 flex justify-between items-center text-[10px] text-text-primary leading-snug animate-fade-in mt-1">
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold block text-sm text-text-primary">Jun 10, 2027</span>
-                <p className="text-red-700 font-light">Multiple payment disputes filed without evidence.</p>
+                <div className="flex flex-col gap-1">
+                  <span className="font-semibold block text-sm text-text-primary">Jun 10, 2027</span>
+                  <p className="text-red-700 font-light">Multiple payment disputes filed without evidence.</p>
+                </div>
+                <span className="text-xs text-text-primary font-medium shrink-0 ml-4">By Admin A</span>
               </div>
-              <span className="text-xs text-text-primary font-medium shrink-0 ml-4">By Admin A</span>
-            </div>
             </div>
           )}
 

@@ -12,9 +12,9 @@ export default function CommissionsPage() {
 
   return (
     <div className="space-y-4 font-onest">
-      
+
       {/* Dynamic Tab Navigation headers matching Accounts/Wallets styling */}
-      <div className="flex border-b border-secondary-bg text-xs">
+      <div className="flex border-b border-border-main text-xs">
         {[
           { id: "Commission Settings", label: "Commission Settings" },
           { id: "Payout Queue", label: "Payout Queue" },
@@ -23,11 +23,10 @@ export default function CommissionsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${
-              activeTab === tab.id
+            className={`px-4 py-2 -mb-px font-semibold transition hover:text-primary-bg cursor-pointer ${activeTab === tab.id
                 ? "border-b-2 border-text-primary text-text-primary font-bold"
                 : "text-text-muted"
-            }`}
+              }`}
           >
             {tab.label}
           </button>

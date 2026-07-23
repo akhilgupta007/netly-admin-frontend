@@ -45,9 +45,9 @@ export default function TransferQueueTab({
   const paginated = transferQueue.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
+    <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
       {/* Filters controls bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
           <input
@@ -55,17 +55,17 @@ export default function TransferQueueTab({
             placeholder="Search by name, email or Request ID..."
             value={searchTerm}
             onChange={(e) => { onSearchChange(e.target.value); setCurrentPage(1); }}
-            className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+            className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           {/* Status filter */}
           <div className="relative">
             <select
               value={filterStatus}
               onChange={(e) => { onStatusChange(e.target.value); setCurrentPage(1); }}
-              className="border border-border-main text-xs rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
+              className="border border-border-main md:text-xs text-[10px] rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
             >
               <option value="All">Status</option>
               <option value="Requested">Requested</option>
@@ -91,8 +91,8 @@ export default function TransferQueueTab({
 
       {/* Table contents */}
       <div className="overflow-x-auto rounded-b-3xl">
-        <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-          <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+        <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+          <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
             <tr>
               <th className="px-4 py-3 font-semibold">Request ID</th>
               <th className="px-4 py-3 font-semibold">Client</th>
@@ -103,7 +103,7 @@ export default function TransferQueueTab({
               <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-secondary-bg text-sm">
+          <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs">
             {isLoading ? (
               <tr>
                 <td colSpan="7" className="px-6 py-12 text-center text-text-muted font-light">
@@ -121,7 +121,7 @@ export default function TransferQueueTab({
                   Error: "bg-red-50 text-red-600",
                   Rejected: "bg-neutral-50 text-neutral-600"
                 };
-                const statusClass = statusColors[item.status] || "bg-secondary-bg text-text-muted border-secondary-bg";
+                const statusClass = statusColors[item.status] || "bg-secondary-bg text-text-muted border-border-main";
 
                 return (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
@@ -136,7 +136,7 @@ export default function TransferQueueTab({
                     <td className="px-4 py-3 text-text-primary">{item.txn}</td>
                     <td className="px-4 py-3 text-text-primary">{item.date}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-xs ${statusClass}`}>
+                      <span className={`inline-block px-2.5 py-1 rounded-full md:text-xs text-[10px] ${statusClass}`}>
                         {item.status}
                       </span>
                     </td>
@@ -161,7 +161,7 @@ export default function TransferQueueTab({
                           </button>
                           {openDropdownId === item.id && (
                             <div
-                              className="fixed w-36 bg-white border border-secondary-bg rounded-xl shadow-lg z-50 py-1 animate-scale-up"
+                              className="fixed w-36 bg-white border border-border-main rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                               style={{ top: dropdownPos.top, left: dropdownPos.left }}
                             >
                               <button

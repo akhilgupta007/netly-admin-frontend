@@ -230,7 +230,7 @@ export default function FoundingPartnersPage() {
   // Modal handlers
   const handleSuspendBanSubmit = (partner, data) => {
     const updatedStatus = data.actionType === "Suspend (Temporary)" ? "Suspended" : "Banned";
-    const updated = partners.map(p => 
+    const updated = partners.map(p =>
       p.id === partner.id ? { ...p, status: updatedStatus } : p
     );
     savePartners(updated);
@@ -239,7 +239,7 @@ export default function FoundingPartnersPage() {
     toast.success(`Partner account status updated to ${updatedStatus}.`);
   };
   const handleReactivatePartner = (partnerId) => {
-    const updated = partners.map(p => 
+    const updated = partners.map(p =>
       p.id === partnerId ? { ...p, status: "Active" } : p
     );
     savePartners(updated);
@@ -297,10 +297,10 @@ export default function FoundingPartnersPage() {
       </div>
 
       {/* Main Table Container Box */}
-      <div className="bg-white rounded-3xl border border-secondary-bg hover:shadow-xs relative overflow-visible">
-        
+      <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+
         {/* Filters control bar */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -311,11 +311,11 @@ export default function FoundingPartnersPage() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-sm w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center">
             <div className="relative">
               <select
                 value={filterStatus}
@@ -323,7 +323,7 @@ export default function FoundingPartnersPage() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
                 <option value="Active">Active</option>
@@ -362,8 +362,8 @@ export default function FoundingPartnersPage() {
         ) : (
           <>
             <div className="overflow-x-auto overflow-y-visible rounded-b-3xl">
-              <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-                <thead className="bg-secondary-bg text-text-primary text-left text-sm font-bold">
+              <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+                <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs font-bold">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Email Address</th>
@@ -372,19 +372,18 @@ export default function FoundingPartnersPage() {
                     <th className="px-4 py-3 font-semibold w-10">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+                <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedPartners.map((item, idx) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
                       <td className="px-4 py-3">{item.name}</td>
                       <td className="px-4 py-3">{item.email}</td>
-                      <td className="px-4 py-3">{item.date}</td>
+                      <td className="px-4 py-3 text-nowrap">{item.date}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                          item.status === "Active" ? "text-emerald-500 bg-emerald-50" :
-                          item.status === "Invited" ? "text-blue-500 bg-blue-50" :
-                          item.status === "Declined" ? "text-text-muted bg-page-bg" :
-                          "text-red-500 bg-red-50"
-                        }`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium ${item.status === "Active" ? "text-emerald-500 bg-emerald-50" :
+                            item.status === "Invited" ? "text-blue-500 bg-blue-50" :
+                              item.status === "Declined" ? "text-text-muted bg-page-bg" :
+                                "text-red-500 bg-red-50"
+                          }`}>
                           <span className="h-1 w-1 rounded-full bg-current" />
                           {item.status}
                         </span>
@@ -410,7 +409,7 @@ export default function FoundingPartnersPage() {
                         {/* Actions context menu overlay */}
                         {activeMenuRowId === item.id && (
                           <div
-                            className="fixed w-40 bg-white border border-secondary-bg rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
+                            className="fixed w-40 bg-white border border-border-main rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
                             style={{ top: dropdownPos.top, left: dropdownPos.left }}
                           >
                             <button

@@ -90,7 +90,7 @@ export default function PayoutQueueTab() {
   const filteredPayouts = useMemo(() => {
     return payouts.filter((item) => {
       const matchSearch = item.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.email.toLowerCase().includes(searchTerm.toLowerCase());
+        item.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchStatus = filterStatus === "All" || item.status === filterStatus;
 
       if (startDate && endDate) {
@@ -156,8 +156,8 @@ export default function PayoutQueueTab() {
         />
       </div>
 
-      <div className="border border-secondary-bg rounded-3xl overflow-visible bg-white shadow-2xs relative z-20">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border-b border-secondary-bg">
+      <div className="border border-border-main rounded-3xl overflow-visible bg-white shadow-2xs relative z-20">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -168,10 +168,10 @@ export default function PayoutQueueTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center">
             <div className="relative">
               <select
                 value={filterStatus}
@@ -179,7 +179,7 @@ export default function PayoutQueueTab() {
                   setFilterStatus(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
                 <option value="Pending">Pending</option>
@@ -215,8 +215,8 @@ export default function PayoutQueueTab() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-b-3xl">
-            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight text-left">
-              <thead className="bg-secondary-bg text-text-primary text-sm">
+            <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight text-left">
+              <thead className="bg-secondary-bg text-text-primary md:text-sm text-xs">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Provider</th>
                   <th className="px-4 py-3 font-semibold">Wallet Balance</th>
@@ -227,21 +227,21 @@ export default function PayoutQueueTab() {
                   <th className="px-4 py-3 text-right pr-6 font-semibold w-24">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {paginated.map((item) => (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
                     <td className="px-4 py-3 flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center font-light text-[10px] select-none uppercase shrink-0">
+                      <div className="w-7 h-7 rounded-md bg-primary-bg-muted text-white flex items-center justify-center font-light md:text-[10px] text-[7px] select-none uppercase shrink-0">
                         {item.initials}
                       </div>
                       <div>
                         <span className="text-text-primary block leading-none">{item.provider}</span>
-                        <span className="text-[10px] text-text-muted font-light mt-0.5 block">{item.email}</span>
+                        <span className="md:text-[10px] text-[7px] text-text-muted font-light mt-0.5 block">{item.email}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold text-primary-bg block">${item.walletBalance.toFixed(2)}</span>
-                      <span className="text-[10px] text-text-muted font-light mt-0.5 block">{item.walletStatus}</span>
+                      <span className="md:text-[10px] text-[7px] text-text-muted font-light mt-0.5 block">{item.walletStatus}</span>
                     </td>
                     <td className="px-4 py-3">
                       <span>{item.completedBookings} Bookings</span>
@@ -251,12 +251,11 @@ export default function PayoutQueueTab() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className={`font-semibold text-xs leading-none ${
-                          item.status === "Pending" ? "text-amber-500" :
-                          item.status === "Processing" ? "text-blue-500" :
-                          item.status === "Completed" ? "text-[#10B981]" :
-                          "text-red-500"
-                        }`}>
+                        <span className={`font-semibold md:text-xs text-[10px] leading-none ${item.status === "Pending" ? "text-amber-500" :
+                            item.status === "Processing" ? "text-blue-500" :
+                              item.status === "Completed" ? "text-[#10B981]" :
+                                "text-red-500"
+                          }`}>
                           • {item.status}
                         </span>
                         <span className="text-[9px] text-text-muted font-light mt-1 block leading-tight">{item.statusDesc}</span>
@@ -268,7 +267,7 @@ export default function PayoutQueueTab() {
                     <td className="px-4 py-3 text-right pr-6">
                       <button
                         onClick={() => handleActionClick(item)}
-                        className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg bg-white hover:bg-page-bg/30 px-3 py-1.5 rounded-lg transition cursor-pointer select-none font-semibold text-xs whitespace-nowrap text-center"
+                        className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg bg-white hover:bg-page-bg/30 px-3 py-1.5 rounded-lg transition cursor-pointer select-none font-semibold md:text-xs text-[10px] whitespace-nowrap text-center"
                       >
                         {item.status === "Pending" ? "Hold" : item.status === "Failed" ? "Retry" : "View"}
                       </button>

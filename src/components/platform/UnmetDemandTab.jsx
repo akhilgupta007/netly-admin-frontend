@@ -80,11 +80,11 @@ export default function UnmetDemandTab() {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+            className="w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
           />
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
@@ -115,8 +115,8 @@ export default function UnmetDemandTab() {
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-secondary-bg text-left">
-              <thead className="bg-secondary-bg text-text-primary text-sm font-bold">
+            <table className="min-w-full divide-y divide-secondary-bg text-left md:text-sm text-xs">
+              <thead className="bg-secondary-bg text-text-primary md:text-sm text-xs font-bold">
                 <tr>
                   <th className="px-4 py-3 font-semibold w-1/4">City</th>
                   <th className="px-4 py-3 font-semibold w-1/3">Category</th>
@@ -124,7 +124,7 @@ export default function UnmetDemandTab() {
                   <th className="px-4 py-3 font-semibold text-center w-32">Last Search</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {paginated.map((item) => (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
                     <td className="px-4 py-3 flex items-center gap-2">

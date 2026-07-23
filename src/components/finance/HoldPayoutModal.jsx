@@ -16,7 +16,7 @@ export default function HoldPayoutModal({ isOpen, onClose, payout, onConfirm }) 
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-6 max-w-xl w-full space-y-4 shadow-xl relative animate-scale-up font-onest">
+      <div className="bg-white rounded-3xl p-4 max-w-xl w-full space-y-4 shadow-xl relative animate-scale-up font-onest">
         <div className="flex justify-between pb-2 border-b border-border-main">
           <h2 className="text-lg font-bold text-text-primary pr-8">Hold Provider Payout</h2>
           <button

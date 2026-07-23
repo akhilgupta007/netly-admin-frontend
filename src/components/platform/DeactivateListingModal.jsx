@@ -16,10 +16,10 @@ export default function DeactivateListingModal({ listing, isOpen, onClose, onDea
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
+      <div className="w-full max-w-lg bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
 
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="font-semibold text-text-primary">Deactivate Listing</h3>
           <button
             type="button"
@@ -33,7 +33,7 @@ export default function DeactivateListingModal({ listing, isOpen, onClose, onDea
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs">
           {/* Listing preview card */}
-          <div className="bg-page-bg rounded-2xl p-3 space-y-2 border border-secondary-bg/50">
+          <div className="bg-page-bg rounded-2xl p-3 space-y-2 border border-border-main/50">
             <div className="block text-text-primary">{listing.provider}</div>
             <span className="text-[10px] text-text-muted font-light block mt-0.5">{listing.title}</span>
           </div>
@@ -48,7 +48,7 @@ export default function DeactivateListingModal({ listing, isOpen, onClose, onDea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Describe why this listing is being deactivated..."
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted resize-none"
             />
           </div>
 

@@ -34,11 +34,11 @@ export default function T4ATaxTab() {
 
   const handleGenerateT4A = (e) => {
     e.preventDefault();
-    
+
     // Simulate generation logs
     const newSlips = [];
     const generatedDateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    
+
     if (providerInput.trim()) {
       newSlips.push({
         id: String(slips.length + 1),
@@ -69,7 +69,7 @@ export default function T4ATaxTab() {
   const filteredSlips = useMemo(() => {
     return slips.filter((s) => {
       const matchSearch = s.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          s.generatedBy.toLowerCase().includes(searchTerm.toLowerCase());
+        s.generatedBy.toLowerCase().includes(searchTerm.toLowerCase());
       const matchYear = filterYear === "All" || String(s.taxYear) === filterYear;
 
       return matchSearch && matchYear;
@@ -91,28 +91,28 @@ export default function T4ATaxTab() {
 
   return (
     <div className="space-y-4 animate-scale-up">
-      
+
       {/* Generate T4A Slips Form Panel (Slide 2) */}
-      <form onSubmit={handleGenerateT4A} className="bg-white border border-secondary-bg rounded-3xl p-5 space-y-4 hover:shadow-xs">
-        <div className="flex justify-between items-center pb-2">
+      <form onSubmit={handleGenerateT4A} className="bg-white border border-border-main rounded-3xl p-5 space-y-4 hover:shadow-xs">
+        <div className="flex justify-between items-center pb-2 gap-4">
           <span className="text-sm font-semibold text-text-primary">Generate T4A Slips</span>
           <button
             type="submit"
-            className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 px-10 rounded-lg transition cursor-pointer"
+            className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 md:px-10 px-6 rounded-lg transition cursor-pointer"
           >
             Generate T4A
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          
+
           <div className="space-y-2">
             <label className="text-xs text-text-primary block">Tax year <span className="text-red-500">*</span></label>
             <div className="relative">
               <select
                 value={taxYearInput}
                 onChange={(e) => setTaxYearInput(e.target.value)}
-                className="appearance-none bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary w-full cursor-pointer"
+                className="appearance-none bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary w-full cursor-pointer"
               >
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
@@ -131,7 +131,7 @@ export default function T4ATaxTab() {
               value={providerInput}
               onChange={(e) => setProviderInput(e.target.value)}
               placeholder="Provider Name"
-              className="w-full bg-white border border-secondary-bg text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
             <span className="text-[10px] text-text-muted block mt-0.5">Leave blank to generate for all providers</span>
           </div>
@@ -140,10 +140,10 @@ export default function T4ATaxTab() {
       </form>
 
       {/* Slips table listing container box */}
-      <div className="border border-secondary-bg rounded-3xl overflow-visible bg-white hover:shadow-xs relative z-20">
-        
+      <div className="border border-border-main rounded-3xl overflow-visible bg-white hover:shadow-xs relative z-20">
+
         {/* Filters control row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-secondary-bg">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
             <input
@@ -154,11 +154,11 @@ export default function T4ATaxTab() {
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="max-w-md w-full border border-border-main text-xs rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+              className="max-w-md w-full border border-border-main md:text-xs text-[10px] rounded-full pl-9 pr-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center">
             <div className="relative">
               <select
                 value={filterYear}
@@ -166,7 +166,7 @@ export default function T4ATaxTab() {
                   setFilterYear(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Tax Year</option>
                 <option value="2026">2026</option>
@@ -204,8 +204,8 @@ export default function T4ATaxTab() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-b-3xl">
-            <table className="min-w-full divide-y divide-secondary-bg text-sm tracking-tight">
-              <thead className="bg-secondary-bg text-text-primary text-left text-sm">
+            <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
+              <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Provider</th>
                   <th className="px-4 py-3 font-semibold">Tax Year</th>
@@ -214,7 +214,7 @@ export default function T4ATaxTab() {
                   <th className="px-4 py-3 text-right pr-6 font-semibold w-32">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-secondary-bg text-sm text-text-primary">
+              <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {paginated.map((row) => (
                   <tr key={row.id} className="hover:bg-page-bg/50 transition">
                     <td className="px-4 py-3">{row.provider}</td>
@@ -224,7 +224,7 @@ export default function T4ATaxTab() {
                     <td className="px-4 py-3 text-right pr-6">
                       <button
                         onClick={() => setSelectedSlip(row)}
-                        className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold text-xs px-3.5 py-1 rounded-lg transition cursor-pointer text-center whitespace-nowrap"
+                        className="border border-primary-bg-muted hover:border-primary-bg text-primary-bg font-semibold md:text-xs text-[10px] px-3.5 py-1 rounded-lg transition cursor-pointer text-center whitespace-nowrap"
                       >
                         Preview & Download
                       </button>

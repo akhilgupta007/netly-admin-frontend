@@ -41,10 +41,10 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-md bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <div>
             <h3 className="text-sm font-semibold text-text-primary">Change Password</h3>
             <p className="text-[10px] text-text-muted font-light mt-0.5">
@@ -62,7 +62,7 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
 
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
-          
+
           {/* Current password */}
           <div className="space-y-1">
             <label className="text-xs text-text-muted block">Current Password</label>
@@ -120,11 +120,10 @@ export default function ChangePasswordModal({ isOpen, onClose, onUpdate }) {
             ].map((rule, idx) => (
               <span
                 key={idx}
-                className={`px-2.5 py-1 rounded-full text-[10px] border transition duration-150 select-none border-border-main ${
-                  rule.active
+                className={`px-2.5 py-1 rounded-full text-[10px] border transition duration-150 select-none border-border-main ${rule.active
                     ? "bg-primary-bg-muted text-white"
                     : "text-primary-bg"
-                }`}
+                  }`}
               >
                 {rule.label}
               </span>

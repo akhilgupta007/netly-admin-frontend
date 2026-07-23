@@ -21,10 +21,10 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-3xl border border-secondary-bg shadow-xl overflow-hidden flex flex-col animate-scale-up">
-        
+      <div className="w-full max-w-md bg-white rounded-3xl border border-border-main shadow-xl overflow-hidden flex flex-col animate-scale-up">
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-4 border-b border-secondary-bg">
+        <div className="flex items-center justify-between p-4 border-b border-border-main">
           <h3 className="text-base font-semibold text-text-primary">Change Role</h3>
           <button
             type="button"
@@ -39,8 +39,8 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs text-text-primary font-onest">
           {/* User details card */}
           <div className="rounded-xl p-3 border border-border-main">
-              <h4 className="text-xs text-text-primary">{user.name}</h4>
-              <p className="text-[10px] mt-2 text-text-muted">{user.email}</p>
+            <h4 className="text-xs text-text-primary">{user.name}</h4>
+            <p className="text-[10px] mt-2 text-text-muted">{user.email}</p>
           </div>
 
           {/* Role select */}
