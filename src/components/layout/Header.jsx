@@ -3,9 +3,26 @@
 import { usePathname } from "next/navigation";
 import { Bell, Menu, User } from "lucide-react";
 import { navigation } from "./Sidebar";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useEffect, useState } from "react";
 
 export default function Header({ setSidebarOpen, title: propTitle, subtitle: propSubtitle }) {
   const pathname = usePathname();
+  
+  const authRole = useAuthStore((state) => state.role);
+  const [adminName, setAdminName] = useState("Sophia");
+
+  useEffect(() => {
+    const storedProfile = localStorage.getItem("netly_admin_profile");
+    if (storedProfile) {
+      try {
+        const parsed = JSON.parse(storedProfile);
+        if (parsed.firstName) {
+          setAdminName(parsed.firstName);
+        }
+      } catch (e) {}
+    }
+  }, []);
 
   // Extract all navigation items into a single flat array
   const allItems = navigation.flatMap((group) => group.items);
@@ -90,8 +107,8 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
           </div>
           {/* User details text */}
           <div className="hidden sm:flex flex-col text-left">
-            <span className="text-sm font-medium text-text-primary leading-tight">Sophia</span>
-            <span className="text-xs text-text-muted font-light leading-none">Admin</span>
+            <span className="text-sm font-medium text-text-primary leading-tight">{adminName}</span>
+            <span className="text-xs text-text-muted font-light leading-none">{authRole || "Admin"}</span>
           </div>
         </div>
       </div>

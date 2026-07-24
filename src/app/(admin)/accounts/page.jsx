@@ -68,8 +68,12 @@ export default function AccountsPage() {
   }), [searchTerm, filterStatus, filterKYC, startDate, endDate, providerPage]);
 
   // Custom React Query Firestore hooks with backend search, filter, and pagination
-  const { clients, total: totalClients, isLoading: isClientsLoading } = useClients(clientParams);
-  const { providers, total: totalProviders, isLoading: isProvidersLoading } = useProviders(providerParams);
+  const { clients, total: totalClients, isLoading: isClientsLoading } = useClients(clientParams, {
+    enabled: activeTab === "Clients"
+  });
+  const { providers, total: totalProviders, isLoading: isProvidersLoading } = useProviders(providerParams, {
+    enabled: activeTab === "Providers"
+  });
 
   // Active action menu states
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -238,6 +242,7 @@ export default function AccountsPage() {
         <ClientsTab
           clients={clients}
           totalItems={totalClients}
+          isLoading={isClientsLoading}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}
@@ -266,6 +271,7 @@ export default function AccountsPage() {
         <ProvidersTab
           providers={providers}
           totalItems={totalProviders}
+          isLoading={isProvidersLoading}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           filterStatus={filterStatus}

@@ -3,16 +3,29 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
+import { forgotPasswordAPI } from "@/services/authService";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const router = useRouter();
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: () => forgotPasswordAPI(email),
+    onSuccess: () => {
+      toast.success("Reset link sent successfully!");
+      router.push("/check-email");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to send reset link.");
+    },
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    // API call will be added later
-    console.log("Reset link sent to:", email);
-    router.push("/check-email");
+    forgotPasswordMutation.mutate();
   };
 
   return (
@@ -42,7 +55,8 @@ export default function ForgotPasswordPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition"
+          disabled={forgotPasswordMutation.isPending}
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition disabled:opacity-60"
         />
       </div>
 
@@ -50,9 +64,11 @@ export default function ForgotPasswordPage() {
         {/* Submit */}
         <button
           type="submit"
-          className="w-full rounded-xl bg-primary-bg py-2.5 text-sm font-medium text-white hover:opacity-90 transition cursor-pointer"
+          disabled={forgotPasswordMutation.isPending}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-bg py-2.5 text-sm font-medium text-white hover:opacity-90 transition cursor-pointer disabled:opacity-60"
         >
-          Send Reset Link
+          {forgotPasswordMutation.isPending && <Loader2 size={16} className="animate-spin" />}
+          {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
         </button>
 
         {/* Back to login */}

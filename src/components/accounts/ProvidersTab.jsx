@@ -26,7 +26,8 @@ export default function ProvidersTab({
   onPayouts,
   onSuspendBan,
   onInviteClick,
-  totalItems
+  totalItems,
+  isLoading,
 }) {
   const getKycClass = (kyc) => {
     switch (kyc) {
@@ -40,11 +41,6 @@ export default function ProvidersTab({
   };
   const [openMenuId, setOpenMenuId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {

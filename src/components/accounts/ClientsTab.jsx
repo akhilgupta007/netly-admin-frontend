@@ -23,14 +23,10 @@ export default function ClientsTab({
   onSuspendBan,
   onInviteClick,
   totalItems,
+  isLoading,
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {

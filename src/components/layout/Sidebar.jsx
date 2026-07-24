@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LogoutModal from "./LogoutModal";
+import { useAuthStore } from "@/store/useAuthStore";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -64,6 +65,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const pathname = usePathname();
   const router = useRouter();
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
 
   return (
     <>
@@ -77,7 +79,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-66 flex-col border-r border-border-main bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 flex w-68 flex-col border-r border-border-main bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         {/* Sidebar Header / Logo */}
@@ -86,8 +88,8 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             <Image
               src="/logo.png"
               alt="Netly Logo"
-              width={70}
-              height={14}
+              width={64}
+              height={12}
               style={{ width: "auto", height: "auto" }}
               className="object-contain"
               priority
@@ -96,31 +98,34 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
         </div>
 
         {/* Sidebar Nav Items */}
-        <nav className="flex-1 space-y-2 overflow-y-auto p-4 scrollbar-thin">
+        <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-2 scrollbar-thin">
           {navigation.map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-1">
               {group.label && (
-                <h3 className=" text-sm">
+                <span className="block text-sm font-medium tracking-wider text-text-primary select-none">
                   {group.label}
-                </h3>
+                </span>
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
+                  const Icon = item.icon;
                   const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/");
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
-                      onClick={() => setSidebarOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2 text-sm font-light rounded-xl transition-all duration-200 ${isActive
-                          ? "bg-primary-bg text-white shadow-sm animate-fade-in"
-                          : "text-text-muted hover:bg-secondary-bg hover:text-text-primary"
+                      onClick={() => {
+                        // Close sidebar on mobile select tab
+                        if (window.innerWidth < 768) {
+                          setSidebarOpen(false);
+                        }
+                      }}
+                      className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer ${isActive
+                        ? "bg-primary-bg-muted text-text-primary"
+                        : "text-text-muted hover:bg-page-bg hover:text-text-primary"
                         }`}
                     >
-                      <item.icon
-                        size={18}
-                        className={isActive ? "text-white" : "text-text-muted"}
-                      />
+                      <Icon size={18} className={isActive ? "text-text-primary animate-pulse-once" : "text-text-muted"} />
                       <span>{item.name}</span>
                     </Link>
                   );
@@ -147,7 +152,15 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
       <LogoutModal
         isOpen={logoutOpen}
         onClose={() => setLogoutOpen(false)}
-        onConfirm={() => {
+        onConfirm={async () => {
+          try {
+            const { signOut } = await import("firebase/auth");
+            const { auth } = await import("@/lib/firebase");
+            await signOut(auth);
+          } catch (e) {
+            console.warn("Client-side Firebase Auth signout sync warning:", e.message);
+          }
+          clearAuth();
           setLogoutOpen(false);
           router.push("/login");
         }}

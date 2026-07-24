@@ -3,7 +3,8 @@ import {
   collection, 
   getDocs, 
   query, 
-  where 
+  where,
+  collectionGroup
 } from "@/lib/firebase";
 import { 
   userSchema, 
@@ -92,7 +93,7 @@ export async function fetchClientsFromFirestore(params = {}) {
   try {
     const usersRef = collection(db, "users");
     
-    // Construct Firestore backend queries
+    // Query only clients!
     const queryConstraints = [where("accountType", "==", "client")];
     if (filterStatus !== "All") {
       queryConstraints.push(where("status", "==", filterStatus.toLowerCase()));
@@ -101,20 +102,13 @@ export async function fetchClientsFromFirestore(params = {}) {
     const q = query(usersRef, ...queryConstraints);
     const snapshot = await getDocs(q);
 
-    let userDocs = snapshot.docs;
-    if (snapshot.empty) {
-      const allUsersSnap = await getDocs(usersRef);
-      userDocs = allUsersSnap.docs;
-    }
-
-    if (userDocs.length === 0) {
+    const clientDocs = snapshot.docs;
+    if (clientDocs.length === 0) {
       return { items: [], total: 0, totalPages: 1 };
     }
 
-    const clientPromises = userDocs.map(async (userDoc) => {
+    const clientPromises = clientDocs.map(async (userDoc) => {
       const userData = userDoc.data();
-      if (userData.accountType && userData.accountType !== "client") return null;
-
       const clientSubRef = collection(db, `users/${userDoc.id}/client`);
       const clientSubSnap = await getDocs(clientSubRef);
       const clientProfile = clientSubSnap.docs.length > 0 ? clientSubSnap.docs[0].data() : {};
@@ -142,17 +136,12 @@ export async function fetchClientsFromFirestore(params = {}) {
 
     let items = (await Promise.all(clientPromises)).filter(Boolean);
 
-    // Apply search filter on backend fields
+    // Apply search filter
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       items = items.filter(
         (c) => c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term)
       );
-    }
-
-    // Apply status filter fallback
-    if (filterStatus !== "All") {
-      items = items.filter((c) => c.status.toLowerCase() === filterStatus.toLowerCase());
     }
 
     // Apply date range filter
@@ -172,13 +161,7 @@ export async function fetchClientsFromFirestore(params = {}) {
 
     return { items: paginatedItems, total, totalPages };
   } catch (error) {
-    if (error?.code === "permission-denied" || error?.message?.includes("insufficient permissions")) {
-      console.info(
-        "ℹ️ Firestore Notice: To enable live Firestore reads, paste your project keys into .env.local and set Firestore rules to allow reads (allow read: if true;)."
-      );
-    } else {
-      console.warn("Firestore fetchClients error:", error);
-    }
+    console.error("Firestore fetchClients raw error:", error);
     return { items: [], total: 0, totalPages: 1 };
   }
 }
@@ -199,6 +182,8 @@ export async function fetchProvidersFromFirestore(params = {}) {
 
   try {
     const usersRef = collection(db, "users");
+    
+    // Query only providers!
     const queryConstraints = [where("accountType", "==", "provider")];
     if (filterStatus !== "All") {
       queryConstraints.push(where("status", "==", filterStatus.toLowerCase()));
@@ -207,24 +192,15 @@ export async function fetchProvidersFromFirestore(params = {}) {
     const q = query(usersRef, ...queryConstraints);
     const snapshot = await getDocs(q);
 
-    let userDocs = snapshot.docs;
-    if (snapshot.empty) {
-      const allUsersSnap = await getDocs(usersRef);
-      userDocs = allUsersSnap.docs;
-    }
-
-    if (userDocs.length === 0) {
+    const providerDocs = snapshot.docs;
+    if (providerDocs.length === 0) {
       return { items: [], total: 0, totalPages: 1 };
     }
 
-    const providerPromises = userDocs.map(async (userDoc) => {
+    const providerPromises = providerDocs.map(async (userDoc) => {
       const userData = userDoc.data();
-      if (userData.accountType && userData.accountType !== "provider" && !snapshot.empty) return null;
-
       const providerSubRef = collection(db, `users/${userDoc.id}/provider`);
       const providerSubSnap = await getDocs(providerSubRef);
-      if (providerSubSnap.empty && snapshot.empty) return null;
-
       const providerProfile = providerSubSnap.docs.length > 0 ? providerSubSnap.docs[0].data() : {};
 
       const kycRawStatus = providerProfile.kycStatus || "notSubmitted";
@@ -281,11 +257,6 @@ export async function fetchProvidersFromFirestore(params = {}) {
       );
     }
 
-    // Filter status
-    if (filterStatus !== "All") {
-      items = items.filter((p) => p.status.toLowerCase() === filterStatus.toLowerCase());
-    }
-
     // Filter KYC
     if (filterKYC !== "All") {
       items = items.filter((p) => p.kyc.toLowerCase() === filterKYC.toLowerCase());
@@ -308,13 +279,7 @@ export async function fetchProvidersFromFirestore(params = {}) {
 
     return { items: paginatedItems, total, totalPages };
   } catch (error) {
-    if (error?.code === "permission-denied" || error?.message?.includes("insufficient permissions")) {
-      console.info(
-        "ℹ️ Firestore Notice: To enable live Firestore reads, paste your project keys into .env.local and set Firestore rules to allow reads (allow read: if true;)."
-      );
-    } else {
-      console.warn("Firestore fetchProviders error:", error);
-    }
+    console.error("Firestore fetchProviders raw error:", error);
     return { items: [], total: 0, totalPages: 1 };
   }
 }
@@ -364,7 +329,12 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
     }
 
     if (filterStatus !== "All") {
-      items = items.filter((k) => k.status.toLowerCase() === filterStatus.toLowerCase());
+      items = items.filter((k) => {
+        if (filterStatus === "In Review") {
+          return ["in review", "pending"].includes(k.status.toLowerCase());
+        }
+        return k.status.toLowerCase() === filterStatus.toLowerCase();
+      });
     }
 
     const total = items.length;

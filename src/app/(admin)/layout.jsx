@@ -1,18 +1,47 @@
 "use client";
 
-import React, { useState } from "react";
-import { usePathname } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar, { navigation } from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Loader2 } from "lucide-react";
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const token = useAuthStore((state) => state.token);
+  const isHydrated = useAuthStore((state) => state.isHydrated);
+  const hydrate = useAuthStore((state) => state.hydrate);
+
+  // Hydrate auth state on mount
+  useEffect(() => {
+    hydrate();
+  }, [hydrate]);
+
+  // Route guard redirect
+  useEffect(() => {
+    if (isHydrated && !token) {
+      router.replace("/login");
+    }
+  }, [isHydrated, token, router]);
 
   // Extract all navigation items into a single flat array
   const allItems = navigation.flatMap((group) => group.items);
+
+  // Show premium loading state during authentication check
+  if (!isHydrated || (isHydrated && !token)) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-page-bg space-y-3 font-onest">
+        <Loader2 size={32} className="animate-spin text-primary-bg" />
+        <span className="text-xs text-text-muted font-medium">Verifying credentials...</span>
+      </div>
+    );
+  }
   
   // Find active item matching current pathname (or prefix match for child routes)
   const activeItem =

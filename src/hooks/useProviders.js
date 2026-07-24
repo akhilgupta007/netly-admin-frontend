@@ -5,11 +5,12 @@ import { fetchProvidersFromFirestore } from "@/services/firestoreServices";
 
 const EMPTY_RESULT = { items: [], total: 0, totalPages: 1 };
 
-export function useProviders(params = {}) {
+export function useProviders(params = {}, options = {}) {
   const query = useQuery({
     queryKey: ["providers", params],
     queryFn: () => fetchProvidersFromFirestore(params),
     staleTime: 1000 * 60 * 5, // 5 minutes cache
+    ...options,
   });
 
   const result = query.data || EMPTY_RESULT;

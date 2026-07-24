@@ -1,4 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { 
   getFirestore, 
   collection, 
@@ -36,10 +37,14 @@ export const isFirebaseConfigured = Boolean(
 // Initialize Firebase (singleton pattern)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+
+console.log("🔥 Firebase Client SDK initialized on project:", firebaseConfig.projectId, "Configured:", isFirebaseConfigured);
 
 export { 
   app, 
   db, 
+  auth,
   collection, 
   doc, 
   getDocs, 
