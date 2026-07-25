@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Bell, Menu, User } from "lucide-react";
 import { navigation } from "./Sidebar";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -100,7 +101,10 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
         <div className="w-px h-10 bg-black/10 shrink-0"></div>
 
         {/* Profile Menu */}
-        <div className="flex items-center gap-2 sm:gap-3 py-1.5 pl-2 pr-2 sm:pr-4 rounded-xl border border-primary-bg/40 bg-page-bg shrink-0">
+        <Link
+          href="/platform/settings"
+          className="flex items-center gap-2 sm:gap-3 py-1.5 pl-2 pr-2 sm:pr-4 rounded-xl border border-primary-bg/40 bg-page-bg hover:bg-primary-bg/5 transition shrink-0 cursor-pointer"
+        >
           {/* Avatar Icon Wrapper */}
           <div className="flex p-1 items-center justify-center rounded-lg border border-primary-bg/50 bg-primary-bg/10 text-primary-bg shrink-0">
             <User size={18} fill="var(--color-primary-bg)" />
@@ -110,7 +114,7 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
             <span className="text-sm font-medium text-text-primary leading-tight">{adminName}</span>
             <span className="text-xs text-text-muted font-light leading-none">{authRole || "Admin"}</span>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

@@ -23,10 +23,10 @@ export default function DeleteUserDataModal({ user, onClose, onDeleteConfirm }) 
 
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 border-b border-border-main">
-          <h3 className="text-sm font-semibold text-text-primary">Delete User Data</h3>
+          <h3 className="text-base font-semibold text-text-primary">Delete User Data</h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-text-muted hover:text-text-primary hover:bg-page-bg transition cursor-pointer"
+            className="w-5 h-5 rounded-full bg-alt-bg text-white flex items-center justify-center hover:opacity-90 cursor-pointer"
           >
             <X size={14} />
           </button>
@@ -34,7 +34,7 @@ export default function DeleteUserDataModal({ user, onClose, onDeleteConfirm }) 
 
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="bg-page-bg/40 rounded-2xl p-4 border border-border-main/50">
+          <div className="bg-secondary-bg/40 rounded-2xl p-4">
             <h4 className="text-xs font-semibold text-text-primary">{user.name}</h4>
             <p className="text-[10px] text-text-muted font-light mt-0.5">{user.email}</p>
           </div>

@@ -362,7 +362,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Chart card column */}
-          <div className="bg-white rounded-2xl p-4 border border-border-main hover:shadow-xs transition-all duration-200 lg:col-span-2 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl p-4 hover:shadow-xs transition-all duration-200 lg:col-span-2 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -604,7 +604,7 @@ export default function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Cities */}
-          <div className="bg-white rounded-2xl p-4 border border-border-main hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl p-4 hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-6 gap-2">
                 <div className="flex items-center gap-2">
@@ -648,7 +648,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Trending Searches */}
-          <div className="bg-white rounded-2xl p-4 border border-border-main hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl p-4 hover:shadow-xs transition-all duration-200 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">

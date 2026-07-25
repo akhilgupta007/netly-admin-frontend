@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Search, Download, Clock, MailX } from "lucide-react";
+import { Search, Download, Clock, MailX, Trash } from "lucide-react";
 import { toast } from "react-toastify";
 import { exportCSV } from "@/utils/exportHelper";
+
+import DeleteUserDataModal from "./DeleteUserDataModal";
 
 const mockConsentRecords = [
   { name: "Amara Osei", email: "amara@gmail.com", lastUpdated: "Jan 12, 2027", dataConsent: true, dataConsentTime: "Jan 12, 2027 09:14", marketingConsent: false, marketingConsentTime: "Jan 12, 2027 09:14" },
@@ -14,6 +16,8 @@ const mockConsentRecords = [
 export default function ConsentManagementTab() {
   const [searchTerm, setSearchTerm] = useState("");
   const [consentList, setConsentList] = useState(mockConsentRecords);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedUserForDelete, setSelectedUserForDelete] = useState(null);
 
   const handleExportCSV = () => {
     const headers = ["Name", "Email", "Last Updated", "Data Consent", "Data Consent Time", "Marketing Consent", "Marketing Consent Time"];
@@ -46,6 +50,18 @@ export default function ConsentManagementTab() {
 
   const handleExportUserData = (email) => {
     toast.success(`PII personal archive generated for ${email}. Export sent to admin email.`);
+  };
+
+  const handleDeleteUserData = (user) => {
+    setSelectedUserForDelete(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteUserData = (email, reason) => {
+    setConsentList(prev => prev.filter(c => c.email !== email));
+    setIsDeleteModalOpen(false);
+    setSelectedUserForDelete(null);
+    toast.success(`User data for ${email} permanently deleted. Reason logged: "${reason}"`);
   };
 
   return (
@@ -130,9 +146,27 @@ export default function ConsentManagementTab() {
               >
                 <MailX size={13} /> Unsubscribe User
               </button>
+              <button
+                onClick={() => handleDeleteUserData(matchedRecord)}
+                className="flex-1 min-w-37.5 bg-white border border-red-500 text-red-500 hover:bg-red-50 font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash size={13} /> Delete User Data
+              </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete User Data Modal */}
+      {isDeleteModalOpen && selectedUserForDelete && (
+        <DeleteUserDataModal
+          user={selectedUserForDelete}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setSelectedUserForDelete(null);
+          }}
+          onDeleteConfirm={handleConfirmDeleteUserData}
+        />
       )}
     </div>
   );
