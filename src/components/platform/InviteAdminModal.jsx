@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
+import { ADMIN_ROLES, ASSIGNABLE_ADMIN_ROLES, roleLabel } from "@/lib/adminRoles";
 
-export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
+export default function InviteAdminModal({ isOpen, onClose, onInvite, isPending }) {
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("Moderator");
+  const [role, setRole] = useState(ADMIN_ROLES.MODERATOR);
 
   if (!isOpen) return null;
 
@@ -23,13 +24,13 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
       return;
     }
 
+    // Not cleared here — the parent unmounts this modal on success, so state
+    // resets naturally. Clearing on submit would wipe the form on a failed
+    // invite (duplicate email, SendGrid down) while the modal stays open.
     onInvite({
       email: email.trim(),
       role
     });
-
-    setEmail("");
-    setRole("Moderator");
   };
 
   return (
@@ -78,10 +79,9 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
               >
-                <option value="Finance Admin">Finance Admin</option>
-                <option value="Compliance Admin">Compliance Admin</option>
-                <option value="Moderator">Moderator</option>
-                <option value="Support Admin">Support Admin</option>
+                {ASSIGNABLE_ADMIN_ROLES.map((slug) => (
+                  <option key={slug} value={slug}>{roleLabel(slug)}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3.5 top-3.5 h-4 w-4 text-text-muted pointer-events-none" />
             </div>
@@ -90,9 +90,11 @@ export default function InviteAdminModal({ isOpen, onClose, onInvite }) {
           {/* Full width button */}
           <button
             type="submit"
-            className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2"
+            disabled={isPending}
+            className="w-full flex items-center justify-center gap-2 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Send Invite
+            {isPending && <Loader2 size={13} className="animate-spin" />}
+            {isPending ? "Sending Invite..." : "Send Invite"}
           </button>
         </form>
 

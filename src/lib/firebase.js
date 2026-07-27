@@ -34,10 +34,13 @@ export const isFirebaseConfigured = Boolean(
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.trim()
 );
 
+import { getFunctions, httpsCallable } from "firebase/functions";
+
 // Initialize Firebase (singleton pattern)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const functions = getFunctions(app, "us-central1");
 
 console.log("🔥 Firebase Client SDK initialized on project:", firebaseConfig.projectId, "Configured:", isFirebaseConfigured);
 
@@ -45,6 +48,8 @@ export {
   app, 
   db, 
   auth,
+  functions,
+  httpsCallable,
   collection, 
   doc, 
   getDocs, 

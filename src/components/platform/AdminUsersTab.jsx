@@ -9,6 +9,8 @@ import InviteAdminModal from "@/components/platform/InviteAdminModal";
 import ChangeRoleModal from "@/components/platform/ChangeRoleModal";
 import RevokeAccessModal from "@/components/platform/RevokeAccessModal";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useMutation } from "@tanstack/react-query";
+import { inviteAdmin } from "@/lib/callables";
 
 // Initial Mock Admins list matching Screenshot 1
 const initialAdmins = [
@@ -137,21 +139,34 @@ export default function AdminUsersTab() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Modal actions
+  const inviteMutation = useMutation({
+    mutationFn: inviteAdmin,
+    onSuccess: (data, variables) => {
+      // Optimistically add to local list for now, since we haven't wired up fetchAdminsFromFirestore yet
+      const newAdmin = {
+        id: data?.uid || `ADM-${Date.now()}`,
+        name: variables.email.split("@")[0].split(/[._-]/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" "),
+        email: variables.email,
+        role: variables.role,
+        lastLogin: "Never logged in",
+        dateTime: new Date(),
+        twoFA: "Setup Pending"
+      };
+      const updated = [...admins, newAdmin];
+      saveAdmins(updated);
+      setInviteOpen(false);
+      toast.success(`Invite sent successfully to ${variables.email}!`);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to send invite");
+    }
+  });
+
   const handleInviteSubmit = (data) => {
-    const newAdmin = {
-      id: `ADM-${Date.now()}`,
-      name: data.email.split("@")[0].split(/[._-]/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" "),
+    inviteMutation.mutate({
       email: data.email,
-      role: data.role,
-      lastLogin: "Never logged in",
-      dateTime: new Date(),
-      twoFA: "Setup Pending"
-    };
-    const updated = [...admins, newAdmin];
-    saveAdmins(updated);
-    setInviteOpen(false);
-    toast.success(`Invite sent successfully to ${data.email}!`);
+      role: data.role
+    });
   };
 
   const handleChangeRoleSubmit = (admin, newRole) => {
@@ -412,11 +427,14 @@ export default function AdminUsersTab() {
       </div>
 
       {/* Dialog Modals */}
-      <InviteAdminModal
-        isOpen={inviteOpen}
-        onClose={() => setInviteOpen(false)}
-        onInvite={handleInviteSubmit}
-      />
+      {inviteOpen && (
+        <InviteAdminModal
+          isOpen
+          onClose={() => setInviteOpen(false)}
+          onInvite={handleInviteSubmit}
+          isPending={inviteMutation.isPending}
+        />
+      )}
 
       {selectedAdmin && (
         <>
