@@ -32,3 +32,21 @@ export async function callFunction(name, payload = {}) {
 
 export const inviteAdmin = ({ email, role }) =>
   callFunction("inviteAdmin", { email, role });
+
+/** accountType must be "client" or "provider" — the backend rejects anything else. */
+export const inviteUser = ({ email, name, accountType, foundingPartnerBadge }) =>
+  callFunction("inviteUser", { email, name, accountType, foundingPartnerBadge });
+
+/** action is "suspend" | "ban" | "reactivate". Reason required except on reactivate. */
+export const updateAccountStatus = ({ uid, action, durationDays, reason, notifyEmail }) =>
+  callFunction("updateAccountStatus", { uid, action, durationDays, reason, notifyEmail });
+
+export const resetUserPassword = ({ uid }) =>
+  callFunction("resetUserPassword", { uid });
+
+/** Read-only dry run: reports what mergeDuplicateAccounts would move. */
+export const previewAccountMerge = ({ keepUid, mergeUid }) =>
+  callFunction("previewAccountMerge", { keepUid, mergeUid });
+
+export const mergeDuplicateAccounts = ({ keepUid, mergeUid, reason }) =>
+  callFunction("mergeDuplicateAccounts", { keepUid, mergeUid, reason });
