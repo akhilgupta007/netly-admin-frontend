@@ -1,16 +1,16 @@
-import { 
-  db, 
-  collection, 
-  getDocs, 
-  query, 
+import {
+  db,
+  collection,
+  getDocs,
+  query,
   where,
-  collectionGroup
+  collectionGroup,
 } from "@/lib/firebase";
-import { 
-  userSchema, 
-  clientProfileSchema, 
-  providerProfileSchema, 
-  kycSubmissionSchema 
+import {
+  userSchema,
+  clientProfileSchema,
+  providerProfileSchema,
+  kycSubmissionSchema,
 } from "@/lib/schemas";
 
 /**
@@ -22,21 +22,21 @@ export function formatFirestoreDate(timestamp) {
     return timestamp.toDate().toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
-      day: "numeric"
+      day: "numeric",
     });
   }
   if (timestamp.seconds) {
     return new Date(timestamp.seconds * 1000).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
-      day: "numeric"
+      day: "numeric",
     });
   }
   if (typeof timestamp === "string" || typeof timestamp === "number") {
     return new Date(timestamp).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
-      day: "numeric"
+      day: "numeric",
     });
   }
   return "N/A";
@@ -60,13 +60,19 @@ export async function fetchUsersFromFirestore() {
         accountType: data.accountType || null,
         otpVerified: Boolean(data.otpVerified),
         createdAt: data.createdAt,
-        fullName: data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : null),
+        fullName:
+          data.fullName ||
+          (data.firstName && data.lastName
+            ? `${data.firstName} ${data.lastName}`
+            : null),
         firstName: data.firstName || null,
         lastName: data.lastName || null,
         phoneNumber: data.phoneNumber || "",
         countryCode: data.countryCode || "",
         photoUrl: data.photoUrl || "",
-        status: data.status ? (data.status.charAt(0).toUpperCase() + data.status.slice(1)) : "Active"
+        status: data.status
+          ? data.status.charAt(0).toUpperCase() + data.status.slice(1)
+          : "Active",
       };
     });
 
@@ -81,18 +87,18 @@ export async function fetchUsersFromFirestore() {
  * 2. Read Client Profiles with Backend Search, Filtering & Pagination
  */
 export async function fetchClientsFromFirestore(params = {}) {
-  const { 
-    searchTerm = "", 
-    filterStatus = "All", 
-    startDate = null, 
-    endDate = null, 
-    page = 1, 
-    limit = 8 
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
   } = params;
 
   try {
     const usersRef = collection(db, "users");
-    
+
     // Query only clients!
     const queryConstraints = [where("accountType", "==", "client")];
     if (filterStatus !== "All") {
@@ -111,24 +117,33 @@ export async function fetchClientsFromFirestore(params = {}) {
       const userData = userDoc.data();
       const clientSubRef = collection(db, `users/${userDoc.id}/client`);
       const clientSubSnap = await getDocs(clientSubRef);
-      const clientProfile = clientSubSnap.docs.length > 0 ? clientSubSnap.docs[0].data() : {};
+      const clientProfile =
+        clientSubSnap.docs.length > 0 ? clientSubSnap.docs[0].data() : {};
 
       const rawClient = {
         id: `CL-${userDoc.id.slice(0, 6)}`,
         uid: userDoc.id,
-        name: userData.fullName || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : userData.email?.split("@")[0] || "Client"),
+        name:
+          userData.fullName ||
+          (userData.firstName && userData.lastName
+            ? `${userData.firstName} ${userData.lastName}`
+            : userData.email?.split("@")[0] || "Client"),
         email: userData.email || "",
         phoneNumber: userData.phoneNumber || "",
         photoUrl: userData.photoUrl || "",
-        joinDate: formatFirestoreDate(userData.createdAt || clientProfile.createdAt),
+        joinDate: formatFirestoreDate(
+          userData.createdAt || clientProfile.createdAt,
+        ),
         otp: userData.otpVerified ? "Verified" : "Pending",
         bookings: 0,
-        wallet: clientProfile.walletBalance || 0.00,
-        creditUsed: clientProfile.creditUsed || 0.00,
+        wallet: clientProfile.walletBalance || 0.0,
+        creditUsed: clientProfile.creditUsed || 0.0,
         profileCompleted: Boolean(clientProfile.profileCompleted),
         addressCompleted: Boolean(clientProfile.addressCompleted),
         onboardingCompleted: Boolean(clientProfile.onboardingCompleted),
-        status: userData.status ? (userData.status.charAt(0).toUpperCase() + userData.status.slice(1)) : "Active"
+        status: userData.status
+          ? userData.status.charAt(0).toUpperCase() + userData.status.slice(1)
+          : "Active",
       };
 
       return clientProfileSchema.parse(rawClient);
@@ -140,7 +155,9 @@ export async function fetchClientsFromFirestore(params = {}) {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       items = items.filter(
-        (c) => c.name.toLowerCase().includes(term) || c.email.toLowerCase().includes(term)
+        (c) =>
+          c.name.toLowerCase().includes(term) ||
+          c.email.toLowerCase().includes(term),
       );
     }
 
@@ -170,19 +187,19 @@ export async function fetchClientsFromFirestore(params = {}) {
  * 3. Read Provider Profiles with Backend Search, Filtering & Pagination
  */
 export async function fetchProvidersFromFirestore(params = {}) {
-  const { 
-    searchTerm = "", 
-    filterStatus = "All", 
-    filterKYC = "All", 
-    startDate = null, 
-    endDate = null, 
-    page = 1, 
-    limit = 8 
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    filterKYC = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
   } = params;
 
   try {
     const usersRef = collection(db, "users");
-    
+
     // Query only providers!
     const queryConstraints = [where("accountType", "==", "provider")];
     if (filterStatus !== "All") {
@@ -201,16 +218,27 @@ export async function fetchProvidersFromFirestore(params = {}) {
       const userData = userDoc.data();
       const providerSubRef = collection(db, `users/${userDoc.id}/provider`);
       const providerSubSnap = await getDocs(providerSubRef);
-      const providerProfile = providerSubSnap.docs.length > 0 ? providerSubSnap.docs[0].data() : {};
+      const providerProfile =
+        providerSubSnap.docs.length > 0 ? providerSubSnap.docs[0].data() : {};
 
       const kycRawStatus = providerProfile.kycStatus || "notSubmitted";
       const isKycVerified = kycRawStatus === "verified";
-      const kycDisplayStatus = isKycVerified ? "Verified" : kycRawStatus === "pending" ? "Pending" : kycRawStatus === "rejected" ? "Rejected" : "Not Submitted";
+      const kycDisplayStatus = isKycVerified
+        ? "Verified"
+        : kycRawStatus === "pending"
+          ? "Pending"
+          : kycRawStatus === "rejected"
+            ? "Rejected"
+            : "Not Submitted";
 
       const rawProvider = {
         id: `PR-${userDoc.id.slice(0, 6)}`,
         uid: userDoc.id,
-        name: userData.fullName || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : userData.email?.split("@")[0] || "Provider"),
+        name:
+          userData.fullName ||
+          (userData.firstName && userData.lastName
+            ? `${userData.firstName} ${userData.lastName}`
+            : userData.email?.split("@")[0] || "Provider"),
         firstName: userData.firstName || "",
         lastName: userData.lastName || "",
         email: userData.email || "",
@@ -224,7 +252,9 @@ export async function fetchProvidersFromFirestore(params = {}) {
         about: providerProfile.about || "",
         yearsOfExperience: providerProfile.yearsOfExperience || "2+",
         rating: "4.9",
-        joinDate: formatFirestoreDate(userData.createdAt || providerProfile.createdAt),
+        joinDate: formatFirestoreDate(
+          userData.createdAt || providerProfile.createdAt,
+        ),
         kyc: kycDisplayStatus,
         kycStatus: kycRawStatus,
         isKycVerified,
@@ -235,13 +265,21 @@ export async function fetchProvidersFromFirestore(params = {}) {
         selectedDocuments: providerProfile.selectedDocuments || [],
         skills: providerProfile.skills || ["Home Care"],
         badges: ["Provider Pro"],
-        walletBalance: providerProfile.walletBalance || 0.00,
-        stripeAccountid: providerProfile.stripeAccountid || "",
+        walletBalance: providerProfile.walletBalance || 0.0,
+        stripeAccountId:
+          providerProfile.stripeAccountId ||
+          providerProfile.stripeAccountid ||
+          "",
         stripeAccountType: providerProfile.stripeAccountType || "",
         chargesEnabled: Boolean(providerProfile.chargesEnabled),
         payoutsEnabled: Boolean(providerProfile.payoutsEnabled),
-        isActive: providerProfile.isActive !== undefined ? Boolean(providerProfile.isActive) : true,
-        status: userData.status ? (userData.status.charAt(0).toUpperCase() + userData.status.slice(1)) : "Active"
+        isActive:
+          providerProfile.isActive !== undefined
+            ? Boolean(providerProfile.isActive)
+            : true,
+        status: userData.status
+          ? userData.status.charAt(0).toUpperCase() + userData.status.slice(1)
+          : "Active",
       };
 
       return providerProfileSchema.parse(rawProvider);
@@ -253,13 +291,18 @@ export async function fetchProvidersFromFirestore(params = {}) {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       items = items.filter(
-        (p) => p.name.toLowerCase().includes(term) || p.email.toLowerCase().includes(term) || p.city.toLowerCase().includes(term)
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.email.toLowerCase().includes(term) ||
+          p.city.toLowerCase().includes(term),
       );
     }
 
     // Filter KYC
     if (filterKYC !== "All") {
-      items = items.filter((p) => p.kyc.toLowerCase() === filterKYC.toLowerCase());
+      items = items.filter(
+        (p) => p.kyc.toLowerCase() === filterKYC.toLowerCase(),
+      );
     }
 
     // Filter date range
@@ -288,14 +331,14 @@ export async function fetchProvidersFromFirestore(params = {}) {
  * 4. Read KYC Submissions with Backend Search, Filtering & Pagination
  */
 export async function fetchKycSubmissionsFromFirestore(params = {}) {
-  const { 
-    searchTerm = "", 
-    filterStatus = "All", 
-    filterDocType = "All", 
-    startDate = null, 
-    endDate = null, 
-    page = 1, 
-    limit = 8 
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    filterDocType = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
   } = params;
 
   try {
@@ -311,12 +354,23 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
       city: p.city,
       submittedAt: p.kycSubmittedAt !== "N/A" ? p.kycSubmittedAt : p.joinDate,
       date: p.kycSubmittedAt !== "N/A" ? p.kycSubmittedAt : p.joinDate,
-      documents: p.selectedDocuments.length > 0 ? p.selectedDocuments : ["governmentId", "proofOfAddress"],
+      // No invented defaults — an empty list means nothing was submitted.
+      documents: p.selectedDocuments || [],
       verificationDocuments: p.verificationDocuments,
-      status: p.kycStatus === "verified" ? "Approved" : p.kycStatus === "pending" ? "Pending" : p.kycStatus === "rejected" ? "Rejected" : "Pending",
+      // notSubmitted must NOT fall through to "Pending" — that put providers
+      // who have uploaded nothing into the review queue as though they were
+      // awaiting a decision.
+      status:
+        p.kycStatus === "verified"
+          ? "Approved"
+          : p.kycStatus === "pending"
+            ? "Pending"
+            : p.kycStatus === "rejected"
+              ? "Rejected"
+              : "Not Submitted",
       kycStatus: p.kycStatus,
       isKycVerified: p.isKycVerified,
-      rejectionReason: p.kycRejectionReason
+      rejectionReason: p.kycRejectionReason,
     }));
 
     let items = rawKyc.map((item) => kycSubmissionSchema.parse(item));
@@ -324,7 +378,9 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       items = items.filter(
-        (k) => k.providerName.toLowerCase().includes(term) || k.email.toLowerCase().includes(term)
+        (k) =>
+          k.providerName.toLowerCase().includes(term) ||
+          k.email.toLowerCase().includes(term),
       );
     }
 

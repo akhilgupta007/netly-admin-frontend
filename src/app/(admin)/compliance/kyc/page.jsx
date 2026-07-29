@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Search, ChevronDown, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "react-toastify";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { reviewKycSubmission } from "@/lib/callables";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
@@ -56,11 +58,14 @@ export default function KYCVerificationPage() {
 
   // Firestore React Query hook with backend params
   const { kycList, total: totalKyc, isLoading } = useKyc(kycParams);
+  const queryClient = useQueryClient();
 
   // Map query items to submission row format
   const submissions = useMemo(() => {
     return kycList.map((item) => ({
       id: item.id,
+      // The callable needs the real uid; item.id is a display code (PR-xxxxxx).
+      uid: item.uid,
       name: item.providerName || "Provider",
       docType: item.documents?.[0] || "ID",
       docFile: item.verificationDocuments?.[0]?.name || `${item.documents?.[0] || "ID"}_Document.pdf`,
@@ -70,6 +75,9 @@ export default function KYCVerificationPage() {
       phone: item.phoneNumber || "+233 24 123 4567",
       joined: item.date || "N/A",
       verificationDocuments: item.verificationDocuments,
+      // Raw slug (notSubmitted/pending/verified/rejected) — sent as
+      // expectedStatus so a concurrent decision is detected server-side.
+      kycStatus: item.kycStatus,
       rejectionReason: item.rejectionReason
     }));
   }, [kycList]);
@@ -167,35 +175,51 @@ export default function KYCVerificationPage() {
     }
   };
 
-  // Modal callback actions
+  // Modal callback actions. The row's uid identifies the provider — the
+  // decision is applied to kyc/{kycId} and mirrored onto the provider doc.
+  const reviewMutation = useMutation({
+    mutationFn: reviewKycSubmission,
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["kycSubmissions"] });
+      // A KYC decision also changes the provider's kycStatus column.
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+      setIsModalOpen(false);
+      setSelectedItem(null);
+      const message = {
+        verified: "Document approved.",
+        rejected: "Document rejected.",
+        resubmission: "Resubmission requested."
+      }[variables.decision];
+      toast.success(message);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const findRow = (idOrUid) =>
+    submissions.find((s) => s.id === idOrUid || s.uid === idOrUid);
+
+  // expectedStatus is the raw kycStatus this row was rendered from, so the
+  // backend can abort if another reviewer decided first.
+  const target = (idOrUid) => {
+    const row = findRow(idOrUid);
+    return { uid: row?.uid || idOrUid, expectedStatus: row?.kycStatus };
+  };
+
   const handleApprove = (id) => {
-    const updated = submissions.map((s) =>
-      s.id === id ? { ...s, status: "Approved" } : s
-    );
-    saveSubmissions(updated);
-    toast.success("Document approved successfully!");
-    setIsModalOpen(false);
-    setSelectedItem(null);
+    reviewMutation.mutate({ ...target(id), decision: "verified" });
   };
 
   const handleReject = (id, category, reason) => {
-    const updated = submissions.map((s) =>
-      s.id === id ? { ...s, status: "Rejected", rejectCategory: category, rejectReason: reason } : s
-    );
-    saveSubmissions(updated);
-    toast.error(`Document rejected. Reason: ${category}`);
-    setIsModalOpen(false);
-    setSelectedItem(null);
+    reviewMutation.mutate({
+      ...target(id),
+      decision: "rejected",
+      reasonCategory: category,
+      reason
+    });
   };
 
   const handleRequestResubmission = (id) => {
-    const updated = submissions.map((s) =>
-      s.id === id ? { ...s, status: "Expired" } : s
-    );
-    saveSubmissions(updated);
-    toast.info("Resubmission request sent to user.");
-    setIsModalOpen(false);
-    setSelectedItem(null);
+    reviewMutation.mutate({ ...target(id), decision: "resubmission" });
   };
 
   return (
@@ -407,6 +431,7 @@ export default function KYCVerificationPage() {
           onApprove={handleApprove}
           onReject={handleReject}
           onRequestResubmission={handleRequestResubmission}
+          isPending={reviewMutation.isPending}
         />
       )}
 

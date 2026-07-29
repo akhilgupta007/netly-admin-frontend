@@ -50,3 +50,17 @@ export const previewAccountMerge = ({ keepUid, mergeUid }) =>
 
 export const mergeDuplicateAccounts = ({ keepUid, mergeUid, reason }) =>
   callFunction("mergeDuplicateAccounts", { keepUid, mergeUid, reason });
+
+/**
+ * decision is "verified" | "rejected" | "resubmission".
+ * expectedStatus is the kycStatus the reviewer was shown — the backend aborts
+ * if someone else has decided in the meantime.
+ */
+export const reviewKycSubmission = ({ uid, decision, reasonCategory, reason, expectedStatus }) =>
+  callFunction("reviewKycSubmission", {
+    uid,
+    decision,
+    reasonCategory,
+    reason,
+    expectedStatus
+  });

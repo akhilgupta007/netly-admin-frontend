@@ -72,7 +72,7 @@ export const providerProfileSchema = z.object({
   skills: z.array(z.string()).catch([]),
   badges: z.array(z.string()).catch(["Provider Pro"]),
   walletBalance: z.number().catch(0.00),
-  stripeAccountid: z.string().catch(""),
+  stripeAccountId: z.string().catch(""),
   stripeAccountType: z.string().catch(""),
   chargesEnabled: z.boolean().catch(false),
   payoutsEnabled: z.boolean().catch(false),

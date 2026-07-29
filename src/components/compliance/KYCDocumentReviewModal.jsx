@@ -5,11 +5,13 @@ import { X, ShieldAlert, FileText, Check, Send } from "lucide-react";
 import { toast } from "react-toastify";
 import { getInitials } from "@/lib/utils";
 
-export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprove, onReject, onRequestResubmission }) {
+export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprove, onReject, onRequestResubmission, isPending }) {
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [reasonCategory, setReasonCategory] = useState("Blurry");
   const [rejectionReason, setRejectionReason] = useState("");
   const [zoom, setZoom] = useState(100);
+  const [docIndex, setDocIndex] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -17,10 +19,22 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
       setReasonCategory("Blurry");
       setRejectionReason("");
       setZoom(100);
+      setDocIndex(0);
+      setLoadFailed(false);
     }
   }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
+
+  // Only files with a usable URL can be reviewed. Schema v3.0 §6 shape:
+  // { name, url, storagePath, contentType, size }
+  const docs = Array.isArray(item.verificationDocuments)
+    ? item.verificationDocuments.filter((d) => d && d.url)
+    : [];
+  const activeDoc = docs[docIndex] || docs[0] || null;
+  const isImage =
+    Boolean(activeDoc?.contentType?.startsWith("image/")) ||
+    /\.(png|jpe?g|webp|gif|heic)(\?|$)/i.test(activeDoc?.name || activeDoc?.url || "");
 
   const handleConfirmRejectionSubmit = (e) => {
     e.preventDefault();
@@ -45,10 +59,6 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
       default:
         return "text-red-600 bg-red-50";
     }
-  };
-
-  const getFormatBadge = (docType) => {
-    return docType === "ID" ? "JPEG" : "PDF";
   };
 
   return (
@@ -127,70 +137,81 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                 <span className="text-text-primary">Submitted {item.submittedDate}</span>
               </div>
               <span className="text-text-muted font-light">
-                {item.docType === "ID" ? "Image (JPEG/PNG)" : "PDF Document"}
+                {docs.length > 0
+                  ? `${docs.length} file${docs.length > 1 ? "s" : ""} attached`
+                  : "No files attached"}
               </span>
             </div>
           )}
 
-          {/* File Attachment Name Bar */}
-          <div className="bg-primary-bg-muted/20 rounded-xl p-3.5 flex items-center justify-between text-xs shrink-0">
-            <div className="flex items-center gap-2 text-text-primary">
-              <FileText size={16} color="blue" />
-              <span>{item.docFile}</span>
+          {/* Uploaded file selector. Multiple documents can be attached to one
+              submission (governmentId + proofOfAddress, etc). */}
+          {docs.length > 1 && (
+            <div className="flex gap-1.5 flex-wrap shrink-0">
+              {docs.map((doc, i) => (
+                <button
+                  key={doc.storagePath || doc.url || i}
+                  type="button"
+                  onClick={() => { setDocIndex(i); setZoom(100); }}
+                  className={`px-2.5 py-1.5 rounded-lg border text-[10px] transition cursor-pointer ${
+                    i === docIndex
+                      ? "border-primary-bg bg-primary-bg-muted/20 text-text-primary"
+                      : "border-border-main text-text-muted hover:bg-page-bg"
+                  }`}
+                >
+                  {doc.name || `Document ${i + 1}`}
+                </button>
+              ))}
             </div>
-            <span className="border border-blue-500 text-blue-500 bg-blue-50 px-2.5 py-1 rounded-lg text-[10px]">
-              {getFormatBadge(item.docType)}
-            </span>
+          )}
+
+          <div className="bg-primary-bg-muted/20 rounded-xl p-3.5 flex items-center justify-between text-xs shrink-0 gap-3">
+            <div className="flex items-center gap-2 text-text-primary min-w-0">
+              <FileText size={16} color="blue" className="shrink-0" />
+              <span className="truncate">
+                {activeDoc?.name || item.docFile || "No file attached"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {activeDoc?.size > 0 && (
+                <span className="text-text-muted font-light text-[10px]">
+                  {(activeDoc.size / 1024 / 1024).toFixed(2)} MB
+                </span>
+              )}
+              {activeDoc?.url && (
+                <a
+                  href={activeDoc.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-blue-500 text-blue-500 bg-blue-50 px-2.5 py-1 rounded-lg text-[10px] hover:bg-blue-100 transition"
+                >
+                  Open original
+                </a>
+              )}
+            </div>
           </div>
 
-          {/* Document View Preview Container */}
+          {/* Document View Preview — renders the provider's actual upload.
+              verificationDocuments carries { name, url, storagePath,
+              contentType, size } per Schema v3.0 §6. */}
           <div className="space-y-1">
-            {item.docType === "ID" ? (
-              /* Slate National ID Image Mock card layout */
-              <div className="flex flex-col items-center justify-center py-4 bg-gray-50 rounded-2xl relative border border-border-main/50">
-                <div className="relative w-80 h-44 bg-slate-800 rounded-2xl p-4 text-white shadow-lg font-mono text-[10px] flex flex-col justify-between select-none">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[7px] text-slate-400 block tracking-wider uppercase font-bold">National ID Card</span>
-                      <strong className="text-xs font-bold uppercase tracking-wide">ID</strong>
-                    </div>
-                    <div className="w-6 h-6 rounded-full bg-slate-700/60 border border-slate-600 flex items-center justify-center text-[10px] text-slate-300">
-                      👤
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center text-xs text-white uppercase font-bold font-sans">
-                      {getInitials(item.name)}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-xs leading-none">{item.name}</h4>
-                      <p className="text-[7px] text-slate-400 mt-1">ID No: KYC-09-2027</p>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between text-[7px] border-t border-slate-700/50 pt-1.5 text-slate-400">
-                    <div>
-                      <span className="block text-[5px] uppercase">Issued</span>
-                      <strong>Jun 19, 2027</strong>
-                    </div>
-                    <div>
-                      <span className="block text-[5px] uppercase">Expires</span>
-                      <strong>Jun 20, 2032</strong>
-                    </div>
-                  </div>
-                </div>
-                <span className="text-[9px] text-text-muted mt-2">Inline preview · no download</span>
+            {!activeDoc?.url ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-10 bg-gray-50 rounded-2xl border border-border-main/50 text-center">
+                <FileText size={22} className="text-text-muted/60" />
+                <p className="text-xs text-text-primary font-medium">No document uploaded</p>
+                <p className="text-[10px] text-text-muted font-light max-w-xs">
+                  This provider has not submitted any verification documents yet.
+                  There is nothing to approve.
+                </p>
               </div>
-            ) : (
-              /* PDF Mock documents layout */
-              <div className="bg-gray-50 rounded-2xl p-4 border border-border-main/50 flex flex-col justify-between max-h-65 relative overflow-hidden">
-                <div className="flex items-center justify-between text-[10px] text-text-muted pb-2 border-b border-border-main/50 shrink-0">
-                  <span>Page 1 of 1</span>
+            ) : isImage ? (
+              <div className="bg-gray-50 rounded-2xl border border-border-main/50 overflow-hidden">
+                <div className="flex items-center justify-between text-[10px] text-text-muted px-3 py-2 border-b border-border-main/50">
+                  <span>{activeDoc.contentType || "Image"}</span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setZoom(z => Math.max(z - 25, 50))}
+                      onClick={() => setZoom((z) => Math.max(z - 25, 50))}
                       disabled={zoom <= 50}
                       className="hover:text-text-primary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed font-medium"
                     >
@@ -199,57 +220,44 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                     <span className="w-8 text-center">{zoom}%</span>
                     <button
                       type="button"
-                      onClick={() => setZoom(z => Math.min(z + 25, 200))}
-                      disabled={zoom >= 200}
+                      onClick={() => setZoom((z) => Math.min(z + 25, 300))}
+                      disabled={zoom >= 300}
                       className="hover:text-text-primary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed font-medium"
                     >
                       Zoom +
                     </button>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto p-3 bg-white border border-border-main/30 rounded-xl shadow-xs mt-2 relative select-none h-44">
-                  <div className={`flex justify-center min-h-full min-w-full ${zoom > 100 ? "items-start pt-4 pb-16" : "items-center py-2"}`}>
-                    <div
-                      className={`w-64 border border-border-main rounded-xl p-3 text-[10px] space-y-2.5 font-sans relative transition-transform duration-200 ease-out shrink-0 ${zoom > 100 ? "origin-top" : "origin-center"
-                        }`}
-                      style={{ transform: `scale(${zoom / 100})` }}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[8px] text-text-muted uppercase tracking-wider block font-light">Official Document</span>
-                          <strong className="text-text-primary font-semibold text-xs">{item.docType}</strong>
-                        </div>
-                        <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center text-xs">
-                          🛡️
-                        </div>
-                      </div>
-
-                      <div className="space-y-1 text-text-primary">
-                        <div className="flex justify-between border-b border-page-bg py-0.5">
-                          <span className="text-text-muted font-light text-[8px]">Full Name</span>
-                          <span>{item.name}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-page-bg py-0.5">
-                          <span className="text-text-muted font-light text-[8px]">Document Type</span>
-                          <span>{item.docType}</span>
-                        </div>
-                        <div className="flex justify-between border-b border-page-bg py-0.5">
-                          <span className="text-text-muted font-light text-[8px]">Issued</span>
-                          <span>May 30, 2027</span>
-                        </div>
-                        <div className="flex justify-between py-0.5">
-                          <span className="text-text-muted font-light text-[8px]">Reference</span>
-                          <span className="font-mono">DOC-KYC-08</span>
-                        </div>
-                      </div>
-
-                      <div className="text-[8px] text-text-muted text-center pt-1.5 border-t border-border-main/50 uppercase tracking-widest font-light">
-                        Document Preview
-                      </div>
-                    </div>
-                  </div>
+                <div className="overflow-auto max-h-72 bg-white flex items-start justify-center p-3">
+                  {/* Plain <img>: the source is a Firebase Storage URL that
+                      next/image cannot optimise without a configured domain. */}
+                  <img
+                    src={activeDoc.url}
+                    alt={activeDoc.name || "Verification document"}
+                    onError={() => setLoadFailed(true)}
+                    style={{ width: `${zoom}%` }}
+                    className="max-w-none object-contain rounded-lg"
+                  />
                 </div>
               </div>
+            ) : (
+              <div className="bg-gray-50 rounded-2xl border border-border-main/50 overflow-hidden">
+                <div className="text-[10px] text-text-muted px-3 py-2 border-b border-border-main/50">
+                  {activeDoc.contentType || "Document"}
+                </div>
+                <iframe
+                  src={activeDoc.url}
+                  title={activeDoc.name || "Verification document"}
+                  className="w-full h-72 bg-white"
+                />
+              </div>
+            )}
+
+            {loadFailed && (
+              <p className="text-[10px] text-red-500 pt-1">
+                Could not load this file. It may have been removed, or admin read
+                access to Storage may not be granted. Use &quot;Open original&quot; to check.
+              </p>
             )}
           </div>
 
@@ -297,9 +305,10 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+                  disabled={isPending}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Confirm Rejection
+                  {isPending ? "Rejecting..." : "Confirm Rejection"}
                 </button>
               </div>
             </form>
@@ -315,7 +324,8 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
               ) : item.status === "Expired" ? (
                 <button
                   onClick={() => onRequestResubmission(item.id)}
-                  className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                  disabled={isPending}
+                  className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Send size={13} /> Request Resubmission
                 </button>
@@ -332,13 +342,15 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                   <div className="flex gap-2">
                     <button
                       onClick={() => onApprove(item.id)}
-                      className="flex-1 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
+                      disabled={isPending}
+                      className="flex-1 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Override & Approve
                     </button>
                     <button
                       onClick={() => onRequestResubmission(item.id)}
-                      className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
+                      disabled={isPending}
+                      className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       Resend Resubmission Email
                     </button>
@@ -348,9 +360,13 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                 <div className="flex gap-2">
                   <button
                     onClick={() => onApprove(item.id)}
-                    className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                    // Approving grants kycStatus:verified, which is what makes a
+                    // provider payable. Never allow it with nothing to inspect.
+                    disabled={isPending || !activeDoc}
+                    title={!activeDoc ? "No document has been submitted to review" : undefined}
+                    className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    <Check size={13} /> Approve Document
+                    <Check size={13} /> {isPending ? "Working..." : "Approve Document"}
                   </button>
                   <button
                     onClick={() => setIsRejectMode(true)}
@@ -360,7 +376,8 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                   </button>
                   <button
                     onClick={() => onRequestResubmission(item.id)}
-                    className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                    disabled={isPending}
+                    className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <Send size={13} /> Request Resubmission
                   </button>
