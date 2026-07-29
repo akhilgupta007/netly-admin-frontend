@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 
-export default function InviteProviderModal({ isOpen, onClose, onInvite }) {
+export default function InviteProviderModal({ isOpen, onClose, onInvite, isPending }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Professional");
@@ -38,6 +38,8 @@ export default function InviteProviderModal({ isOpen, onClose, onInvite }) {
       return;
     }
 
+    // The page closes this on success — closing here would hide the form (and
+    // whatever was typed) before the invite call has even resolved.
     onInvite({
       name: name.trim(),
       email: email.trim(),
@@ -45,8 +47,6 @@ export default function InviteProviderModal({ isOpen, onClose, onInvite }) {
       role: role,
       foundingPartnerBadge
     });
-
-    onClose();
   };
 
   return (
@@ -139,9 +139,11 @@ export default function InviteProviderModal({ isOpen, onClose, onInvite }) {
           {/* Submit button */}
           <button
             type="submit"
-            className="w-full bg-[#93d6db] hover:bg-[#80c5cb] text-text-primary font-bold text-xs py-3.5 rounded-lg transition cursor-pointer text-center shadow-2xs mt-2"
+            disabled={isPending}
+            className="w-full flex items-center justify-center gap-2 bg-[#93d6db] hover:bg-[#80c5cb] text-text-primary font-bold text-xs py-3.5 rounded-lg transition cursor-pointer text-center shadow-2xs mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Send Invite
+            {isPending && <Loader2 size={13} className="animate-spin" />}
+            {isPending ? "Sending Invite..." : "Send Invite"}
           </button>
         </form>
 

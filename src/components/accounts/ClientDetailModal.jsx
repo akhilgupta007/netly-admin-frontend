@@ -5,7 +5,7 @@ import { X, ShieldAlert, Key, GitMerge } from "lucide-react";
 import { toast } from "react-toastify";
 import { getInitials } from "@/lib/utils";
 
-export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBanTrigger, onReactivateTrigger }) {
+export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBanTrigger, onReactivateTrigger, onResetPassword, isResettingPassword, onMergeTrigger }) {
   if (!isOpen || !client) return null;
 
   // Mock static booking history list for clients matching layout (Slide 5 & 6)
@@ -136,7 +136,7 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
           <div className="space-y-2 pt-2">
             {["Suspended", "Banned"].includes(client.status) ? (
               <button
-                onClick={() => onReactivateTrigger(client.id)}
+                onClick={() => onReactivateTrigger(client)}
                 className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 ✓ Reactivate Account
@@ -151,14 +151,15 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
             )}
 
             <button
-              onClick={() => toast.success(`Password reset email successfully sent to ${client.name}!`)}
-              className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+              onClick={() => onResetPassword(client)}
+              disabled={isResettingPassword}
+              className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Key size={14} /> Reset Password
+              <Key size={14} /> {isResettingPassword ? "Sending..." : "Reset Password"}
             </button>
 
             <button
-              onClick={() => toast.info("Initializing account duplication merges tool...")}
+              onClick={() => onMergeTrigger(client)}
               className="w-full bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
             >
               <GitMerge size={14} /> Merge Duplicate Accounts

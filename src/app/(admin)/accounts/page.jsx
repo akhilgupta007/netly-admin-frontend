@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { toast } from "react-toastify";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { inviteUser, updateAccountStatus, resetUserPassword } from "@/lib/callables";
 
 // Import custom components
 import ClientsTab from "@/components/accounts/ClientsTab";
@@ -9,6 +11,7 @@ import ProvidersTab from "@/components/accounts/ProvidersTab";
 
 // Import custom modals
 import SuspendBanModal from "@/components/accounts/SuspendBanModal";
+import MergeDuplicateModal from "@/components/accounts/MergeDuplicateModal";
 import ClientDetailModal from "@/components/accounts/ClientDetailModal";
 import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
 import InviteClientModal from "@/components/accounts/InviteClientModal";
@@ -38,6 +41,8 @@ export default function AccountsPage() {
     inviteUserOpen,
     setInviteUserOpen
   } = useAdminStore();
+
+  const queryClient = useQueryClient();
 
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -99,96 +104,84 @@ export default function AccountsPage() {
     return () => window.removeEventListener("click", handleOutsideClick);
   }, []);
 
-  // Moderate Submit action handlers
-  const handleSuspendBanSubmit = ({ accountId, actionType, duration, reason }) => {
-    const nextStatus = actionType === "Suspend (Temporary)" ? "Suspended" : "Banned";
-
-    if (activeTab === "Clients") {
-      const updated = clients.map((c) =>
-        c.id === accountId ? { ...c, status: nextStatus } : c
-      );
-      saveClients(updated);
-      toast.error(`Client ${actionType === "Suspend (Temporary)" ? "suspended" : "banned"} successfully!`);
-    } else {
-      const updated = providers.map((p) =>
-        p.id === accountId ? { ...p, status: nextStatus } : p
-      );
-      saveProviders(updated);
-      toast.error(`Provider ${actionType === "Suspend (Temporary)" ? "suspended" : "banned"} successfully!`);
-    }
-
-    setModalType(null);
-    setSelectedAccount(null);
-  };
-
-  const handleReactivateSubmit = (accountId) => {
-    if (activeTab === "Clients") {
-      const updated = clients.map((c) =>
-        c.id === accountId ? { ...c, status: "Active" } : c
-      );
-      saveClients(updated);
-      toast.success("Client account reactivated successfully!");
-    } else {
-      const updated = providers.map((p) =>
-        p.id === accountId ? { ...p, status: "Active" } : p
-      );
-      saveProviders(updated);
-      toast.success("Provider account reactivated successfully!");
-    }
-
-    setModalType(null);
-    setSelectedAccount(null);
-  };
-
-  const handleInviteUser = (data) => {
-    const formattedDate = new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+  // Refetch whichever tab we are on rather than patching a local copy.
+  const invalidateAccounts = () =>
+    queryClient.invalidateQueries({
+      queryKey: [activeTab === "Clients" ? "clients" : "providers"]
     });
 
+  const statusMutation = useMutation({
+    mutationFn: updateAccountStatus,
+    onSuccess: (_result, variables) => {
+      invalidateAccounts();
+      setModalType(null);
+      setSelectedAccount(null);
+      const label = { suspend: "suspended", ban: "banned", reactivate: "reactivated" }[
+        variables.action
+      ];
+      toast.success(`Account ${label}.`);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetUserPassword,
+    onSuccess: (result) =>
+      toast.success(`Password reset email sent to ${result.email}.`),
+    onError: (error) => toast.error(error.message)
+  });
+
+  const handleSuspendBanSubmit = ({ uid, actionType, duration, reason, notifyEmail }) => {
+    statusMutation.mutate({
+      uid,
+      action: actionType === "Suspend (Temporary)" ? "suspend" : "ban",
+      durationDays: actionType === "Suspend (Temporary)" ? duration : undefined,
+      reason,
+      notifyEmail
+    });
+  };
+
+  const handleReactivateSubmit = (account) => {
+    statusMutation.mutate({ uid: account.uid, action: "reactivate" });
+  };
+
+  const handleResetPassword = (account) => {
+    resetPasswordMutation.mutate({ uid: account.uid });
+  };
+
+  const inviteMutation = useMutation({
+    mutationFn: inviteUser,
+    onSuccess: (_result, variables) => {
+      // Refetch from Firestore rather than guessing the new row — the backend
+      // decides the uid, timestamps and profile defaults.
+      queryClient.invalidateQueries({
+        queryKey: [variables.accountType === "provider" ? "providers" : "clients"]
+      });
+      setInviteUserOpen(false);
+      toast.success(`Invite sent to ${variables.email}.`);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const handleInviteUser = (data) => {
     const generatedName = data.email
       .split("@")[0]
       .split(/[._-]/)
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
 
-    const finalName = data.name || generatedName;
+    // The Role dropdown is the source of truth, not which tab opened the
+    // modal — either modal lets you pick Client or Professional.
+    const accountType = data.role === "Professional" ? "provider" : "client";
 
-    if (data.type === "Client") {
-      const newClient = {
-        id: `CL-${String(clients.length + 1).padStart(2, "0")}`,
-        name: finalName,
-        email: data.email,
-        joinDate: formattedDate,
-        otp: "Verified",
-        bookings: 0,
-        wallet: 0.00,
-        status: "Active"
-      };
-      const updated = [newClient, ...clients];
-      saveClients(updated);
-      toast.success(`Client invite sent successfully to ${data.email}!`);
-    } else {
-      const badgesList = ["Provider Pro"];
-      if (data.foundingPartnerBadge) {
-        badgesList.unshift("Founding Provider");
-      }
-      const newProvider = {
-        id: `PR-${String(providers.length + 1).padStart(2, "0")}`,
-        name: finalName,
-        email: data.email,
-        city: "Boston", // default city
-        rating: "5.0",
-        joinDate: formattedDate,
-        kyc: "Verified",
-        badges: badgesList,
-        status: "Active"
-      };
-      const updated = [newProvider, ...providers];
-      saveProviders(updated);
-      toast.success(`Provider invite sent successfully to ${data.email}!`);
-    }
+    inviteMutation.mutate({
+      email: data.email,
+      name: data.name || generatedName,
+      accountType,
+      foundingPartnerBadge: accountType === "provider"
+        ? Boolean(data.foundingPartnerBadge)
+        : false
+    });
   };
 
   // Status color codes helper
@@ -316,6 +309,7 @@ export default function AccountsPage() {
           isOpen={true}
           onClose={() => { setModalType(null); setSelectedAccount(null); }}
           onSubmit={handleSuspendBanSubmit}
+          isPending={statusMutation.isPending}
         />
       )}
 
@@ -327,6 +321,9 @@ export default function AccountsPage() {
           onClose={() => { setModalType(null); setSelectedAccount(null); }}
           onSuspendBanTrigger={(client) => { setSelectedAccount(client); setModalType("suspendBan"); }}
           onReactivateTrigger={handleReactivateSubmit}
+          onResetPassword={handleResetPassword}
+          isResettingPassword={resetPasswordMutation.isPending}
+          onMergeTrigger={(client) => { setSelectedAccount(client); setModalType("merge"); }}
         />
       )}
 
@@ -338,6 +335,19 @@ export default function AccountsPage() {
           onClose={() => { setModalType(null); setSelectedAccount(null); }}
           onSuspendBanTrigger={(provider) => { setSelectedAccount(provider); setModalType("suspendBan"); }}
           onReactivateTrigger={handleReactivateSubmit}
+          onResetPassword={handleResetPassword}
+          isResettingPassword={resetPasswordMutation.isPending}
+        />
+      )}
+
+      {/* 3b. Merge Duplicate Accounts Modal */}
+      {modalType === "merge" && (
+        <MergeDuplicateModal
+          account={selectedAccount}
+          accountType={activeTab === "Clients" ? "client" : "provider"}
+          isOpen={true}
+          onClose={() => { setModalType(null); setSelectedAccount(null); }}
+          onMerged={invalidateAccounts}
         />
       )}
 
@@ -347,12 +357,14 @@ export default function AccountsPage() {
           isOpen={inviteUserOpen}
           onClose={() => setInviteUserOpen(false)}
           onInvite={handleInviteUser}
+          isPending={inviteMutation.isPending}
         />
       ) : (
         <InviteProviderModal
           isOpen={inviteUserOpen}
           onClose={() => setInviteUserOpen(false)}
           onInvite={handleInviteUser}
+          isPending={inviteMutation.isPending}
         />
       )}
 
