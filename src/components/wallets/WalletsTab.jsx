@@ -7,6 +7,9 @@ import Pagination from "@/components/ui/Pagination";
 
 export default function WalletsTab({
   wallets,
+  isLoading,
+  isError,
+  error,
   searchTerm,
   onSearchChange,
   onOpenHistory,
@@ -17,11 +20,6 @@ export default function WalletsTab({
 }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {

@@ -186,7 +186,7 @@ export default function ProvidersTab({
                   <td className="px-4 py-3">{provider.city}</td>
                   <td className="px-4 py-3 text-center flex items-center gap-1 text-text-primary">
                     <span className="text-amber-500 text-xl">★</span>
-                    {provider.rating}
+                    {provider.rating || "—"}
                   </td>
                   <td className="px-4 py-3">{provider.joinDate}</td>
                   <td className="px-4 py-3">

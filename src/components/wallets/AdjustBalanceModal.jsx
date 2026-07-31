@@ -24,15 +24,16 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
       toast.error("Please enter a valid amount.");
       return;
     }
+    // uid is what the callable needs; wallet.id is only a display code (W-…).
+    // Fields are not cleared here — a failed adjustment should leave the typed
+    // justification in place.
     onSubmit({
       walletId: wallet.id,
+      uid: wallet.uid,
       amount: val,
       type: adjustType,
       reason: adjustReason
     });
-    // Clear state
-    setAdjustAmount("");
-    setAdjustReason("");
   };
 
   return (

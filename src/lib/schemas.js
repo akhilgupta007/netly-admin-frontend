@@ -16,7 +16,10 @@ export const userSchema = z.object({
   phoneNumber: z.string().catch(""),
   countryCode: z.string().catch(""),
   photoUrl: z.string().catch(""),
-  status: z.enum(["active", "invited", "banned", "suspended"]).catch("active")
+  // Display form ("Active"/"Invited"/"Banned"). This was a lowercase enum while
+  // the service passed a capitalised value, so every parse fell through to the
+  // catch and every user read as active regardless of their real status.
+  status: z.string().catch("Active")
 });
 
 /**
@@ -30,6 +33,9 @@ export const clientProfileSchema = z.object({
   phoneNumber: z.string().catch(""),
   photoUrl: z.string().catch(""),
   joinDate: z.string().catch("N/A"),
+  // Raw timestamp retained alongside the formatted string so date filtering
+  // sorts on the real value rather than a parsed display string.
+  createdAtRaw: z.any().nullable().optional(),
   otp: z.string().catch("Verified"),
   bookings: z.number().catch(0),
   wallet: z.number().catch(0.00),
@@ -58,9 +64,13 @@ export const providerProfileSchema = z.object({
   apt: z.string().nullable().catch(null),
   postalCode: z.string().catch(""),
   about: z.string().catch(""),
-  yearsOfExperience: z.string().catch("2+"),
-  rating: z.string().catch("4.9"),
+  yearsOfExperience: z.string().catch(""),
+  serviceRadiusKm: z.number().nullable().catch(null),
+  // Ratings live in the top-level `reviews` collection (Schema v3.0 §9); there
+  // is no rating field on a provider, so this is null until that is wired.
+  rating: z.string().nullable().catch(null),
   joinDate: z.string().catch("N/A"),
+  createdAtRaw: z.any().nullable().optional(),
   kyc: z.string().catch("Not Submitted"),
   kycStatus: z.enum(["notSubmitted", "pending", "verified", "rejected"]).catch("notSubmitted"),
   isKycVerified: z.boolean().catch(false),
@@ -70,8 +80,10 @@ export const providerProfileSchema = z.object({
   verificationDocuments: z.array(z.any()).catch([]),
   selectedDocuments: z.array(z.string()).catch([]),
   skills: z.array(z.string()).catch([]),
-  badges: z.array(z.string()).catch(["Provider Pro"]),
+  badges: z.array(z.string()).catch([]),
+  isFoundingPartner: z.boolean().catch(false),
   walletBalance: z.number().catch(0.00),
+  creditUsed: z.number().catch(0.00),
   stripeAccountId: z.string().catch(""),
   stripeAccountType: z.string().catch(""),
   chargesEnabled: z.boolean().catch(false),
@@ -85,12 +97,16 @@ export const providerProfileSchema = z.object({
  */
 export const kycSubmissionSchema = z.object({
   id: z.string(),
+  // Document id in the top-level `kyc` collection; null for legacy records
+  // where KYC state lives only on the provider document.
+  kycId: z.string().nullable().optional(),
   uid: z.string(),
   providerName: z.string(),
   email: z.string().catch(""),
   phoneNumber: z.string().catch(""),
   city: z.string().catch(""),
   submittedAt: z.string().catch("N/A"),
+  submittedAtRaw: z.any().nullable().optional(),
   date: z.string().catch("N/A"),
   documents: z.array(z.string()).catch([]),
   verificationDocuments: z.array(z.any()).catch([]),

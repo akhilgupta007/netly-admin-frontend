@@ -6,11 +6,12 @@ import {
   doc, 
   getDocs, 
   getDoc, 
-  query, 
-  where, 
-  orderBy, 
+  query,
+  where,
+  orderBy,
+  limit,
   collectionGroup,
-  Timestamp 
+  Timestamp
 } from "firebase/firestore";
 
 // Helper to get non-empty env var or fallback
@@ -54,9 +55,10 @@ export {
   doc, 
   getDocs, 
   getDoc, 
-  query, 
-  where, 
-  orderBy, 
+  query,
+  where,
+  orderBy,
+  limit,
   collectionGroup,
-  Timestamp 
+  Timestamp
 };

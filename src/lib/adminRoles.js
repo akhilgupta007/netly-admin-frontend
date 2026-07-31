@@ -38,3 +38,13 @@ export const ASSIGNABLE_ADMIN_ROLES = [
 export function roleLabel(slug) {
   return ADMIN_ROLE_LABELS[slug] || slug;
 }
+
+/**
+ * Whether a role may manage other admins. Mirrors requireSuperAdmin on the
+ * backend — this only hides UI, the callable is the real boundary.
+ * @param {string} role - Role slug.
+ * @return {boolean} True for super admins.
+ */
+export function canManageAdmins(role) {
+  return role === ADMIN_ROLES.SUPER_ADMIN;
+}

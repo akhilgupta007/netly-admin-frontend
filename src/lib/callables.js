@@ -33,6 +33,12 @@ export async function callFunction(name, payload = {}) {
 export const inviteAdmin = ({ email, role }) =>
   callFunction("inviteAdmin", { email, role });
 
+export const updateAdminRole = ({ uid, role }) =>
+  callFunction("updateAdminRole", { uid, role });
+
+export const revokeAdminAccess = ({ uid, reason }) =>
+  callFunction("revokeAdminAccess", { uid, reason });
+
 /** accountType must be "client" or "provider" — the backend rejects anything else. */
 export const inviteUser = ({ email, name, accountType, foundingPartnerBadge }) =>
   callFunction("inviteUser", { email, name, accountType, foundingPartnerBadge });
@@ -64,3 +70,13 @@ export const reviewKycSubmission = ({ uid, decision, reasonCategory, reason, exp
     reason,
     expectedStatus
   });
+
+// ─── Wallets ───────────────────────────────────────────────
+
+/** type is "credit" | "debit". Reason must be at least 20 characters. */
+export const adjustWalletBalance = ({ uid, amount, type, reason }) =>
+  callFunction("adjustWalletBalance", { uid, amount, type, reason });
+
+/** action is "approve" | "reject" — one function handles both. */
+export const approveWalletCreditRequest = ({ requestId, action }) =>
+  callFunction("approveWalletCreditRequest", { requestId, action });

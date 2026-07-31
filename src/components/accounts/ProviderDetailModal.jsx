@@ -130,7 +130,9 @@ export default function ProviderDetailModal({
                 </span>
                 <strong className="text-text-primary font-normal flex items-center gap-1">
                   <span className="text-base text-amber-500">★</span>
-                  {provider.rating || "4.9"} / 5.0
+                  {/* Ratings live in the top-level reviews collection, which is
+                      not wired yet — show nothing rather than invent a score. */}
+                  {provider.rating ? `${provider.rating} / 5.0` : "No ratings yet"}
                 </strong>
               </div>
             </div>

@@ -7,6 +7,9 @@ import Pagination from "@/components/ui/Pagination";
 
 export default function TransferQueueTab({
   transferQueue,
+  isLoading,
+  isError,
+  error,
   startDate,
   endDate,
   searchTerm,
@@ -23,11 +26,6 @@ export default function TransferQueueTab({
 }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -68,11 +66,8 @@ export default function TransferQueueTab({
               className="border border-border-main md:text-xs text-[10px] rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
             >
               <option value="All">Status</option>
-              <option value="Requested">Requested</option>
-              <option value="Processing">Processing</option>
               <option value="Transferred">Transferred</option>
               <option value="Error">Error</option>
-              <option value="Rejected">Rejected</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
           </div>
@@ -164,24 +159,25 @@ export default function TransferQueueTab({
                               className="fixed w-36 bg-white border border-border-main rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                               style={{ top: dropdownPos.top, left: dropdownPos.left }}
                             >
-                              <button
-                                onClick={() => {
-                                  onAuthorize(item);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
-                              >
-                                <Zap size={13} /> Authorize
-                              </button>
-                              <button
-                                onClick={() => {
-                                  onReject(item);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-red-500 font-medium flex items-center gap-2 cursor-pointer"
-                              >
-                                <X size={13} /> Reject
-                              </button>
+                              {/* Payouts are sent automatically by the Friday
+                                  cron, so there is nothing to authorise here.
+                                  This tab is the record of what was sent. */}
+                              <div className="px-4 py-2 text-[10px] text-text-muted font-light leading-relaxed">
+                                {item.status === "Error"
+                                  ? item.errorMessage || "Transfer failed."
+                                  : "Sent automatically by the Friday payout run."}
+                              </div>
+                              {item.txn && item.txn !== "-" && (
+                                <button
+                                  onClick={() => {
+                                    copyToClipboard(item.txn);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                                >
+                                  <Zap size={13} /> Copy transfer ID
+                                </button>
+                              )}
                             </div>
                           )}
                         </>

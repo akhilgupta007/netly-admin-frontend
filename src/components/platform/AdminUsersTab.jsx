@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, ChevronDown, MoreHorizontal, Edit3, Trash2, Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
@@ -9,78 +9,14 @@ import InviteAdminModal from "@/components/platform/InviteAdminModal";
 import ChangeRoleModal from "@/components/platform/ChangeRoleModal";
 import RevokeAccessModal from "@/components/platform/RevokeAccessModal";
 import CardWrapper from "@/components/ui/CardWrapper";
-import { useMutation } from "@tanstack/react-query";
-import { inviteAdmin } from "@/lib/callables";
-
-// Initial Mock Admins list matching Screenshot 1
-const initialAdmins = [
-  {
-    id: "ADM-001",
-    name: "Sofia Kim",
-    email: "sofia.kim@example.com",
-    role: "Super Admin",
-    lastLogin: "June 25, 2027 12:30 PM",
-    dateTime: new Date(2027, 5, 25, 12, 30),
-    twoFA: "Enabled"
-  },
-  {
-    id: "ADM-002",
-    name: "Lucas Wright",
-    email: "lucas.wright@example.com",
-    role: "Finance Admin",
-    lastLogin: "July 15, 2027 11:15 AM",
-    dateTime: new Date(2027, 6, 15, 11, 15),
-    twoFA: "Enabled"
-  },
-  {
-    id: "ADM-003",
-    name: "Ava Johnson",
-    email: "ava.johnson@example.com",
-    role: "Compliance Admin",
-    lastLogin: "July 10, 2027 10:30 AM",
-    dateTime: new Date(2027, 6, 10, 10, 30),
-    twoFA: "Setup Pending"
-  },
-  {
-    id: "ADM-004",
-    name: "Ethan Brown",
-    email: "ethan.brown@example.com",
-    role: "Moderator",
-    lastLogin: "July 05, 2027 09:55 AM",
-    dateTime: new Date(2027, 6, 5, 9, 55),
-    twoFA: "Disabled"
-  },
-  {
-    id: "ADM-005",
-    name: "Jessica Wu",
-    email: "jessica.wu@example.com",
-    role: "Support Admin",
-    lastLogin: "July 01, 2027 08:25 AM",
-    dateTime: new Date(2027, 6, 1, 8, 25),
-    twoFA: "Enabled"
-  },
-  {
-    id: "ADM-006",
-    name: "Mason Lee",
-    email: "mason.lee@example.com",
-    role: "Moderator",
-    lastLogin: "July 25, 2027 02:45 PM",
-    dateTime: new Date(2027, 6, 25, 14, 45),
-    twoFA: "Enabled"
-  },
-  {
-    id: "ADM-007",
-    name: "Omar Ibrahim",
-    email: "omar.ibrahim@example.com",
-    role: "Support Admin",
-    lastLogin: "June 20, 2027 10:05 AM",
-    dateTime: new Date(2027, 5, 20, 10, 5),
-    twoFA: "Setup Pending"
-  }
-];
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { inviteAdmin, updateAdminRole, revokeAdminAccess } from "@/lib/callables";
+import { useAdmins } from "@/hooks/useAdmins";
+import { useAuthStore } from "@/store/useAuthStore";
+import { ADMIN_ROLES, roleLabel, canManageAdmins } from "@/lib/adminRoles";
+import { toMillis } from "@/services/firestoreReads";
 
 export default function AdminUsersTab() {
-  const [admins, setAdmins] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [startDate, setStartDate] = useState(null);
@@ -98,35 +34,11 @@ export default function AdminUsersTab() {
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
-  // Load from LocalStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("netly_admin_users");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored).map(item => ({
-          ...item,
-          dateTime: item.dateTime ? new Date(item.dateTime) : new Date()
-        }));
-        setAdmins(parsed);
-      } catch (e) {
-        setAdmins(initialAdmins);
-      }
-    } else {
-      setAdmins(initialAdmins);
-      localStorage.setItem("netly_admin_users", JSON.stringify(initialAdmins));
-    }
-  }, []);
-
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const saveAdmins = (updatedList) => {
-    setAdmins(updatedList);
-    localStorage.setItem("netly_admin_users", JSON.stringify(updatedList));
-  };
+  const { admins, isLoading, isError, error } = useAdmins();
+  const queryClient = useQueryClient();
+  const currentRole = useAuthStore((state) => state.role);
+  const currentUid = useAuthStore((state) => state.uid);
+  const isSuperAdmin = canManageAdmins(currentRole);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -139,52 +51,51 @@ export default function AdminUsersTab() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const invalidateAdmins = () =>
+    queryClient.invalidateQueries({ queryKey: ["admins"] });
+
   const inviteMutation = useMutation({
     mutationFn: inviteAdmin,
-    onSuccess: (data, variables) => {
-      // Optimistically add to local list for now, since we haven't wired up fetchAdminsFromFirestore yet
-      const newAdmin = {
-        id: data?.uid || `ADM-${Date.now()}`,
-        name: variables.email.split("@")[0].split(/[._-]/).map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" "),
-        email: variables.email,
-        role: variables.role,
-        lastLogin: "Never logged in",
-        dateTime: new Date(),
-        twoFA: "Setup Pending"
-      };
-      const updated = [...admins, newAdmin];
-      saveAdmins(updated);
+    onSuccess: (_data, variables) => {
+      invalidateAdmins();
       setInviteOpen(false);
-      toast.success(`Invite sent successfully to ${variables.email}!`);
+      toast.success(`Invite sent to ${variables.email}.`);
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to send invite");
-    }
+    onError: (error) => toast.error(error.message)
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: updateAdminRole,
+    onSuccess: (_data, variables) => {
+      invalidateAdmins();
+      setChangeRoleOpen(false);
+      setSelectedAdmin(null);
+      toast.success(`Role updated to ${roleLabel(variables.role)}.`);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: revokeAdminAccess,
+    onSuccess: () => {
+      invalidateAdmins();
+      setRevokeOpen(false);
+      setSelectedAdmin(null);
+      toast.success("Admin access revoked.");
+    },
+    onError: (error) => toast.error(error.message)
   });
 
   const handleInviteSubmit = (data) => {
-    inviteMutation.mutate({
-      email: data.email,
-      role: data.role
-    });
+    inviteMutation.mutate({ email: data.email, role: data.role });
   };
 
   const handleChangeRoleSubmit = (admin, newRole) => {
-    const updated = admins.map(a =>
-      a.id === admin.id ? { ...a, role: newRole } : a
-    );
-    saveAdmins(updated);
-    setChangeRoleOpen(false);
-    setSelectedAdmin(null);
-    toast.success(`Role for ${admin.name} updated to ${newRole}.`);
+    roleMutation.mutate({ uid: admin.uid, role: newRole });
   };
 
-  const handleRevokeConfirm = (admin) => {
-    const updated = admins.filter(a => a.id !== admin.id);
-    saveAdmins(updated);
-    setRevokeOpen(false);
-    setSelectedAdmin(null);
-    toast.success(`Access has been successfully revoked for ${admin.name}.`);
+  const handleRevokeConfirm = (admin, reason) => {
+    revokeMutation.mutate({ uid: admin.uid, reason });
   };
 
   // Filtering
@@ -194,25 +105,25 @@ export default function AdminUsersTab() {
       a.email.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      filterStatus === "All" ||
-      a.twoFA === filterStatus;
+      filterStatus === "All" || a.status === filterStatus;
 
     let matchesDate = true;
     if (startDate && endDate) {
       const start = new Date(startDate).setHours(0, 0, 0, 0);
       const end = new Date(endDate).setHours(23, 59, 59, 999);
-      const loginVal = new Date(a.dateTime).getTime();
-      matchesDate = loginVal >= start && loginVal <= end;
+      const createdAt = toMillis(a.createdAtRaw);
+      matchesDate = createdAt === null || (createdAt >= start && createdAt <= end);
     }
 
     return matchesSearch && matchesStatus && matchesDate;
   });
 
   // Dynamic calculations for Stats Cards
-  const statsFinance = admins.filter(a => a.role === "Finance Admin").length;
-  const statsCompliance = admins.filter(a => a.role === "Compliance Admin").length;
-  const statsSupport = admins.filter(a => a.role === "Support Admin").length;
-  const statsModerator = admins.filter(a => a.role === "Moderator").length;
+  const countByRole = (slug) => admins.filter((a) => a.role === slug).length;
+  const statsFinance = countByRole(ADMIN_ROLES.FINANCE_ADMIN);
+  const statsCompliance = countByRole(ADMIN_ROLES.COMPLIANCE_ADMIN);
+  const statsSupport = countByRole(ADMIN_ROLES.SUPPORT_ADMIN);
+  const statsModerator = countByRole(ADMIN_ROLES.MODERATOR);
 
   // Pagination
   const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage) || 1;
@@ -271,9 +182,8 @@ export default function AdminUsersTab() {
                 className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
-                <option value="Enabled">Enabled</option>
-                <option value="Setup Pending">Setup Pending</option>
-                <option value="Disabled">Disabled</option>
+                <option value="active">Active</option>
+                <option value="invited">Invited</option>
               </select>
               <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
             </div>
@@ -288,12 +198,12 @@ export default function AdminUsersTab() {
               }}
             />
 
-            <button
+            {isSuperAdmin && <button
               onClick={() => setInviteOpen(true)}
               className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 px-4 rounded-lg transition cursor-pointer select-none flex items-center gap-1.5 h-9.5 shrink-0"
             >
               <Plus size={18} /> Invite Admin
-            </button>
+            </button>}
           </div>
         </div>
 
@@ -301,6 +211,13 @@ export default function AdminUsersTab() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
             <span className="text-xs text-text-muted animate-pulse font-light">Loading Admin Users Data...</span>
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white min-h-80">
+            <h3 className="text-sm font-semibold text-red-600">Could not load admin users</h3>
+            <p className="text-xs text-text-muted font-light max-w-sm">
+              {error?.message || "Check your connection and try again."}
+            </p>
           </div>
         ) : filteredAdmins.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
@@ -320,7 +237,7 @@ export default function AdminUsersTab() {
                     <th className="px-4 py-3 font-semibold">Email Address</th>
                     <th className="px-4 py-3 font-semibold">Role</th>
                     <th className="px-4 py-3 font-semibold">Last Login</th>
-                    <th className="px-4 py-3 font-semibold">2FA Status</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
                     <th className="px-4 py-3 font-semibold w-10">Actions</th>
                   </tr>
                 </thead>
@@ -332,7 +249,7 @@ export default function AdminUsersTab() {
                       <tr key={item.id} className="hover:bg-page-bg/50 transition">
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">{item.email}</td>
-                        <td className="px-4 py-3">{item.role}</td>
+                        <td className="px-4 py-3">{roleLabel(item.role)}</td>
                         <td className="px-4 py-3 text-nowrap">
                           {item.lastLogin.includes(" ") ? (
                             <>
@@ -346,17 +263,19 @@ export default function AdminUsersTab() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full md:text-xs text-[10px] ${item.twoFA === "Enabled" ? "text-emerald-500 bg-emerald-50" :
-                              item.twoFA === "Setup Pending" ? "text-amber-500 bg-amber-50" :
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full md:text-xs text-[10px] capitalize ${item.status === "active" ? "text-emerald-500 bg-emerald-50" :
+                              item.status === "invited" ? "text-amber-500 bg-amber-50" :
                                 "text-red-500 bg-red-50"
                             }`}>
                             <span className="h-1 w-1 rounded-full bg-current" />
-                            {item.twoFA}
+                            {item.status}
                           </span>
                         </td>
                         <td className="px-4 py-3" data-dropdown-container>
                           {/* Sofia Kim as Super Admin shouldn't have edit/revoke capabilities in Screenshot 1 */}
-                          {item.role !== "Super Admin" ? (
+                          {isSuperAdmin &&
+                          item.role !== ADMIN_ROLES.SUPER_ADMIN &&
+                          item.uid !== currentUid ? (
                             <div className="relative inline-block">
                               <button
                                 onClick={(e) => {
@@ -446,6 +365,7 @@ export default function AdminUsersTab() {
               setSelectedAdmin(null);
             }}
             onChangeRole={handleChangeRoleSubmit}
+            isPending={roleMutation.isPending}
           />
 
           <RevokeAccessModal
@@ -456,6 +376,7 @@ export default function AdminUsersTab() {
               setSelectedAdmin(null);
             }}
             onRevoke={handleRevokeConfirm}
+            isPending={revokeMutation.isPending}
           />
         </>
       )}
