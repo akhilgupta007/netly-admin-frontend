@@ -1,10 +1,12 @@
 import {
   db,
   collection,
+  doc,
+  getDoc,
   getDocs,
   query,
-  where,
-  collectionGroup,
+  orderBy,
+  limit as fsLimit,
 } from "@/lib/firebase";
 import {
   userSchema,
@@ -12,79 +14,87 @@ import {
   providerProfileSchema,
   kycSubmissionSchema,
 } from "@/lib/schemas";
+import {
+  formatFirestoreDate,
+  formatFirestoreDateTime,
+  loadUsersByType,
+  loadProfileMap,
+  loadAddressMap,
+  filterAndPaginate,
+  titleCase,
+  toMillis,
+} from "@/services/firestoreReads";
+
+export { formatFirestoreDate, formatFirestoreDateTime };
+
+/** Human labels for the `type` values written into the wallet ledgers. */
+const WALLET_TX_LABELS = {
+  refund: "Refund credited",
+  payment: "Booking payment",
+  payout: "Payout to bank",
+  adminCredit: "Admin wallet credit",
+  adminDebit: "Admin wallet debit",
+};
+
+const KYC_DISPLAY = {
+  verified: "Verified",
+  pending: "Pending",
+  rejected: "Rejected",
+  notSubmitted: "Not Submitted",
+};
 
 /**
- * Format Timestamp or Date object safely into a readable string
+ * Builds a display name from whatever the user document actually has.
+ * @param {object} data - The users/{uid} data.
+ * @param {string} fallback - Used when nothing is present.
+ * @return {string} Display name.
  */
-export function formatFirestoreDate(timestamp) {
-  if (!timestamp) return "N/A";
-  if (timestamp.toDate && typeof timestamp.toDate === "function") {
-    return timestamp.toDate().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-  if (timestamp.seconds) {
-    return new Date(timestamp.seconds * 1000).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-  if (typeof timestamp === "string" || typeof timestamp === "number") {
-    return new Date(timestamp).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }
-  return "N/A";
+function displayName(data, fallback) {
+  return (
+    data.fullName ||
+    [data.firstName, data.lastName].filter(Boolean).join(" ") ||
+    data.email?.split("@")[0] ||
+    fallback
+  );
 }
 
 /**
- * 1. Read all User documents from `users` collection & validate with Zod
+ * 1. All user documents, lightly validated.
+ * @return {Promise<Array<object>>} Users.
  */
 export async function fetchUsersFromFirestore() {
   try {
-    const usersRef = collection(db, "users");
-    const snapshot = await getDocs(usersRef);
+    const snapshot = await getDocs(collection(db, "users"));
     if (snapshot.empty) return [];
 
-    const rawUsers = snapshot.docs.map((docSnap) => {
+    return snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
-      return {
+      return userSchema.parse({
         id: docSnap.id,
         uid: docSnap.id,
         email: data.email || "",
         accountType: data.accountType || null,
         otpVerified: Boolean(data.otpVerified),
         createdAt: data.createdAt,
-        fullName:
-          data.fullName ||
-          (data.firstName && data.lastName
-            ? `${data.firstName} ${data.lastName}`
-            : null),
+        fullName: displayName(data, null),
         firstName: data.firstName || null,
         lastName: data.lastName || null,
         phoneNumber: data.phoneNumber || "",
         countryCode: data.countryCode || "",
         photoUrl: data.photoUrl || "",
-        status: data.status
-          ? data.status.charAt(0).toUpperCase() + data.status.slice(1)
-          : "Active",
-      };
+        status: titleCase(data.status, "Active"),
+      });
     });
-
-    return rawUsers.map((item) => userSchema.parse(item));
   } catch (error) {
-    console.warn("Firestore fetchUsers warning:", error);
-    return [];
+    console.error("Firestore fetchUsers error:", error);
+    throw error;
   }
 }
 
 /**
- * 2. Read Client Profiles with Backend Search, Filtering & Pagination
+ * 2. Client accounts, joined with their client profile.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
  */
 export async function fetchClientsFromFirestore(params = {}) {
   const {
@@ -97,94 +107,57 @@ export async function fetchClientsFromFirestore(params = {}) {
   } = params;
 
   try {
-    const usersRef = collection(db, "users");
+    const users = await loadUsersByType("client");
+    if (users.length === 0) return { items: [], total: 0, totalPages: 1 };
 
-    // Query only clients!
-    const queryConstraints = [where("accountType", "==", "client")];
-    if (filterStatus !== "All") {
-      queryConstraints.push(where("status", "==", filterStatus.toLowerCase()));
-    }
+    const uids = users.map((u) => u.uid);
+    const profiles = await loadProfileMap("client", uids);
 
-    const q = query(usersRef, ...queryConstraints);
-    const snapshot = await getDocs(q);
-
-    const clientDocs = snapshot.docs;
-    if (clientDocs.length === 0) {
-      return { items: [], total: 0, totalPages: 1 };
-    }
-
-    const clientPromises = clientDocs.map(async (userDoc) => {
-      const userData = userDoc.data();
-      const clientSubRef = collection(db, `users/${userDoc.id}/client`);
-      const clientSubSnap = await getDocs(clientSubRef);
-      const clientProfile =
-        clientSubSnap.docs.length > 0 ? clientSubSnap.docs[0].data() : {};
-
-      const rawClient = {
-        id: `CL-${userDoc.id.slice(0, 6)}`,
-        uid: userDoc.id,
-        name:
-          userData.fullName ||
-          (userData.firstName && userData.lastName
-            ? `${userData.firstName} ${userData.lastName}`
-            : userData.email?.split("@")[0] || "Client"),
-        email: userData.email || "",
-        phoneNumber: userData.phoneNumber || "",
-        photoUrl: userData.photoUrl || "",
-        joinDate: formatFirestoreDate(
-          userData.createdAt || clientProfile.createdAt,
-        ),
-        otp: userData.otpVerified ? "Verified" : "Pending",
+    const items = users.map(({ uid, data }) => {
+      const profile = profiles.get(uid) || {};
+      return clientProfileSchema.parse({
+        id: `CL-${uid.slice(0, 6)}`,
+        uid,
+        name: displayName(data, "Client"),
+        email: data.email || "",
+        phoneNumber: data.phoneNumber || "",
+        photoUrl: data.photoUrl || "",
+        joinDate: formatFirestoreDate(data.createdAt || profile.createdAt),
+        createdAtRaw: data.createdAt || profile.createdAt || null,
+        otp: data.otpVerified ? "Verified" : "Pending",
         bookings: 0,
-        wallet: clientProfile.walletBalance || 0.0,
-        creditUsed: clientProfile.creditUsed || 0.0,
-        profileCompleted: Boolean(clientProfile.profileCompleted),
-        addressCompleted: Boolean(clientProfile.addressCompleted),
-        onboardingCompleted: Boolean(clientProfile.onboardingCompleted),
-        status: userData.status
-          ? userData.status.charAt(0).toUpperCase() + userData.status.slice(1)
-          : "Active",
-      };
-
-      return clientProfileSchema.parse(rawClient);
+        wallet: profile.walletBalance || 0.0,
+        creditUsed: profile.creditUsed || 0.0,
+        profileCompleted: Boolean(profile.profileCompleted),
+        addressCompleted: Boolean(profile.addressCompleted),
+        onboardingCompleted: Boolean(profile.onboardingCompleted),
+        status: titleCase(data.status, "Active"),
+      });
     });
 
-    let items = (await Promise.all(clientPromises)).filter(Boolean);
-
-    // Apply search filter
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      items = items.filter(
-        (c) =>
-          c.name.toLowerCase().includes(term) ||
-          c.email.toLowerCase().includes(term),
-      );
-    }
-
-    // Apply date range filter
-    if (startDate || endDate) {
-      items = items.filter((c) => {
-        const itemDate = new Date(c.joinDate);
-        if (isNaN(itemDate.getTime())) return true;
-        if (startDate && itemDate < new Date(startDate)) return false;
-        if (endDate && itemDate > new Date(endDate)) return false;
-        return true;
-      });
-    }
-
-    const total = items.length;
-    const totalPages = Math.ceil(total / limit) || 1;
-    const paginatedItems = items.slice((page - 1) * limit, page * limit);
-
-    return { items: paginatedItems, total, totalPages };
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["name", "email"],
+      filterStatus,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
   } catch (error) {
-    console.error("Firestore fetchClients raw error:", error);
-    return { items: [], total: 0, totalPages: 1 };
+    console.error("Firestore fetchClients error:", error);
+    throw error;
   }
 }
 
 /**
- * 3. Read Provider Profiles with Backend Search, Filtering & Pagination
+ * 3. Provider accounts, joined with their provider profile and default address.
+ *
+ * Address fields come from users/{uid}/addresses (Schema v3.0 §3). The legacy
+ * provider-level street/city/postal fields are read only as a fallback, since
+ * §5 lists them as removed.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
  */
 export async function fetchProvidersFromFirestore(params = {}) {
   const {
@@ -198,137 +171,93 @@ export async function fetchProvidersFromFirestore(params = {}) {
   } = params;
 
   try {
-    const usersRef = collection(db, "users");
+    const users = await loadUsersByType("provider");
+    if (users.length === 0) return { items: [], total: 0, totalPages: 1 };
 
-    // Query only providers!
-    const queryConstraints = [where("accountType", "==", "provider")];
-    if (filterStatus !== "All") {
-      queryConstraints.push(where("status", "==", filterStatus.toLowerCase()));
-    }
+    const uids = users.map((u) => u.uid);
+    const [profiles, addresses] = await Promise.all([
+      loadProfileMap("provider", uids),
+      loadAddressMap(uids),
+    ]);
 
-    const q = query(usersRef, ...queryConstraints);
-    const snapshot = await getDocs(q);
+    let items = users.map(({ uid, data }) => {
+      const profile = profiles.get(uid) || {};
+      const address = addresses.get(uid) || {};
+      const kycStatus = profile.kycStatus || "notSubmitted";
 
-    const providerDocs = snapshot.docs;
-    if (providerDocs.length === 0) {
-      return { items: [], total: 0, totalPages: 1 };
-    }
-
-    const providerPromises = providerDocs.map(async (userDoc) => {
-      const userData = userDoc.data();
-      const providerSubRef = collection(db, `users/${userDoc.id}/provider`);
-      const providerSubSnap = await getDocs(providerSubRef);
-      const providerProfile =
-        providerSubSnap.docs.length > 0 ? providerSubSnap.docs[0].data() : {};
-
-      const kycRawStatus = providerProfile.kycStatus || "notSubmitted";
-      const isKycVerified = kycRawStatus === "verified";
-      const kycDisplayStatus = isKycVerified
-        ? "Verified"
-        : kycRawStatus === "pending"
-          ? "Pending"
-          : kycRawStatus === "rejected"
-            ? "Rejected"
-            : "Not Submitted";
-
-      const rawProvider = {
-        id: `PR-${userDoc.id.slice(0, 6)}`,
-        uid: userDoc.id,
-        name:
-          userData.fullName ||
-          (userData.firstName && userData.lastName
-            ? `${userData.firstName} ${userData.lastName}`
-            : userData.email?.split("@")[0] || "Provider"),
-        firstName: userData.firstName || "",
-        lastName: userData.lastName || "",
-        email: userData.email || "",
-        phoneNumber: userData.phoneNumber || "",
-        city: providerProfile.city || "Boston",
-        province: providerProfile.province || "",
-        country: providerProfile.country || "Canada",
-        street: providerProfile.street || "",
-        apt: providerProfile.apt || null,
-        postalCode: providerProfile.postalCode || "",
-        about: providerProfile.about || "",
-        yearsOfExperience: providerProfile.yearsOfExperience || "2+",
-        rating: "4.9",
-        joinDate: formatFirestoreDate(
-          userData.createdAt || providerProfile.createdAt,
-        ),
-        kyc: kycDisplayStatus,
-        kycStatus: kycRawStatus,
-        isKycVerified,
-        kycSubmittedAt: formatFirestoreDate(providerProfile.kycSubmittedAt),
-        kycReviewedAt: formatFirestoreDate(providerProfile.kycReviewedAt),
-        kycRejectionReason: providerProfile.kycRejectionReason || "",
-        verificationDocuments: providerProfile.verificationDocuments || [],
-        selectedDocuments: providerProfile.selectedDocuments || [],
-        skills: providerProfile.skills || ["Home Care"],
-        badges: ["Provider Pro"],
-        walletBalance: providerProfile.walletBalance || 0.0,
+      return providerProfileSchema.parse({
+        id: `PR-${uid.slice(0, 6)}`,
+        uid,
+        name: displayName(data, "Provider"),
+        firstName: data.firstName || profile.firstName || "",
+        lastName: data.lastName || profile.lastName || "",
+        email: data.email || profile.email || "",
+        phoneNumber: data.phoneNumber || profile.phoneNumber || "",
+        // Address: subcollection first, legacy provider fields as fallback.
+        city: address.city || profile.city || "",
+        province: address.province || profile.province || "",
+        country: address.country || profile.country || "",
+        street: address.streetAddress || profile.street || "",
+        apt: address.aptSuite || profile.apt || null,
+        postalCode: address.postalCode || profile.postalCode || "",
+        about: profile.about || "",
+        yearsOfExperience: profile.yearsOfExperience || "",
+        serviceRadiusKm: profile.serviceRadiusKm ?? null,
+        rating: null,
+        joinDate: formatFirestoreDate(data.createdAt || profile.createdAt),
+        createdAtRaw: data.createdAt || profile.createdAt || null,
+        kyc: KYC_DISPLAY[kycStatus] || "Not Submitted",
+        kycStatus,
+        isKycVerified: kycStatus === "verified",
+        kycSubmittedAt: formatFirestoreDate(profile.kycSubmittedAt),
+        kycReviewedAt: formatFirestoreDate(profile.kycReviewedAt),
+        kycRejectionReason: profile.kycRejectionReason || "",
+        verificationDocuments: profile.verificationDocuments || [],
+        selectedDocuments: profile.selectedDocuments || [],
+        skills: profile.skills || [],
+        badges: profile.isFoundingPartner ? ["Founding Provider"] : [],
+        isFoundingPartner: Boolean(profile.isFoundingPartner),
+        walletBalance: profile.walletBalance || 0.0,
+        creditUsed: profile.creditUsed || 0.0,
         stripeAccountId:
-          providerProfile.stripeAccountId ||
-          providerProfile.stripeAccountid ||
-          "",
-        stripeAccountType: providerProfile.stripeAccountType || "",
-        chargesEnabled: Boolean(providerProfile.chargesEnabled),
-        payoutsEnabled: Boolean(providerProfile.payoutsEnabled),
-        isActive:
-          providerProfile.isActive !== undefined
-            ? Boolean(providerProfile.isActive)
-            : true,
-        status: userData.status
-          ? userData.status.charAt(0).toUpperCase() + userData.status.slice(1)
-          : "Active",
-      };
-
-      return providerProfileSchema.parse(rawProvider);
+          profile.stripeAccountId || profile.stripeAccountid || "",
+        stripeAccountType: profile.stripeAccountType || "",
+        chargesEnabled: Boolean(profile.chargesEnabled),
+        payoutsEnabled: Boolean(profile.payoutsEnabled),
+        isActive: Boolean(profile.isActive),
+        status: titleCase(data.status, "Active"),
+      });
     });
 
-    let items = (await Promise.all(providerPromises)).filter(Boolean);
-
-    // Filter search term
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      items = items.filter(
-        (p) =>
-          p.name.toLowerCase().includes(term) ||
-          p.email.toLowerCase().includes(term) ||
-          p.city.toLowerCase().includes(term),
-      );
-    }
-
-    // Filter KYC
     if (filterKYC !== "All") {
       items = items.filter(
         (p) => p.kyc.toLowerCase() === filterKYC.toLowerCase(),
       );
     }
 
-    // Filter date range
-    if (startDate || endDate) {
-      items = items.filter((p) => {
-        const itemDate = new Date(p.joinDate);
-        if (isNaN(itemDate.getTime())) return true;
-        if (startDate && itemDate < new Date(startDate)) return false;
-        if (endDate && itemDate > new Date(endDate)) return false;
-        return true;
-      });
-    }
-
-    const total = items.length;
-    const totalPages = Math.ceil(total / limit) || 1;
-    const paginatedItems = items.slice((page - 1) * limit, page * limit);
-
-    return { items: paginatedItems, total, totalPages };
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["name", "email", "city"],
+      filterStatus,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
   } catch (error) {
-    console.error("Firestore fetchProviders raw error:", error);
-    return { items: [], total: 0, totalPages: 1 };
+    console.error("Firestore fetchProviders error:", error);
+    throw error;
   }
 }
 
 /**
- * 4. Read KYC Submissions with Backend Search, Filtering & Pagination
+ * 4. KYC submissions.
+ *
+ * Reads the top-level `kyc` collection (Schema v3.0 §6), joining each record to
+ * its provider. Falls back to deriving rows from provider profiles when that
+ * collection is empty, which is the case until the app starts writing there.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
  */
 export async function fetchKycSubmissionsFromFirestore(params = {}) {
   const {
@@ -342,45 +271,66 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
   } = params;
 
   try {
-    const providersResult = await fetchProvidersFromFirestore({ limit: 1000 });
-    const providers = providersResult.items || [];
+    const users = await loadUsersByType("provider");
+    if (users.length === 0) return { items: [], total: 0, totalPages: 1 };
 
-    let rawKyc = providers.map((p) => ({
-      id: p.id,
-      uid: p.uid,
-      providerName: p.name,
-      email: p.email,
-      phoneNumber: p.phoneNumber,
-      city: p.city,
-      submittedAt: p.kycSubmittedAt !== "N/A" ? p.kycSubmittedAt : p.joinDate,
-      date: p.kycSubmittedAt !== "N/A" ? p.kycSubmittedAt : p.joinDate,
-      // No invented defaults — an empty list means nothing was submitted.
-      documents: p.selectedDocuments || [],
-      verificationDocuments: p.verificationDocuments,
-      // notSubmitted must NOT fall through to "Pending" — that put providers
-      // who have uploaded nothing into the review queue as though they were
-      // awaiting a decision.
-      status:
-        p.kycStatus === "verified"
-          ? "Approved"
-          : p.kycStatus === "pending"
-            ? "Pending"
-            : p.kycStatus === "rejected"
-              ? "Rejected"
-              : "Not Submitted",
-      kycStatus: p.kycStatus,
-      isKycVerified: p.isKycVerified,
-      rejectionReason: p.kycRejectionReason,
-    }));
+    const usersByUid = new Map(users.map((u) => [u.uid, u.data]));
+    const uids = users.map((u) => u.uid);
 
-    let items = rawKyc.map((item) => kycSubmissionSchema.parse(item));
+    const [kycSnap, profiles] = await Promise.all([
+      getDocs(collection(db, "kyc")).catch((error) => {
+        console.warn("Could not read the kyc collection:", error?.code || error?.message);
+        return { docs: [] };
+      }),
+      loadProfileMap("provider", uids),
+    ]);
 
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      items = items.filter(
-        (k) =>
-          k.providerName.toLowerCase().includes(term) ||
-          k.email.toLowerCase().includes(term),
+    let rows;
+
+    if (kycSnap.docs.length > 0) {
+      rows = kycSnap.docs
+        .map((d) => {
+          const kyc = d.data();
+          const uid = kyc.providerId || kyc.userId || kyc.userRef?.id;
+          const user = uid ? usersByUid.get(uid) : null;
+          if (!user) return null;
+          const profile = profiles.get(uid) || {};
+          return buildKycRow({
+            kycId: d.id,
+            uid,
+            user,
+            status: kyc.status || profile.kycStatus || "notSubmitted",
+            submittedAt: kyc.submittedAt,
+            selectedDocuments: kyc.selectedDocuments,
+            verificationDocuments: kyc.verificationDocuments,
+            rejectionReason: kyc.rejectionReason,
+          });
+        })
+        .filter(Boolean);
+    } else {
+      // Legacy shape: KYC state denormalized onto the provider document.
+      rows = users.map(({ uid, data }) => {
+        const profile = profiles.get(uid) || {};
+        return buildKycRow({
+          kycId: null,
+          uid,
+          user: data,
+          status: profile.kycStatus || "notSubmitted",
+          submittedAt: profile.kycSubmittedAt,
+          selectedDocuments: profile.selectedDocuments,
+          verificationDocuments: profile.verificationDocuments,
+          rejectionReason: profile.kycRejectionReason,
+        });
+      });
+    }
+
+    let items = rows.map((row) => kycSubmissionSchema.parse(row));
+
+    if (filterDocType !== "All") {
+      items = items.filter((k) =>
+        (k.documents || []).some(
+          (d) => String(d).toLowerCase() === filterDocType.toLowerCase(),
+        ),
       );
     }
 
@@ -393,13 +343,446 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
       });
     }
 
-    const total = items.length;
-    const totalPages = Math.ceil(total / limit) || 1;
-    const paginatedItems = items.slice((page - 1) * limit, page * limit);
-
-    return { items: paginatedItems, total, totalPages };
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["providerName", "email"],
+      filterStatus: "All", // already applied above, with the In Review alias
+      startDate,
+      endDate,
+      dateField: "submittedAtRaw",
+      page,
+      limit,
+    });
   } catch (error) {
-    console.warn("Firestore fetchKycSubmissions error:", error);
-    return { items: [], total: 0, totalPages: 1 };
+    console.error("Firestore fetchKycSubmissions error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Shapes one KYC row from either the kyc collection or the legacy provider copy.
+ * @param {object} source - Normalised inputs.
+ * @return {object} Row ready for kycSubmissionSchema.
+ */
+function buildKycRow({
+  kycId,
+  uid,
+  user,
+  status,
+  submittedAt,
+  selectedDocuments,
+  verificationDocuments,
+  rejectionReason,
+}) {
+  const documents = selectedDocuments || [];
+  const files = verificationDocuments || [];
+  return {
+    id: `PR-${uid.slice(0, 6)}`,
+    kycId,
+    uid,
+    providerName: displayName(user, "Provider"),
+    email: user.email || "",
+    phoneNumber: user.phoneNumber || "",
+    city: "",
+    submittedAt: formatFirestoreDate(submittedAt),
+    submittedAtRaw: submittedAt || null,
+    date: formatFirestoreDate(submittedAt),
+    documents,
+    verificationDocuments: files,
+    // notSubmitted must not read as Pending — that put providers who uploaded
+    // nothing into the review queue as though awaiting a decision.
+    status: KYC_DISPLAY[status] === "Verified" ? "Approved" : KYC_DISPLAY[status] || "Not Submitted",
+    kycStatus: status,
+    isKycVerified: status === "verified",
+    rejectionReason: rejectionReason || "",
+  };
+}
+
+/**
+ * 7. Wallet balances across clients and providers.
+ *
+ * Wallet balance lives on the profile subdocument (client/provider), so this is
+ * the same two-query join the account tables use.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
+ */
+export async function fetchWalletsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    accountType = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const wanted =
+      accountType === "All" ? ["client", "provider"] : [accountType];
+
+    const groups = await Promise.all(
+      wanted.map(async (type) => {
+        const users = await loadUsersByType(type);
+        if (users.length === 0) return [];
+        const profiles = await loadProfileMap(
+          type,
+          users.map((u) => u.uid),
+        );
+        return users.map(({ uid, data }) => {
+          const profile = profiles.get(uid) || {};
+          return {
+            id: `W-${uid.slice(0, 6)}`,
+            uid,
+            accountType: type,
+            client: {
+              name: displayName(data, type === "client" ? "Client" : "Provider"),
+              email: data.email || "",
+            },
+            name: displayName(data, "Account"),
+            email: data.email || "",
+            balance: Number(profile.walletBalance) || 0,
+            creditUsed: Number(profile.creditUsed) || 0,
+            lastTxDate: formatFirestoreDate(profile.updatedAt),
+            lastTxTime: "",
+            updatedAtRaw: profile.updatedAt || null,
+            status: titleCase(data.status, "Active"),
+          };
+        });
+      }),
+    );
+
+    const items = groups.flat().sort((a, b) => b.balance - a.balance);
+
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["name", "email"],
+      filterStatus: "All",
+      startDate,
+      endDate,
+      dateField: "updatedAtRaw",
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error("Firestore fetchWallets error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 8. Wallet credit requests — the refund approval queue.
+ *
+ * Documents live in `wallet_credit_requests` and are created by the refund
+ * paths in netly-functions (cancellations, auto-rejects, dispute outcomes).
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
+ */
+export async function fetchWalletCreditRequestsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const snapshot = await getDocs(
+      query(
+        collection(db, "wallet_credit_requests"),
+        orderBy("createdAt", "desc"),
+        fsLimit(500),
+      ),
+    );
+
+    // Join to users so the queue can show who the refund is for.
+    const uids = [
+      ...new Set(
+        snapshot.docs
+          .map((d) => d.data().userId || d.data().userRef?.id)
+          .filter(Boolean),
+      ),
+    ];
+    const userMap = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            return snap.exists() ? [uid, snap.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    const items = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      const uid = data.userId || data.userRef?.id || null;
+      const user = uid ? userMap.get(uid) : null;
+      return {
+        id: docSnap.id,
+        uid,
+        client: {
+          name: user ? displayName(user, "Client") : "Unknown",
+          email: user?.email || "",
+        },
+        name: user ? displayName(user, "Client") : "Unknown",
+        email: user?.email || "",
+        amount: Number(data.amount) || 0,
+        txn: data.bookingId || "-",
+        bookingId: data.bookingId || null,
+        reason: data.reason || "",
+        date: formatFirestoreDate(data.createdAt),
+        createdAtRaw: data.createdAt || null,
+        // Backend slugs are pending | approved | rejected.
+        status: titleCase(data.status, "Pending"),
+        rawStatus: data.status || "pending",
+      };
+    });
+
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["name", "email", "reason"],
+      filterStatus,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error("Firestore fetchWalletCreditRequests error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 10. One account's wallet ledger.
+ *
+ * The two account types keep separate ledgers under their profile document:
+ *   clients   → users/{uid}/client/{uid}/walletTransactions
+ *   providers → users/{uid}/provider/{uid}/transactions
+ *
+ * Entries record `balanceAfter`, so the running balance is read straight from
+ * the ledger rather than recomputed — recomputing would drift the moment an
+ * entry was missed.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.uid - Account id.
+ * @param {string} params.accountType - "client" or "provider".
+ * @param {number} params.max - Cap on entries (default 100).
+ * @return {Promise<Array<object>>} Entries, newest first.
+ */
+export async function fetchWalletHistoryFromFirestore({
+  uid,
+  accountType = "client",
+  max = 100,
+} = {}) {
+  if (!uid) return [];
+
+  const isClient = accountType === "client";
+  const path = isClient ?
+    ["users", uid, "client", uid, "walletTransactions"] :
+    ["users", uid, "provider", uid, "transactions"];
+
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, ...path), orderBy("createdAt", "desc"), fsLimit(max)),
+    );
+
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      const amount = Number(data.amount ?? data.transactionAmount) || 0;
+      // Debits are the entries that take money out of the wallet.
+      const isDebit = ["payment", "adminDebit", "payout"].includes(data.type);
+
+      return {
+        id: docSnap.id,
+        date: formatFirestoreDateTime(data.createdAt),
+        createdAtRaw: data.createdAt || null,
+        description: WALLET_TX_LABELS[data.type] || data.reason || data.type || "Transaction",
+        reason: data.reason || "",
+        type: isDebit ? "Debit" : "Credit",
+        rawType: data.type || "",
+        amount,
+        txn: data.bookingId || data.stripeTransferId || "-",
+        // Older entries predate balanceAfter; null renders as a dash rather
+        // than "$NaN".
+        running:
+          data.balanceAfter === undefined || data.balanceAfter === null
+            ? null
+            : Number(data.balanceAfter),
+      };
+    });
+  } catch (error) {
+    console.error("Firestore fetchWalletHistory error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 9. Payout history from `payout_logs`, written by processFridayPayouts.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
+ */
+export async function fetchPayoutLogsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "payout_logs"), fsLimit(500)),
+    );
+    if (snapshot.docs.length === 0) {
+      return { items: [], total: 0, totalPages: 1 };
+    }
+
+    // Payout logs identify the provider by cleanerId only, so join to users
+    // for a name and email.
+    const uids = [
+      ...new Set(snapshot.docs.map((d) => d.data().cleanerId).filter(Boolean)),
+    ];
+    const userMap = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            return snap.exists() ? [uid, snap.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    const items = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      const uid = data.cleanerId || null;
+      const user = uid ? userMap.get(uid) : null;
+      return {
+        id: docSnap.id,
+        uid,
+        provider: {
+          name: user ? displayName(user, "Provider") : uid || "Provider",
+          email: user?.email || "",
+        },
+        name: user ? displayName(user, "Provider") : "Provider",
+        email: user?.email || "",
+        amount: Number(data.amount) || 0,
+        currency: data.currency || "cad",
+        txn: data.stripeTransferId || "-",
+        stripeAccountId: data.stripeDestinationAccountId || "",
+        errorMessage: data.errorMessage || "",
+        // processFridayPayouts writes processedAt, and status succeeded|failed.
+        date: formatFirestoreDate(data.processedAt),
+        createdAtRaw: data.processedAt || null,
+        status: data.status === "succeeded" ? "Transferred" : "Error",
+        rawStatus: data.status || "",
+      };
+    });
+
+    items.sort(
+      (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+    );
+
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["name", "email", "txn"],
+      filterStatus,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error("Firestore fetchPayoutLogs error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 6. Audit log entries.
+ *
+ * Every admin mutation in netly-functions writes one of these via the
+ * writeAuditLog helper. The log is append-only — nothing in the panel edits or
+ * deletes entries, which is the point.
+ *
+ * @param {object} params - Options.
+ * @param {number} params.max - Hard cap on documents fetched (default 500).
+ * @return {Promise<Array<object>>} Entries, newest first.
+ */
+export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
+  try {
+    const snapshot = await getDocs(
+      query(
+        collection(db, "audit_logs"),
+        orderBy("createdAt", "desc"),
+        fsLimit(max),
+      ),
+    );
+
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        action: data.action || "",
+        actorUid: data.actorUid || "",
+        actorEmail: data.actorEmail || "—",
+        actorRole: data.actorRole || null,
+        targetType: data.targetType || "—",
+        targetId: data.targetId || "—",
+        reason: data.reason || "",
+        before: data.before || null,
+        after: data.after || null,
+        metadata: data.metadata || null,
+        ipAddress: data.ipAddress || "—",
+        userAgent: data.userAgent || "",
+        timestamp: formatFirestoreDateTime(data.createdAt),
+        createdAtRaw: data.createdAt || null,
+      };
+    });
+  } catch (error) {
+    console.error("Firestore fetchAuditLogs error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 5. Admin accounts, for the Admin Settings table.
+ *
+ * Revoked admins are retained in Firestore for the audit trail but excluded
+ * from the management table.
+ * @return {Promise<Array<object>>} Admin rows.
+ */
+export async function fetchAdminsFromFirestore() {
+  try {
+    const users = await loadUsersByType("admin");
+    return users
+      .map(({ uid, data }) => ({
+        uid,
+        id: uid,
+        name: displayName(data, "Admin"),
+        email: data.email || "",
+        role: data.role || null,
+        status: data.status || "active",
+        phoneNumber: data.phoneNumber || "",
+        lastLogin: formatFirestoreDateTime(data.lastLoginAt),
+        createdAtRaw: data.createdAt || data.invitedAt || null,
+        invitedByEmail: data.invitedByEmail || null,
+      }))
+      .filter((item) => item.status !== "revoked")
+      .sort(
+        (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+      );
+  } catch (error) {
+    console.error("Firestore fetchAdmins error:", error);
+    throw error;
   }
 }

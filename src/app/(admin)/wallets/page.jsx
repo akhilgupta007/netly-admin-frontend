@@ -2,6 +2,13 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useWallets,
+  useWalletCreditRequests,
+  usePayoutLogs
+} from "@/hooks/useWallets";
+import { adjustWalletBalance, approveWalletCreditRequest } from "@/lib/callables";
 
 import WalletHistoryModal from "@/components/wallets/WalletHistoryModal";
 import AdjustBalanceModal from "@/components/wallets/AdjustBalanceModal";
@@ -75,55 +82,23 @@ export default function WalletsRefundsPage() {
     }
   }, []);
 
-  // Mock Database - Wallets List
-  const [wallets, setWallets] = useState([
-    { id: "W-1001", client: { name: "Amara Osei", email: "amara@gmail.com" }, balance: 247.50, lastTxDate: "May 22, 2027", lastTxTime: "03:20 PM" },
-    { id: "W-1002", client: { name: "Brandon Kim", email: "brandon.kim@example.com" }, balance: 300.00, lastTxDate: "May 23, 2027", lastTxTime: "01:45 PM" },
-    { id: "W-1003", client: { name: "Chloe Lee", email: "chloe.lee@example.com" }, balance: 150.75, lastTxDate: "May 24, 2027", lastTxTime: "11:00 AM" },
-    { id: "W-1004", client: { name: "Daniel Park", email: "daniel.park@example.com" }, balance: 400.20, lastTxDate: "May 25, 2027", lastTxTime: "09:30 AM" },
-    { id: "W-1005", client: { name: "Ella Martinez", email: "ella.martinez@example.com" }, balance: 275.80, lastTxDate: "May 26, 2027", lastTxTime: "10:15 AM" },
-    { id: "W-1006", client: { name: "Felix Garcia", email: "felix.garcia@example.com" }, balance: 130.00, lastTxDate: "May 27, 2027", lastTxTime: "02:00 PM" },
-    { id: "W-1007", client: { name: "Hannah Kim", email: "hannah.kim@example.com" }, balance: 400.00, lastTxDate: "May 28, 2027", lastTxTime: "12:00 PM" },
-    { id: "W-1008", client: { name: "Isaac Lee", email: "isaac.lee@example.com" }, balance: 50.25, lastTxDate: "May 29, 2027", lastTxTime: "03:15 PM" },
-    { id: "W-1009", client: { name: "Jasmine Miller", email: "jasmine.miller@example.com" }, balance: 220.00, lastTxDate: "May 30, 2027", lastTxTime: "09:00 AM" }
-  ]);
+  const queryClient = useQueryClient();
 
-  // Mock Database - Wallet Credit Queue
-  const [creditQueue, setCreditQueue] = useState([
-    { id: "TRF-0051", client: { name: "Oliver Lee", email: "oliver@example.com" }, amount: 130.00, txn: "-", date: "June 1, 2027", status: "Processing" },
-    { id: "TRF-0050", client: { name: "Charlotte Martin", email: "charlotte@example.com" }, amount: 88.60, txn: "-", date: "May 31, 2027", status: "Requested" },
-    { id: "TRF-0053", client: { name: "James Harris", email: "james@example.com" }, amount: 210.90, txn: "-", date: "June 3, 2027", status: "Requested" },
-    { id: "TRF-0052", client: { name: "Amelia Young", email: "amelia@example.com" }, amount: 160.70, txn: "TXN-0018945687476", date: "June 2, 2027", status: "Transferred" },
-    { id: "TRF-0047", client: { name: "Ava Johnson", email: "ava@example.com" }, amount: 95.00, txn: "-", date: "May 28, 2027", status: "Requested" },
-    { id: "TRF-0054", client: { name: "Mia Wilson", email: "mia@example.com" }, amount: 125.45, txn: "TXN-0018945687478", date: "June 4, 2027", status: "Error" },
-    { id: "TRF-0049", client: { name: "Mason Wong", email: "mason@example.com" }, amount: 175.40, txn: "-", date: "May 30, 2027", status: "Requested" },
-    { id: "TRF-0048", client: { name: "Isabella Brown", email: "isabella@example.com" }, amount: 120.85, txn: "-", date: "May 29, 2027", status: "Rejected" },
-    { id: "TRF-0046", client: { name: "Noah Smith", email: "noah@example.com" }, amount: 180.50, txn: "TXN-0018945687470", date: "May 27, 2027", status: "Transferred" },
-    { id: "TRF-0045", client: { name: "Elena Garcia", email: "elena@example.com" }, amount: 300.75, txn: "-", date: "May 26, 2027", status: "Requested" }
-  ]);
-
-  // Mock Database - Transfer Queue
-  const [transferQueue, setTransferQueue] = useState([
-    { id: "TRF-0051", provider: { name: "Oliver Lee", email: "oliver@example.com" }, amount: 130.00, txn: "-", date: "June 1, 2027", status: "Processing" },
-    { id: "TRF-0050", provider: { name: "Charlotte Martin", email: "charlotte@example.com" }, amount: 88.60, txn: "-", date: "May 31, 2027", status: "Requested" },
-    { id: "TRF-0053", provider: { name: "James Harris", email: "james@example.com" }, amount: 210.90, txn: "-", date: "June 3, 2027", status: "Requested" },
-    { id: "TRF-0052", provider: { name: "Amelia Young", email: "amelia@example.com" }, amount: 160.70, txn: "TXN-0018945687476", date: "June 2, 2027", status: "Transferred" },
-    { id: "TRF-0047", provider: { name: "Ava Johnson", email: "ava@example.com" }, amount: 95.00, txn: "-", date: "May 28, 2027", status: "Requested" },
-    { id: "TRF-0054", provider: { name: "Mia Wilson", email: "mia@example.com" }, amount: 125.45, txn: "TXN-0018945687478", date: "June 4, 2027", status: "Error" },
-    { id: "TRF-0049", provider: { name: "Mason Wong", email: "mason@example.com" }, amount: 175.40, txn: "-", date: "May 30, 2027", status: "Requested" },
-    { id: "TRF-0048", provider: { name: "Isabella Brown", email: "isabella@example.com" }, amount: 120.85, txn: "-", date: "May 29, 2027", status: "Rejected" },
-    { id: "TRF-0046", provider: { name: "Noah Smith", email: "noah@example.com" }, amount: 180.50, txn: "TXN-0018945687470", date: "May 27, 2027", status: "Transferred" },
-    { id: "TRF-0045", provider: { name: "Elena Garcia", email: "elena@example.com" }, amount: 300.75, txn: "-", date: "May 26, 2027", status: "Requested" }
-  ]);
-
-  // Mock Wallet History details (Slide 8)
-  const walletHistory = [
-    { date: "Jun 24, 2027, 09:00", description: "Provider cancellation refund", type: "Credit", amount: 90.25, txn: "TXN-0018945687", running: 247.50 },
-    { date: "Jul 12, 2027, 14:30", description: "Booking payment", type: "Debit", amount: 50.00, txn: "TXN-0018945687", running: 197.50 },
-    { date: "Aug 05, 2027, 11:15", description: "Admin wallet credit", type: "Credit", amount: 75.00, txn: "TXN-0018945687", running: 122.50 },
-    { date: "Sep 09, 2027, 15:45", description: "Booking payment", type: "Debit", amount: 40.00, txn: "TXN-0018945687", running: 82.50 },
-    { date: "Oct 20, 2027, 08:00", description: "Tip returned", type: "Credit", amount: 20.50, txn: "TXN-0018945687", running: 62.00 }
-  ];
+  // Live data. Each tab only queries while it is the active one.
+  const { wallets, isLoading: walletsLoading, isError: walletsError } = useWallets(
+    {},
+    { enabled: activeTab === "wallets" }
+  );
+  const {
+    requests: creditQueue,
+    isLoading: creditLoading,
+    isError: creditError
+  } = useWalletCreditRequests({}, { enabled: activeTab === "credit" });
+  const {
+    payouts: transferQueue,
+    isLoading: transferLoading,
+    isError: transferError
+  } = usePayoutLogs({}, { enabled: activeTab === "transfer" });
 
   // Calendar toggle helper
   const toggleCalendar = () => {
@@ -198,47 +173,63 @@ export default function WalletsRefundsPage() {
     });
   }, [transferQueue, searchTerm, filterStatus, startDate, endDate]);
 
-  // Trigger balance adjustment confirmation
-  const handleAdjustSubmit = ({ walletId, amount, type, reason }) => {
-    // Update wallet
-    const updated = wallets.map(w => {
-      if (w.id === walletId) {
-        const nextBalance = type === "Add Credit" ? w.balance + amount : w.balance - amount;
-        return {
-          ...w,
-          balance: nextBalance,
-          lastTxDate: "June 24, 2027",
-          lastTxTime: "12:00 PM"
-        };
-      }
-      return w;
+  const adjustMutation = useMutation({
+    mutationFn: adjustWalletBalance,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      toast.success(
+        `Balance adjusted. New balance $${Number(result.balanceAfter).toFixed(2)}.`
+      );
+      setActiveModal(null);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const creditDecisionMutation = useMutation({
+    mutationFn: approveWalletCreditRequest,
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["walletCreditRequests"] });
+      // An approval moves money, so the balances list is stale too.
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      toast.success(
+        variables.action === "approve"
+          ? "Refund approved and credited."
+          : "Refund request rejected."
+      );
+      setActiveModal(null);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const handleAdjustSubmit = ({ walletId, uid, amount, type, reason }) => {
+    adjustMutation.mutate({
+      uid: uid || walletId,
+      amount,
+      type: type === "Add Credit" ? "credit" : "debit",
+      reason
     });
-    setWallets(updated);
-    toast.success("Wallet balance adjusted successfully!");
-    setActiveModal(null);
   };
 
-  // Trigger transfer authorization
-  const handleAuthorizeSubmit = ({ itemId, amount, reason }) => {
-    // Set Queue status
-    if (activeTab === "credit") {
-      setCreditQueue(creditQueue.map(item => item.id === itemId ? { ...item, status: "Transferred" } : item));
-    } else {
-      setTransferQueue(transferQueue.map(item => item.id === itemId ? { ...item, status: "Transferred" } : item));
+  // Only the credit queue has an approval workflow. Payout transfers are made
+  // automatically by processFridayPayouts and are not authorised here.
+  const handleAuthorizeSubmit = ({ itemId }) => {
+    if (activeTab !== "credit") {
+      toast.info("Provider payouts run automatically every Friday.");
+      return;
     }
-    toast.success("Transfer authorized successfully!");
-    setActiveModal(null);
+    creditDecisionMutation.mutate({ requestId: itemId, action: "approve" });
   };
 
-  // Trigger transfer rejection
   const handleRejectSubmit = ({ itemId, reason }) => {
-    if (activeTab === "credit") {
-      setCreditQueue(creditQueue.map(item => item.id === itemId ? { ...item, status: "Rejected" } : item));
-    } else {
-      setTransferQueue(transferQueue.map(item => item.id === itemId ? { ...item, status: "Rejected" } : item));
+    if (activeTab !== "credit") {
+      toast.info("Provider payouts run automatically every Friday.");
+      return;
     }
-    toast.success("Transfer request rejected.");
-    setActiveModal(null);
+    creditDecisionMutation.mutate({
+      requestId: itemId,
+      action: "reject",
+      reason
+    });
   };
 
   return (
@@ -277,6 +268,8 @@ export default function WalletsRefundsPage() {
       {/* Conditionally Render Active Tab Component */}
       {activeTab === "wallets" && (
         <WalletsTab
+          isLoading={walletsLoading}
+          isError={walletsError}
           wallets={filteredWallets}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -296,6 +289,8 @@ export default function WalletsRefundsPage() {
 
       {activeTab === "credit" && (
         <WalletCreditQueueTab
+          isLoading={creditLoading}
+          isError={creditError}
           creditQueue={filteredCreditQueue}
           startDate={startDate}
           endDate={endDate}
@@ -324,6 +319,8 @@ export default function WalletsRefundsPage() {
 
       {activeTab === "transfer" && (
         <TransferQueueTab
+          isLoading={transferLoading}
+          isError={transferError}
           transferQueue={filteredTransferQueue}
           startDate={startDate}
           endDate={endDate}

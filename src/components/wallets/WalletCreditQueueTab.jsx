@@ -7,6 +7,9 @@ import Pagination from "@/components/ui/Pagination";
 
 export default function WalletCreditQueueTab({
   creditQueue,
+  isLoading,
+  isError,
+  error,
   startDate,
   endDate,
   searchTerm,
@@ -23,11 +26,6 @@ export default function WalletCreditQueueTab({
 }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -68,10 +66,8 @@ export default function WalletCreditQueueTab({
               className="border border-border-main md:text-xs text-[10px] rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
             >
               <option value="All">Status</option>
-              <option value="Requested">Requested</option>
-              <option value="Processing">Processing</option>
-              <option value="Transferred">Transferred</option>
-              <option value="Error">Error</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
               <option value="Rejected">Rejected</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
@@ -164,24 +160,34 @@ export default function WalletCreditQueueTab({
                               className="fixed w-36 bg-white border border-border-main rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                               style={{ top: dropdownPos.top, left: dropdownPos.left }}
                             >
-                              <button
-                                onClick={() => {
-                                  onAuthorize(item);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
-                              >
-                                <ShieldCheck size={16} /> Authorize
-                              </button>
-                              <button
-                                onClick={() => {
-                                  onReject(item);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-red-500 font-medium flex items-center gap-2 cursor-pointer"
-                              >
-                                <X size={16} /> Reject
-                              </button>
+                              {/* Only pending requests can be decided — the
+                                  callable rejects anything already resolved. */}
+                              {item.status === "Pending" ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      onAuthorize(item);
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <ShieldCheck size={16} /> Approve
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      onReject(item);
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-red-500 font-medium flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <X size={16} /> Reject
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="px-4 py-2 text-[10px] text-text-muted font-light">
+                                  Already {item.status.toLowerCase()}
+                                </div>
+                              )}
                             </div>
                           )}
                         </>

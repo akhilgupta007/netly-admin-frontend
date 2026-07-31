@@ -7,12 +7,10 @@ import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
 export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, onClose, onSubmit }) {
-  const [authAmount, setAuthAmount] = useState("");
   const [authReason, setAuthReason] = useState("");
 
   useEffect(() => {
     if (queueItem) {
-      setAuthAmount("");
       setAuthReason("");
     }
   }, [queueItem]);
@@ -24,14 +22,9 @@ export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, o
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const val = parseFloat(authAmount);
-    if (isNaN(val) || val <= 0) {
-      toast.error("Please enter a valid amount.");
-      return;
-    }
     onSubmit({
       itemId: queueItem.id,
-      amount: val,
+      amount: queueItem.amount,
       reason: authReason
     });
   };
@@ -84,19 +77,20 @@ export default function AuthorizeTransferModal({ queueItem, activeTab, isOpen, o
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-text-primary block">Transfer Amount <span className="text-red-500">*</span></label>
+            <label className="text-xs text-text-primary block">Transfer Amount</label>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-text-primary select-none">$</span>
               <input
-                type="number"
-                placeholder="0.00"
-                value={authAmount}
-                onChange={(e) => setAuthAmount(e.target.value)}
-                className="w-full bg-white border border-border-main text-xs rounded-xl pl-7 pr-3 py-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
-                required
+                type="text"
+                readOnly
+                value={queueItem.amount.toFixed(2)}
+                className="w-full bg-page-bg border border-border-main text-xs rounded-xl pl-7 pr-3 py-3 focus:outline-none text-text-muted cursor-not-allowed"
               />
             </div>
-            <span className="text-[10px] text-text-muted block">Max: ${queueItem.amount.toFixed(2)}</span>
+            <span className="text-[10px] text-text-muted block">
+              Approvals credit the full requested amount. Partial approvals are
+              not supported.
+            </span>
           </div>
 
           <div className="space-y-1">

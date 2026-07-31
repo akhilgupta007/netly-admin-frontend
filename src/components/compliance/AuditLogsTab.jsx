@@ -5,18 +5,10 @@ import { Search, ChevronDown, Download } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import { exportCSV } from "@/utils/exportHelper";
-
-const mockAuditLogs = [
-  { timestamp: "June 2, 2026\n12:45 PM", admin: "contact@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr12", justification: "Incomplete documentation submitted.", ipAddress: "192.168.1.21" },
-  { timestamp: "May 31, 2026\n09:00 AM", admin: "finance@netly.io", action: "Pending Approval", targetEntity: "Provider", targetId: "pr10", justification: "Additional verification required.", ipAddress: "192.168.1.19" },
-  { timestamp: "May 29, 2026\n01:25 PM", admin: "support@netly.io", action: "Rejected", targetEntity: "User", targetId: "pr8", justification: "Documents did not match provided information.", ipAddress: "192.168.1.17" },
-  { timestamp: "May 26, 2026\n11:00 AM", admin: "info@netly.io", action: "KYC Approved", targetEntity: "Admin", targetId: "pr5", justification: "Documents verified against utility bill.", ipAddress: "192.168.1.14" },
-  { timestamp: "May 27, 2026\n04:50 PM", admin: "contact@netly.io", action: "Pending Approval", targetEntity: "User", targetId: "pr6", justification: "Awaiting additional documents.", ipAddress: "192.168.1.15" },
-  { timestamp: "June 1, 2026\n05:15 PM", admin: "info@netly.io", action: "KYC Approved", targetEntity: "User", targetId: "pr11", justification: "Documents verified against employment records.", ipAddress: "192.168.1.20" },
-  { timestamp: "May 25, 2026\n02:45 PM", admin: "finance@netly.io", action: "Rejected", targetEntity: "Provider", targetId: "pr4", justification: "Insufficient documentation submitted.", ipAddress: "192.168.1.13" },
-  { timestamp: "May 28, 2026\n10:10 AM", admin: "admin@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr7", justification: "Documents verified against driver's license.", ipAddress: "192.168.1.16" },
-  { timestamp: "May 24, 2026\n12:30 PM", admin: "hr@netly.io", action: "KYC Approved", targetEntity: "Provider", targetId: "pr3", justification: "Documents verified against passport database.", ipAddress: "192.168.1.12" }
-];
+import { useAuditLogs } from "@/hooks/useAuditLogs";
+import { auditActionLabel, auditActionClass } from "@/lib/auditActions";
+import { toMillis } from "@/services/firestoreReads";
+import { roleLabel } from "@/lib/adminRoles";
 
 export default function AuditLogsTab() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,40 +16,40 @@ export default function AuditLogsTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
   const itemsPerPage = 8;
 
+  const { logs, isLoading, isError, error } = useAuditLogs();
+
+  // Action options come from the data itself, so the filter can never drift
+  // out of sync with the action slugs the backend actually writes.
+  const actionOptions = useMemo(() => {
+    return [...new Set(logs.map((l) => l.action).filter(Boolean))].sort();
+  }, [logs]);
+
   const filteredLogs = useMemo(() => {
-    return mockAuditLogs.filter((log) => {
+    const term = searchTerm.trim().toLowerCase();
+    return logs.filter((log) => {
       const matchSearch =
-        log.admin.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.targetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.justification.toLowerCase().includes(searchTerm.toLowerCase());
+        !term ||
+        [log.actorEmail, log.targetId, log.reason, log.targetType].some((field) =>
+          String(field || "").toLowerCase().includes(term)
+        );
 
       const matchAction = filterAction === "All" || log.action === filterAction;
 
       let matchDate = true;
       if (startDate || endDate) {
-        const logDate = new Date(log.timestamp.split("\n")[0]);
-        const compareDate = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
-        
-        if (startDate) {
-          const startCompare = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-          if (compareDate < startCompare) matchDate = false;
-        }
-        if (endDate) {
-          const endCompare = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-          if (compareDate > endCompare) matchDate = false;
+        // Compare against the stored Timestamp, not a re-parsed display string.
+        const at = toMillis(log.createdAtRaw);
+        if (at !== null) {
+          if (startDate && at < new Date(startDate).setHours(0, 0, 0, 0)) matchDate = false;
+          if (endDate && at > new Date(endDate).setHours(23, 59, 59, 999)) matchDate = false;
         }
       }
 
       return matchSearch && matchAction && matchDate;
     });
-  }, [searchTerm, filterAction, startDate, endDate]);
+  }, [logs, searchTerm, filterAction, startDate, endDate]);
 
   const paginated = useMemo(() => {
     return filteredLogs.slice(
@@ -67,8 +59,20 @@ export default function AuditLogsTab() {
   }, [filteredLogs, currentPage]);
 
   const handleExportCSV = () => {
-    const headers = ["Timestamp", "Admin", "Action", "Target Entity", "Target ID", "Justification", "IP Address"];
-    const rows = filteredLogs.map(log => `"${log.timestamp.replace(/\n/g, " ")}","${log.admin}","${log.action}","${log.targetEntity}","${log.targetId}","${log.justification}","${log.ipAddress}"`);
+    const headers = ["Timestamp", "Admin", "Role", "Action", "Target Entity", "Target ID", "Justification", "IP Address"];
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ")}"`;
+    const rows = filteredLogs.map((log) =>
+      [
+        log.timestamp,
+        log.actorEmail,
+        log.actorRole || "",
+        auditActionLabel(log.action),
+        log.targetType,
+        log.targetId,
+        log.reason,
+        log.ipAddress,
+      ].map(escape).join(",")
+    );
     exportCSV(headers, rows, `audit_logs_${Date.now()}.csv`);
   };
 
@@ -101,9 +105,11 @@ export default function AuditLogsTab() {
               className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
             >
               <option value="All">All Actions</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Pending Approval">Pending Approval</option>
-              <option value="KYC Approved">KYC Approved</option>
+              {actionOptions.map((action) => (
+                <option key={action} value={action}>
+                  {auditActionLabel(action)}
+                </option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>
@@ -132,6 +138,14 @@ export default function AuditLogsTab() {
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
           <span className="text-xs text-text-muted animate-pulse font-light">Loading Audit Logs Data...</span>
         </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white min-h-80">
+          <h3 className="text-sm font-semibold text-red-600">Could not load audit logs</h3>
+          <p className="text-xs text-text-muted font-light max-w-sm">
+            {error?.message ||
+              "The audit_logs collection may not be readable by admins yet."}
+          </p>
+        </div>
       ) : filteredLogs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
           <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
@@ -147,6 +161,7 @@ export default function AuditLogsTab() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Timestamp</th>
                 <th className="px-4 py-3 font-semibold">Admin</th>
+                <th className="px-4 py-3 font-semibold">Role</th>
                 <th className="px-4 py-3 font-semibold">Action</th>
                 <th className="px-4 py-3 font-semibold">Target Entity</th>
                 <th className="px-4 py-3 font-semibold">Target ID</th>
@@ -158,18 +173,16 @@ export default function AuditLogsTab() {
               {paginated.map((log, idx) => (
                 <tr key={idx} className="hover:bg-page-bg/50 transition text-text-primary md:text-xs text-[10px]">
                   <td className="px-4 py-3 whitespace-pre-line leading-relaxed">{log.timestamp}</td>
-                  <td className="px-4 py-3">{log.admin}</td>
+                  <td className="px-4 py-3">{log.actorEmail}</td>
+                  <td className="px-4 py-3 text-text-muted">{log.actorRole ? roleLabel(log.actorRole) : "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2.5 py-1 rounded-full md:text-xs text-[10px] ${
-                      log.action === "KYC Approved" ? "bg-emerald-50 text-emerald-600" :
-                      log.action === "Rejected" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
-                    }`}>
-                      {log.action}
+                    <span className={`inline-block px-2.5 py-1 rounded-full md:text-xs text-[10px] whitespace-nowrap ${auditActionClass(log.action)}`}>
+                      {auditActionLabel(log.action)}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{log.targetEntity}</td>
-                  <td className="px-4 py-3">{log.targetId}</td>
-                  <td className="px-4 py-3">{log.justification}</td>
+                  <td className="px-4 py-3 capitalize">{log.targetType}</td>
+                  <td className="px-4 py-3 font-mono text-[10px]">{log.targetId}</td>
+                  <td className="px-4 py-3 max-w-xs">{log.reason || "—"}</td>
                   <td className="px-4 py-3">{log.ipAddress}</td>
                 </tr>
               ))}

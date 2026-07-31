@@ -11,6 +11,8 @@ import CardWrapper from "@/components/ui/CardWrapper";
 
 // Import custom Firestore React Query hook
 import { useProviders } from "@/hooks/useProviders";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateAccountStatus, resetUserPassword } from "@/lib/callables";
 
 // Initial Mock Partners list matching Screenshot 1 values
 const initialPartners = [
@@ -165,12 +167,17 @@ export default function FoundingPartnersPage() {
 
   // Firestore React Query hook
   const { providers: queryProviders } = useProviders();
+  const queryClient = useQueryClient();
 
   // Load from Firestore query or LocalStorage
   useEffect(() => {
     if (queryProviders && queryProviders.length > 0) {
+      // isFoundingPartner is the real flag (written by inviteUser). The old
+      // badges check could never match — badges is hardcoded to
+      // ["Provider Pro"] in firestoreServices and never held "Founding
+      // Provider", so this list was always empty and fell back to mock data.
       const foundingList = queryProviders
-        .filter(p => p.badges?.includes("Founding Provider"))
+        .filter((p) => p.isFoundingPartner)
         .map(p => ({
           id: p.id,
           uid: p.uid,
@@ -211,11 +218,6 @@ export default function FoundingPartnersPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const savePartners = (updatedList) => {
-    setPartners(updatedList);
-    localStorage.setItem("netly_founding_partners", JSON.stringify(updatedList));
-  };
-
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -227,23 +229,45 @@ export default function FoundingPartnersPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Modal handlers
+  // Modal handlers. Founding partners are ordinary provider accounts, so these
+  // go through the same callables as the Accounts page.
+  const statusMutation = useMutation({
+    mutationFn: updateAccountStatus,
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+      setSuspendBanOpen(false);
+      setSelectedPartner(null);
+      const label = { suspend: "suspended", ban: "banned", reactivate: "reactivated" }[
+        variables.action
+      ];
+      toast.success(`Partner account ${label}.`);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetUserPassword,
+    onSuccess: (result) =>
+      toast.success(`Password reset email sent to ${result.email}.`),
+    onError: (error) => toast.error(error.message)
+  });
+
   const handleSuspendBanSubmit = (partner, data) => {
-    const updatedStatus = data.actionType === "Suspend (Temporary)" ? "Suspended" : "Banned";
-    const updated = partners.map(p =>
-      p.id === partner.id ? { ...p, status: updatedStatus } : p
-    );
-    savePartners(updated);
-    setSuspendBanOpen(false);
-    setSelectedPartner(null);
-    toast.success(`Partner account status updated to ${updatedStatus}.`);
+    statusMutation.mutate({
+      uid: data.uid || partner.uid,
+      action: data.actionType === "Suspend (Temporary)" ? "suspend" : "ban",
+      durationDays: data.actionType === "Suspend (Temporary)" ? data.duration : undefined,
+      reason: data.reason,
+      notifyEmail: data.notifyEmail
+    });
   };
-  const handleReactivatePartner = (partnerId) => {
-    const updated = partners.map(p =>
-      p.id === partnerId ? { ...p, status: "Active" } : p
-    );
-    savePartners(updated);
-    toast.success(`Partner account has been reactivated.`);
+
+  const handleReactivatePartner = (partner) => {
+    statusMutation.mutate({ uid: partner.uid, action: "reactivate" });
+  };
+
+  const handleResetPassword = (partner) => {
+    resetPasswordMutation.mutate({ uid: partner.uid });
   };
   // Filtering
   const filteredPartners = partners.filter((p) => {
@@ -468,11 +492,14 @@ export default function FoundingPartnersPage() {
               setSelectedPartner(partner);
               setSuspendBanOpen(true);
             }}
-            onReactivateTrigger={(partnerId) => {
-              handleReactivatePartner(partnerId);
-              // Update status of currently opened provider details card locally
+            onReactivateTrigger={(partner) => {
+              handleReactivatePartner(partner);
+              // Reflect it on the open card immediately; the query refetch
+              // behind the modal is what makes it stick.
               setSelectedPartner(prev => prev ? { ...prev, status: "Active" } : null);
             }}
+            onResetPassword={handleResetPassword}
+            isResettingPassword={resetPasswordMutation.isPending}
           />
 
           <SuspendBanModal
@@ -484,6 +511,7 @@ export default function FoundingPartnersPage() {
               setSelectedPartner(null);
             }}
             onSubmit={(data) => handleSuspendBanSubmit(selectedPartner, data)}
+            isPending={statusMutation.isPending}
           />
         </>
       )}
