@@ -8,6 +8,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Loader2 } from "lucide-react";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -17,11 +19,20 @@ export default function AdminLayout({ children }) {
   const token = useAuthStore((state) => state.token);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const hydrate = useAuthStore((state) => state.hydrate);
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
 
   // Hydrate auth state on mount
   useEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  // Listen to Firebase Auth state initialization
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, () => {
+      setIsFirebaseReady(true);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Route guard redirect
   useEffect(() => {
@@ -34,7 +45,7 @@ export default function AdminLayout({ children }) {
   const allItems = navigation.flatMap((group) => group.items);
 
   // Show premium loading state during authentication check
-  if (!isHydrated || (isHydrated && !token)) {
+  if (!isHydrated || !isFirebaseReady || (isHydrated && !token)) {
     return (
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-page-bg space-y-3 font-onest">
         <Loader2 size={32} className="animate-spin text-primary-bg" />
