@@ -23,6 +23,7 @@ import {
   filterAndPaginate,
   titleCase,
   toMillis,
+  toDate,
 } from "@/services/firestoreReads";
 
 export { formatFirestoreDate, formatFirestoreDateTime };
@@ -829,6 +830,393 @@ export async function fetchConsentRecordsFromFirestore() {
       .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
   } catch (error) {
     console.error("Firestore fetchConsentRecords error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 13. Dashboard metrics.
+ *
+ * Every figure is computed from live data. Where a collection is empty the
+ * metric is genuinely zero rather than hidden — a dashboard that invents
+ * plausible numbers is worse than one that admits there is no activity yet.
+ *
+ * @param {object} params - Options.
+ * @param {Date} params.startDate - Range start (inclusive).
+ * @param {Date} params.endDate - Range end (inclusive).
+ * @return {Promise<object>} Formatted metric strings plus the daily series.
+ */
+export async function fetchDashboardMetricsFromFirestore({
+  startDate,
+  endDate,
+} = {}) {
+  const from = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+  const to = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+  const inRange = (ts) => {
+    const at = toMillis(ts);
+    if (at === null) return false;
+    if (from !== null && at < from) return false;
+    if (to !== null && at > to) return false;
+    return true;
+  };
+
+  /**
+   * Reads a collection, tolerating one that does not exist or is unreadable.
+   * @param {string} name - Collection name.
+   * @return {Promise<Array<object>>} Documents.
+   */
+  const safeAll = async (name) => {
+    try {
+      const snap = await getDocs(collection(db, name));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+      console.warn(`dashboard: could not read ${name}:`, error?.code || error?.message);
+      return [];
+    }
+  };
+
+  try {
+    const [clients, providers, bookings, disputes, creditRequests, withdrawals] =
+      await Promise.all([
+        loadUsersByType("client"),
+        loadUsersByType("provider"),
+        safeAll("bookings"),
+        safeAll("disputes"),
+        safeAll("wallet_credit_requests"),
+        safeAll("withdrawal_requests"),
+      ]);
+
+    const clientProfiles = await loadProfileMap(
+      "client",
+      clients.map((c) => c.uid),
+    );
+    const providerProfiles = await loadProfileMap(
+      "provider",
+      providers.map((p) => p.uid),
+    );
+
+    // ── Bookings in range ──────────────────────────────────
+    const ranged = bookings.filter((b) => inRange(b.createdAt || b.created_at));
+    const norm = (v) => String(v || "").toLowerCase();
+    const completed = ranged.filter((b) => norm(b.status) === "completed").length;
+    const cancelled = ranged.filter((b) =>
+      norm(b.status).startsWith("cancelled"),
+    ).length;
+    const finished = completed + cancelled;
+
+    const sum = (list, key) =>
+      list.reduce((acc, b) => acc + (Number(b[key]) || 0), 0);
+
+    const gmv = sum(ranged, "transactionAmount") || sum(ranged, "price");
+    const revenue = sum(ranged, "platformRevenue");
+    const fees = sum(ranged, "clientServiceFee");
+
+    // ── Live wallet liability (not range-bound) ────────────
+    let liability = 0;
+    clientProfiles.forEach((p) => {
+      liability += Number(p.walletBalance) || 0;
+    });
+
+    // ── Queues ─────────────────────────────────────────────
+    const openDisputes = disputes.filter((d) =>
+      ["open", "underreview"].includes(norm(d.status).replace(/[^a-z]/g, "")),
+    ).length;
+    const pendingCredits = creditRequests.filter(
+      (r) => norm(r.status) === "pending",
+    ).length;
+    const pendingWithdrawals = withdrawals.filter(
+      (r) => norm(r.status) === "pending",
+    ).length;
+
+    let kycQueue = 0;
+    providerProfiles.forEach((p) => {
+      if (norm(p.kycStatus) === "pending") kycQueue += 1;
+    });
+
+    // ── Accounts ───────────────────────────────────────────
+    const newClients = clients.filter((c) => inRange(c.data.createdAt)).length;
+    const newProviders = providers.filter((p) => inRange(p.data.createdAt)).length;
+    const suspended = [...clients, ...providers].filter(
+      (u) => norm(u.data.status) === "banned",
+    ).length;
+
+    // ── Daily series: real refunds vs wallet credits ───────
+    // Outbound = money that actually left the platform back to a card.
+    //   · bookings marked refundedToCard by the charge.refunded webhook
+    //   · approved withdrawals, which refund to the original card
+    // Retained = money kept in the ecosystem as wallet credit instead
+    //   (approved wallet_credit_requests).
+    const outboundEvents = [
+      ...bookings
+        .filter((b) => b.refundedToCard)
+        .map((b) => ({
+          at: toMillis(b.refundedToCardAt || b.refundedAt),
+          amount: Number(b.refundedToCardAmount) || 0,
+        })),
+      ...withdrawals
+        .filter((w) => norm(w.status) === "approved")
+        .map((w) => ({
+          at: toMillis(w.resolvedAt),
+          amount: Number(w.refundedAmount ?? w.amount) || 0,
+        })),
+    ].filter((e) => e.at !== null);
+
+    const retainedEvents = creditRequests
+      .filter((r) => norm(r.status) === "approved")
+      .map((r) => ({
+        at: toMillis(r.resolvedAt || r.createdAt),
+        amount: Number(r.amount) || 0,
+      }))
+      .filter((e) => e.at !== null);
+
+    const bucket = (events, t, next) =>
+      Math.round(
+        events
+          .filter((e) => e.at >= t && e.at < next)
+          .reduce((a, e) => a + e.amount, 0),
+      );
+
+    const days = [];
+    if (from !== null && to !== null) {
+      for (let t = from; t <= to; t += 86400000) {
+        const next = t + 86400000;
+        days.push({
+          label: new Date(t).toLocaleDateString("en-US", { weekday: "short" }),
+          outbound: bucket(outboundEvents, t, next),
+          retained: bucket(retainedEvents, t, next),
+        });
+        if (days.length >= 31) break;
+      }
+    }
+
+    const currency = (n) =>
+      `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    return {
+      bookings: ranged.length.toLocaleString(),
+      completionRate: finished > 0 ? `${((completed / finished) * 100).toFixed(1)}%` : "—",
+      openDisputes: String(openDisputes),
+      walletCreditsPending: String(pendingCredits),
+      // Client cash-out requests — the closest real analogue to a refund queue.
+      refundRequests: String(pendingWithdrawals),
+      kycDocsInQueue: String(kycQueue),
+
+      gmv: currency(gmv),
+      revenue: currency(revenue),
+      fees: currency(fees),
+      liability: currency(liability),
+
+      newClients: newClients.toLocaleString(),
+      newProviders: newProviders.toLocaleString(),
+      suspended: String(suspended),
+      unresolvedDisputes: String(openDisputes),
+
+      series: days,
+      totals: { clients: clients.length, providers: providers.length },
+    };
+  } catch (error) {
+    console.error("Firestore fetchDashboardMetrics error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Maps a raw booking status onto the label the Transactions screens use.
+ *
+ * Three vocabularies are in play: the Cloud Functions write PascalCase
+ * (`Requests`, `OnTheWay`), Schema v3.0 §8 specifies lowercase, and this UI was
+ * built around a third set (`Finalised`, `Pending Provider Acceptance`).
+ * Matching case-insensitively means the screen works whichever the app writes.
+ *
+ * @param {object} booking - Raw booking data.
+ * @return {string} Display status.
+ */
+function transactionStatus(booking) {
+  const raw = String(booking.status || "").toLowerCase().replace(/[\s_-]/g, "");
+
+  // Terminal money states take precedence over the lifecycle status.
+  if (booking.refundedToCard) return "Refunded";
+  if (booking.disputeId || booking.hasOpenDispute) return "Dispute";
+
+  switch (raw) {
+    case "draft":
+      return "Quote Pending";
+    case "pending":
+      return "Pending Payment";
+    case "requests":
+      return "Pending Provider Acceptance";
+    case "confirmed":
+      return "Confirmed";
+    case "ontheway":
+    case "inprogress":
+      return "In Progress";
+    case "completed":
+      // Payout released means the money is settled, not just the service.
+      return booking.payoutReleased ? "Finalised" : "Completed";
+    case "cancelled":
+    case "cancelledbyprofessional":
+      return "Cancelled";
+    default:
+      return booking.status || "Unknown";
+  }
+}
+
+/**
+ * Shapes one booking into the row the Transactions screens expect.
+ * @param {string} id - Booking document id.
+ * @param {object} b - Booking data.
+ * @param {Map<string, object>} users - uid → user data.
+ * @return {object} Transaction row.
+ */
+function toTransaction(id, b, users) {
+  const client = users.get(b.clientId) || null;
+  const provider = users.get(b.providerId || b.professionalId) || null;
+  const when = b.serviceDateAndTime || b.scheduledAt || b.createdAt;
+  const at = toDate(when);
+
+  const serviceAmount = Number(b.transactionAmount ?? b.price) || 0;
+
+  return {
+    id,
+    status: transactionStatus(b),
+    rawStatus: b.status || "",
+    client: {
+      uid: b.clientId || null,
+      name: client ? displayName(client, "Client") : "Unknown client",
+      email: client?.email || "",
+    },
+    provider: {
+      uid: b.providerId || b.professionalId || null,
+      name: provider ? displayName(provider, "Provider") : "Unassigned",
+      email: provider?.email || "",
+    },
+    category: b.serviceTitle || b.categoryId || "—",
+    date: formatFirestoreDate(when),
+    time: at
+      ? at.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+      : "",
+    createdAtRaw: b.createdAt || when || null,
+    serviceAmount,
+    totalPaid: Number(b.totalChargedToClient) || serviceAmount,
+    providerPayout: Number(b.providerPayout) || 0,
+    commission: Number(b.platformRevenue) || 0,
+    clientServiceFee: Number(b.clientServiceFee) || 0,
+    taxAmount: Number(b.taxAmount) || 0,
+    tip: Number(b.tip) || 0,
+    pricingType: b.pricingType || "—",
+    description: b.notes || "",
+    payoutReleased: Boolean(b.payoutReleased),
+    refundAmount: Number(b.refundAmount) || 0,
+    refundedToCard: Boolean(b.refundedToCard),
+    stripePaymentIntentId: b.stripePaymentIntentId || null,
+    stripeInvoicePdfUrl: b.stripeInvoicePdfUrl || null,
+    stripeTransferId: b.stripeTransferId || null,
+    isRecurring: Boolean(b.isRecurring),
+    scheduleId: b.scheduleId || null,
+    addressLines: b.addressLines || [],
+  };
+}
+
+/**
+ * 14. Transactions — bookings with their payment detail.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
+ */
+export async function fetchTransactionsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    filterCategory = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "bookings"), fsLimit(1000)),
+    );
+    if (snapshot.empty) return { items: [], total: 0, totalPages: 1 };
+
+    // One lookup per distinct participant, not per booking.
+    const uids = [
+      ...new Set(
+        snapshot.docs.flatMap((d) => {
+          const b = d.data();
+          return [b.clientId, b.providerId || b.professionalId];
+        }).filter(Boolean),
+      ),
+    ];
+    const users = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            return snap.exists() ? [uid, snap.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    let items = snapshot.docs.map((d) => toTransaction(d.id, d.data(), users));
+
+    if (filterCategory !== "All") {
+      items = items.filter(
+        (t) => String(t.category).toLowerCase() === filterCategory.toLowerCase(),
+      );
+    }
+
+    items.sort(
+      (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+    );
+
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["id", "category"],
+      filterStatus,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error("Firestore fetchTransactions error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 15. A single transaction, for the detail screen.
+ * @param {string} id - Booking document id.
+ * @return {Promise<object|null>} The transaction, or null if absent.
+ */
+export async function fetchTransactionByIdFromFirestore(id) {
+  if (!id) return null;
+  try {
+    const snap = await getDoc(doc(db, "bookings", id));
+    if (!snap.exists()) return null;
+    const b = snap.data();
+
+    const uids = [b.clientId, b.providerId || b.professionalId].filter(Boolean);
+    const users = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const u = await getDoc(doc(db, "users", uid));
+            return u.exists() ? [uid, u.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    return toTransaction(snap.id, b, users);
+  } catch (error) {
+    console.error("Firestore fetchTransactionById error:", error);
     throw error;
   }
 }

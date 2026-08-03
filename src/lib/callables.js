@@ -93,3 +93,9 @@ export const updateUserConsent = ({ uid, marketingConsent, dataConsent, reason }
 
 export const exportUserData = ({ uid }) =>
   callFunction("exportUserData", { uid });
+
+// ─── Transactions ──────────────────────────────────────────
+
+/** raisedBy is "client" | "provider". Admins may raise on a client's behalf. */
+export const raiseDispute = ({ bookingId, reason, raisedBy }) =>
+  callFunction("raiseDispute", { bookingId, reason, raisedBy });

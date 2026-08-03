@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useDashboardMetrics } from "@/hooks/useDashboard";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import {
   Calendar,
@@ -17,11 +18,6 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Banner visibility state
   const [showBanner, setShowBanner] = useState(true);
@@ -36,6 +32,38 @@ export default function DashboardPage() {
 
   // Chart type state (Bar or Line)
   const [chartType, setChartType] = useState("Bar");
+
+  // Resolve the active filter to a concrete range, then read real aggregates.
+  const activeRange = useMemo(() => {
+    const now = new Date();
+    if (timeFilter === "Today") {
+      return { startDate: now, endDate: now, note: "Today" };
+    }
+    if (timeFilter === "This month") {
+      return {
+        startDate: new Date(now.getFullYear(), now.getMonth(), 1),
+        endDate: now,
+        note: "This month",
+      };
+    }
+    if (timeFilter === "Custom" && startDate && endDate) {
+      return {
+        startDate,
+        endDate,
+        note: `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+      };
+    }
+    // Default: the current week, Monday to today.
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    return { startDate: monday, endDate: now, note: "This week" };
+  }, [timeFilter, startDate, endDate]);
+
+  const { metrics, isLoading, isError, error } = useDashboardMetrics({
+    startDate: activeRange.startDate,
+    endDate: activeRange.endDate,
+  });
+
 
   const formatDateStr = (dateObj) => {
     if (!dateObj) return "";
@@ -62,70 +90,49 @@ export default function DashboardPage() {
   const thisWeekMondayStr = formatDateStr(thisWeekMonday);
   const thisWeekSundayStr = formatDateStr(thisWeekSunday);
 
-  // Mock data for weekly chart - unaffected by the filters
-  const chartData = [
-    { label: "Mon", outbound: 5400, retained: 3700 },
-    { label: "Tue", outbound: 6600, retained: 4800 },
-    { label: "Wed", outbound: 4700, retained: 3000 },
-    { label: "Thu", outbound: 7800, retained: 6000 },
-    { label: "Fri", outbound: 9600, retained: 7600 },
-    { label: "Sat", outbound: 6100, retained: 4300 },
-    { label: "Sun", outbound: 4800, retained: 3100 },
-  ];
+  // Daily booking value across the selected range, from real bookings.
+  const chartData = metrics?.series || [];
 
-  const maxVal = 10000;
+  // Scale to the data rather than a fixed ceiling, with a floor so an empty
+  // range renders a flat baseline instead of dividing by zero.
+  const maxVal = Math.max(
+    100,
+    ...chartData.map((d) => Math.max(d.outbound || 0, d.retained || 0))
+  );
 
-  // Get values based on current timeFilter and custom date range if "Custom"
-  const getDynamicStats = () => {
-    let multiplier = 1;
-    let note = "This week";
+  // Geometry is derived from the number of points, not a fixed 7-day week —
+  // the range picker can yield anywhere from 1 to 31 days.
+  const PLOT_LEFT = 85;
+  const PLOT_WIDTH = 408;
+  const pointX = (i) =>
+    chartData.length > 1
+      ? PLOT_LEFT + (i * PLOT_WIDTH) / (chartData.length - 1)
+      : PLOT_LEFT + PLOT_WIDTH / 2;
+  const pointY = (v) => 140 - ((Number(v) || 0) / maxVal) * 120;
+  const linePath = (key) =>
+    chartData
+      .map((d, i) => `${i === 0 ? "M" : "L"} ${pointX(i)} ${pointY(d[key])}`)
+      .join(" ");
 
-    if (timeFilter === "Today") {
-      multiplier = 0.15;
-      note = "Today";
-    } else if (timeFilter === "This week") {
-      multiplier = 1;
-      note = "This week";
-    } else if (timeFilter === "This month") {
-      multiplier = 4.2;
-      note = "This month";
-    } else if (timeFilter === "Custom") {
-      if (startDate && endDate) {
-        const diffDays = Math.max(1, Math.round(Math.abs((endDate - startDate) / (24 * 60 * 60 * 1000)))) || 7;
-        multiplier = diffDays / 7;
-        note = `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-      } else {
-        multiplier = 1;
-        note = "Custom range";
-      }
-    }
-
-    return {
-      // Operations
-      bookings: Math.round(1284 * multiplier).toLocaleString(),
-      completionRate: "94.2%",
-      openDisputes: "7",
-      walletCreditsPending: "3",
-      refundRequests: Math.max(1, Math.round(11 * multiplier)).toLocaleString(),
-      kycDocsInQueue: "23",
-
-      // Money
-      gmv: `$${(48291.00 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      revenue: `$${(9820.45 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      fees: `$${(2414.55 * multiplier).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      liability: "$31,847.20", // balance: no trend
-
-      // Accounts
-      newClients: Math.round(284 * multiplier).toLocaleString(),
-      newProviders: Math.round(61 * multiplier).toLocaleString(),
-      suspended: "14",
-      unresolvedDisputes: "7",
-
-      note
-    };
+  const EMPTY = "—";
+  const dynamicStats = {
+    bookings: metrics?.bookings ?? EMPTY,
+    completionRate: metrics?.completionRate ?? EMPTY,
+    openDisputes: metrics?.openDisputes ?? EMPTY,
+    walletCreditsPending: metrics?.walletCreditsPending ?? EMPTY,
+    refundRequests: metrics?.refundRequests ?? EMPTY,
+    kycDocsInQueue: metrics?.kycDocsInQueue ?? EMPTY,
+    gmv: metrics?.gmv ?? EMPTY,
+    revenue: metrics?.revenue ?? EMPTY,
+    fees: metrics?.fees ?? EMPTY,
+    liability: metrics?.liability ?? EMPTY,
+    newClients: metrics?.newClients ?? EMPTY,
+    newProviders: metrics?.newProviders ?? EMPTY,
+    suspended: metrics?.suspended ?? EMPTY,
+    unresolvedDisputes: metrics?.unresolvedDisputes ?? EMPTY,
+    note: activeRange.note,
   };
 
-  const dynamicStats = getDynamicStats();
 
   // Operations metrics data
   const operationsCards = [
@@ -243,6 +250,17 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main hover:shadow-xs animate-scale-up">
         <span className="text-xs text-text-muted animate-pulse font-light">Loading Dashboard Data...</span>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center space-y-2 select-none bg-white rounded-3xl border border-border-main">
+        <h3 className="text-sm font-semibold text-red-600">Could not load dashboard data</h3>
+        <p className="text-xs text-text-muted font-light max-w-sm">
+          {error?.message || "Check your connection and try again."}
+        </p>
       </div>
     );
   }
@@ -411,9 +429,9 @@ export default function DashboardPage() {
                     {chartType === "Bar" ? (
                       // Bar Chart Option
                       chartData.map((data, index) => {
-                        const x_center = 85 + index * 68;
-                        const outboundHeight = (data.outbound / maxVal) * 120;
-                        const retainedHeight = (data.retained / maxVal) * 120;
+                        const x_center = pointX(index);
+                        const outboundHeight = ((Number(data.outbound) || 0) / maxVal) * 120;
+                        const retainedHeight = ((Number(data.retained) || 0) / maxVal) * 120;
                         return (
                           <g key={index} className="group">
                             {/* Outbound bar */}
@@ -467,13 +485,7 @@ export default function DashboardPage() {
                       <g>
                         {/* Lines Paths */}
                         <path
-                          d={`M ${85} ${140 - (chartData[0].outbound / maxVal) * 120} 
-                              L ${85 + 68} ${140 - (chartData[1].outbound / maxVal) * 120} 
-                              L ${85 + 68 * 2} ${140 - (chartData[2].outbound / maxVal) * 120} 
-                              L ${85 + 68 * 3} ${140 - (chartData[3].outbound / maxVal) * 120} 
-                              L ${85 + 68 * 4} ${140 - (chartData[4].outbound / maxVal) * 120} 
-                              L ${85 + 68 * 5} ${140 - (chartData[5].outbound / maxVal) * 120} 
-                              L ${85 + 68 * 6} ${140 - (chartData[6].outbound / maxVal) * 120}`}
+                          d={linePath("outbound")}
                           fill="none"
                           stroke="#6FB5BD"
                           strokeWidth="3"
@@ -481,13 +493,7 @@ export default function DashboardPage() {
                           className="transition-all duration-500"
                         />
                         <path
-                          d={`M ${85} ${140 - (chartData[0].retained / maxVal) * 120} 
-                              L ${85 + 68} ${140 - (chartData[1].retained / maxVal) * 120} 
-                              L ${85 + 68 * 2} ${140 - (chartData[2].retained / maxVal) * 120} 
-                              L ${85 + 68 * 3} ${140 - (chartData[3].retained / maxVal) * 120} 
-                              L ${85 + 68 * 4} ${140 - (chartData[4].retained / maxVal) * 120} 
-                              L ${85 + 68 * 5} ${140 - (chartData[5].retained / maxVal) * 120} 
-                              L ${85 + 68 * 6} ${140 - (chartData[6].retained / maxVal) * 120}`}
+                          d={linePath("retained")}
                           fill="none"
                           stroke="#0B163F"
                           strokeWidth="3"
@@ -497,9 +503,9 @@ export default function DashboardPage() {
 
                         {/* Dots and Labels */}
                         {chartData.map((data, index) => {
-                          const x_center = 85 + index * 68;
-                          const cyOut = 140 - (data.outbound / maxVal) * 120;
-                          const cyRet = 140 - (data.retained / maxVal) * 120;
+                          const x_center = pointX(index);
+                          const cyOut = pointY(data.outbound);
+                          const cyRet = pointY(data.retained);
                           return (
                             <g key={index}>
                               {/* Outbound Dot */}
