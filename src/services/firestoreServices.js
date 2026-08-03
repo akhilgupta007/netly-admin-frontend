@@ -755,6 +755,85 @@ export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
 }
 
 /**
+ * 11. Data access log entries — who viewed personal data.
+ *
+ * Counterpart to the audit log: that records mutations, this records reads.
+ * Written server-side by the logDataAccess callable.
+ * @param {object} params - Options.
+ * @param {number} params.max - Cap on documents fetched (default 500).
+ * @return {Promise<Array<object>>} Entries, newest first.
+ */
+export async function fetchDataAccessLogsFromFirestore({ max = 500 } = {}) {
+  try {
+    const snapshot = await getDocs(
+      query(
+        collection(db, "data_access_logs"),
+        orderBy("createdAt", "desc"),
+        fsLimit(max),
+      ),
+    );
+
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        timestamp: formatFirestoreDateTime(data.createdAt),
+        createdAtRaw: data.createdAt || null,
+        admin: data.adminEmail || "—",
+        adminRole: data.adminRole || null,
+        dataType: data.dataType || "—",
+        recordId: data.recordId || "—",
+        subjectUid: data.subjectUid || null,
+        reason: data.reason || "",
+        ipAddress: data.ipAddress || "—",
+      };
+    });
+  } catch (error) {
+    console.error("Firestore fetchDataAccessLogs error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 12. Consent records.
+ *
+ * Consent is captured by the app at sign-up; the admin panel only reads it and
+ * can withdraw it on request. Users who have never been asked show as null
+ * rather than false — "not recorded" is not the same as "declined".
+ * @return {Promise<Array<object>>} One row per client and provider.
+ */
+export async function fetchConsentRecordsFromFirestore() {
+  try {
+    const groups = await Promise.all(
+      ["client", "provider"].map((type) => loadUsersByType(type)),
+    );
+
+    return groups
+      .flat()
+      .map(({ uid, data }) => ({
+        uid,
+        name: displayName(data, "User"),
+        email: data.email || "",
+        accountType: data.accountType || "",
+        dataConsent: data.dataConsent ?? null,
+        marketingConsent: data.marketingConsent ?? null,
+        dataConsentTime: formatFirestoreDateTime(
+          data.dataConsentUpdatedAt || data.createdAt,
+        ),
+        marketingConsentTime: formatFirestoreDateTime(
+          data.marketingConsentUpdatedAt || data.createdAt,
+        ),
+        lastUpdated: formatFirestoreDate(data.updatedAt || data.createdAt),
+        updatedAtRaw: data.updatedAt || data.createdAt || null,
+      }))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  } catch (error) {
+    console.error("Firestore fetchConsentRecords error:", error);
+    throw error;
+  }
+}
+
+/**
  * 5. Admin accounts, for the Admin Settings table.
  *
  * Revoked admins are retained in Firestore for the audit trail but excluded

@@ -1,11 +1,24 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { X, ShieldAlert, Key, GitMerge } from "lucide-react";
 import { toast } from "react-toastify";
+import { logDataAccess } from "@/lib/callables";
 import { getInitials } from "@/lib/utils";
 
 export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBanTrigger, onReactivateTrigger, onResetPassword, isResettingPassword, onMergeTrigger }) {
+  // Record that this personal data was viewed. Fire-and-forget: a
+  // logging failure must never block the reviewer.
+  useEffect(() => {
+    if (!isOpen || !client?.uid) return;
+    logDataAccess({
+      dataType: "Client Profile",
+      recordId: client.uid,
+      subjectUid: client.uid,
+      reason: "Opened from the admin panel",
+    }).catch((e) => console.warn("data access log failed:", e.message));
+  }, [isOpen, client?.uid]);
+
   if (!isOpen || !client) return null;
 
   // Mock static booking history list for clients matching layout (Slide 5 & 6)

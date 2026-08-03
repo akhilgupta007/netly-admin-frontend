@@ -5,18 +5,8 @@ import { Search, ChevronDown, Download } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import { exportCSV } from "@/utils/exportHelper";
-
-const mockDataAccessLogs = [
-  { timestamp: "May 22, 2026\n03:20 PM", admin: "admin@netly.io", dataType: "KYC Document", recordId: "kyc-01", reason: "Document review for KYC approval workflow" },
-  { timestamp: "May 23, 2026\n10:15 AM", admin: "support@netly.io", dataType: "Tax Return", recordId: "tax-01", reason: "Annual tax documentation submission" },
-  { timestamp: "May 24, 2026\n01:45 PM", admin: "hr@netly.io", dataType: "Employment Verification", recordId: "emp-01", reason: "Verification of employment status for onboarding" },
-  { timestamp: "May 25, 2026\n09:30 AM", admin: "legal@netly.io", dataType: "Contract Agreement", recordId: "contract-01", reason: "Review of the new partnership contract" },
-  { timestamp: "May 26, 2026\n02:00 PM", admin: "finance@netly.io", dataType: "Invoice", recordId: "inv-01", reason: "Invoice submission for services rendered" },
-  { timestamp: "May 27, 2026\n11:00 AM", admin: "marketing@netly.io", dataType: "Ad Campaign Proposal", recordId: "ad-01", reason: "Proposal for the upcoming ad campaign review" },
-  { timestamp: "May 28, 2026\n03:55 PM", admin: "dev@netly.io", dataType: "Software Update", recordId: "update-01", reason: "Documentation for the latest software update" },
-  { timestamp: "May 29, 2026\n04:30 PM", admin: "quality@netly.io", dataType: "Quality Assurance Report", recordId: "qa-01", reason: "Report on quality checks and testing outcomes" },
-  { timestamp: "June 15, 2026\n10:00 AM", admin: "dev@netly.io", dataType: "Development Update", recordId: "dev-02", reason: "Overview of recent feature developments and bug fixes" }
-];
+import { useDataAccessLogs } from "@/hooks/useCompliance";
+import { toMillis } from "@/services/firestoreReads";
 
 export default function DataAccessLogsTab() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -24,15 +14,19 @@ export default function DataAccessLogsTab() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
   const itemsPerPage = 8;
 
+  const { logs, isLoading, isError, error } = useDataAccessLogs();
+
+  // Filter options come from the data, so they always match what the backend
+  // actually writes.
+  const dataTypeOptions = useMemo(
+    () => [...new Set(logs.map((l) => l.dataType).filter(Boolean))].sort(),
+    [logs]
+  );
+
   const filteredLogs = useMemo(() => {
-    return mockDataAccessLogs.filter((log) => {
+    return logs.filter((log) => {
       const matchSearch =
         log.admin.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.dataType.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -42,22 +36,17 @@ export default function DataAccessLogsTab() {
 
       let matchDate = true;
       if (startDate || endDate) {
-        const logDate = new Date(log.timestamp.split("\n")[0]);
-        const compareDate = new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate());
-        
-        if (startDate) {
-          const startCompare = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-          if (compareDate < startCompare) matchDate = false;
-        }
-        if (endDate) {
-          const endCompare = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-          if (compareDate > endCompare) matchDate = false;
+        // Compare the stored Timestamp, not a re-parsed display string.
+        const at = toMillis(log.createdAtRaw);
+        if (at !== null) {
+          if (startDate && at < new Date(startDate).setHours(0, 0, 0, 0)) matchDate = false;
+          if (endDate && at > new Date(endDate).setHours(23, 59, 59, 999)) matchDate = false;
         }
       }
 
       return matchSearch && matchDataType && matchDate;
     });
-  }, [searchTerm, filterDataType, startDate, endDate]);
+  }, [logs, searchTerm, filterDataType, startDate, endDate]);
 
   const paginated = useMemo(() => {
     return filteredLogs.slice(
@@ -67,8 +56,12 @@ export default function DataAccessLogsTab() {
   }, [filteredLogs, currentPage]);
 
   const handleExportCSV = () => {
-    const headers = ["Timestamp", "Admin", "Data Type", "Record ID"];
-    const rows = filteredLogs.map(log => `"${log.timestamp.replace(/\n/g, " ")}","${log.admin}","${log.dataType}","${log.recordId}"`);
+    const headers = ["Timestamp", "Admin", "Data Type", "Record ID", "Reason", "IP Address"];
+    const escape = (v) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ")}"`;
+    const rows = filteredLogs.map((log) =>
+      [log.timestamp, log.admin, log.dataType, log.recordId, log.reason, log.ipAddress]
+        .map(escape).join(",")
+    );
     exportCSV(headers, rows, `data_access_logs_${Date.now()}.csv`);
   };
 
@@ -101,9 +94,9 @@ export default function DataAccessLogsTab() {
               className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
             >
               <option value="All">All Data Types</option>
-              <option value="KYC Document">KYC Document</option>
-              <option value="Tax Return">Tax Return</option>
-              <option value="Employment Verification">Employment Verification</option>
+              {dataTypeOptions.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>
@@ -131,6 +124,13 @@ export default function DataAccessLogsTab() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
           <span className="text-xs text-text-muted animate-pulse font-light">Loading Data Access Logs Data...</span>
+        </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white min-h-80">
+          <h3 className="text-sm font-semibold text-red-600">Could not load data access logs</h3>
+          <p className="text-xs text-text-muted font-light max-w-sm">
+            {error?.message || "The data_access_logs collection may not be readable yet."}
+          </p>
         </div>
       ) : filteredLogs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">

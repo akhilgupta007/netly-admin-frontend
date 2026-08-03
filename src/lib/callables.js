@@ -80,3 +80,16 @@ export const adjustWalletBalance = ({ uid, amount, type, reason }) =>
 /** action is "approve" | "reject" — one function handles both. */
 export const approveWalletCreditRequest = ({ requestId, action }) =>
   callFunction("approveWalletCreditRequest", { requestId, action });
+
+// ─── Compliance ────────────────────────────────────────────
+
+/** dataType must be one of the closed list the backend accepts. */
+export const logDataAccess = ({ dataType, recordId, subjectUid, reason }) =>
+  callFunction("logDataAccess", { dataType, recordId, subjectUid, reason });
+
+/** Withdrawal only — passing true is rejected by the backend. */
+export const updateUserConsent = ({ uid, marketingConsent, dataConsent, reason }) =>
+  callFunction("updateUserConsent", { uid, marketingConsent, dataConsent, reason });
+
+export const exportUserData = ({ uid }) =>
+  callFunction("exportUserData", { uid });

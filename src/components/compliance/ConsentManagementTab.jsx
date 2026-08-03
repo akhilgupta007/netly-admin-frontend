@@ -4,18 +4,16 @@ import React, { useState, useMemo } from "react";
 import { Search, Download, Clock, MailX, Trash } from "lucide-react";
 import { toast } from "react-toastify";
 import { exportCSV } from "@/utils/exportHelper";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useConsentRecords } from "@/hooks/useCompliance";
+import { updateUserConsent, exportUserData } from "@/lib/callables";
 
 import DeleteUserDataModal from "./DeleteUserDataModal";
 
-const mockConsentRecords = [
-  { name: "Amara Osei", email: "amara@gmail.com", lastUpdated: "Jan 12, 2027", dataConsent: true, dataConsentTime: "Jan 12, 2027 09:14", marketingConsent: false, marketingConsentTime: "Jan 12, 2027 09:14" },
-  { name: "Kofi Mensah", email: "kofi.m@gmail.com", lastUpdated: "Jun 22, 2027", dataConsent: true, dataConsentTime: "Jun 22, 2027 18:05", marketingConsent: true, marketingConsentTime: "Jun 22, 2027 18:05" },
-  { name: "Yetunde Balogun", email: "yetunde@example.com", lastUpdated: "May 15, 2027", dataConsent: false, dataConsentTime: "May 15, 2027 12:00", marketingConsent: false, marketingConsentTime: "May 15, 2027 12:00" }
-];
-
 export default function ConsentManagementTab() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [consentList, setConsentList] = useState(mockConsentRecords);
+  const { records: consentList, isLoading, isError, error } = useConsentRecords();
+  const queryClient = useQueryClient();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedUserForDelete, setSelectedUserForDelete] = useState(null);
 
@@ -33,23 +31,44 @@ export default function ConsentManagementTab() {
     ) || null;
   }, [consentList, searchTerm]);
 
-  const handleUnsubscribeUser = (email) => {
-    const updated = consentList.map(c => {
-      if (c.email === email) {
-        return {
-          ...c,
-          marketingConsent: false,
-          marketingConsentTime: new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })
-        };
-      }
-      return c;
+  const consentMutation = useMutation({
+    mutationFn: updateUserConsent,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["consentRecords"] });
+      toast.success("Marketing consent withdrawn.");
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: exportUserData,
+    onSuccess: (result) => {
+      // Hand the archive over as a download rather than emailing someone's
+      // personal data around.
+      const blob = new Blob([JSON.stringify(result.archive, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `netly-data-export-${result.subject.email || result.subject.uid}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Data archive downloaded.");
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const handleUnsubscribeUser = (record) => {
+    consentMutation.mutate({
+      uid: record.uid,
+      marketingConsent: false,
+      reason: "Opt-out actioned by admin on the user's request"
     });
-    setConsentList(updated);
-    toast.success(`User ${email} unsubscribed from marketing opt-in (CASL).`);
   };
 
-  const handleExportUserData = (email) => {
-    toast.success(`PII personal archive generated for ${email}. Export sent to admin email.`);
+  const handleExportUserData = (record) => {
+    exportMutation.mutate({ uid: record.uid });
   };
 
   const handleDeleteUserData = (user) => {
@@ -57,11 +76,17 @@ export default function ConsentManagementTab() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDeleteUserData = (email, reason) => {
-    setConsentList(prev => prev.filter(c => c.email !== email));
+  // Erasure is not implemented. It cannot be a simple delete: bookings and
+  // payouts are financial records that must be retained for tax and Stripe
+  // reconciliation, so "delete my data" has to mean anonymise-and-retain for
+  // those, and that boundary is a policy decision rather than a code one.
+  // Failing loudly is better than a success toast that deletes nothing.
+  const handleConfirmDeleteUserData = () => {
     setIsDeleteModalOpen(false);
     setSelectedUserForDelete(null);
-    toast.success(`User data for ${email} permanently deleted. Reason logged: "${reason}"`);
+    toast.error(
+      "Data erasure is not implemented yet — it needs a retention policy for financial records first."
+    );
   };
 
   return (
@@ -135,13 +160,15 @@ export default function ConsentManagementTab() {
             {/* Action buttons row */}
             <div className="flex flex-wrap items-center gap-2.5 pt-2">
               <button
-                onClick={() => handleExportUserData(matchedRecord.email)}
+                onClick={() => handleExportUserData(matchedRecord)}
+                disabled={exportMutation.isPending}
                 className="flex-1 min-w-37.5 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Download size={13} /> Export User Data
               </button>
               <button
-                onClick={() => handleUnsubscribeUser(matchedRecord.email)}
+                onClick={() => handleUnsubscribeUser(matchedRecord)}
+                disabled={consentMutation.isPending || matchedRecord.marketingConsent !== true}
                 className="flex-1 min-w-37.5 bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <MailX size={13} /> Unsubscribe User
