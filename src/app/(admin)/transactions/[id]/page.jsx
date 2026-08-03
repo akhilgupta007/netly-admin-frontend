@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { useTransaction } from "@/hooks/useTransactions";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { raiseDispute } from "@/lib/callables";
 import { toast } from "react-toastify";
 import { getInitials } from "@/lib/utils";
 import {
@@ -24,59 +27,70 @@ export default function TransactionDetailPage() {
   const router = useRouter();
   const id = params.id;
 
-  const [transactions, setTransactions] = useState([]);
-  const [tx, setTx] = useState(null);
-
   const [disputeModalOpen, setDisputeModalOpen] = useState(false);
   const [justification, setJustification] = useState("");
 
-  const defaultBackupTransactions = [
-    {
-      id: "TXN-001928",
-      status: "Pending Payment",
-      client: { name: "Fatima Diallo", email: "fatima.d@corp.com" },
-      provider: { name: "Meek Nowise", email: "emeka@cleanpro.ng" },
-      category: "Cleaning Services",
-      date: "Jun 24, 2027",
-      time: "08:30 AM",
-      serviceAmount: 85.00,
-      pricingType: "Hourly",
-      tip: 0,
-      description: "3-bedroom flat. Kitchen requires priority cleaning.",
-      history: [
-        { status: "Service Request Submitted", date: "June 10, 2026 • 09:45 AM" },
-        { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-        { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-        { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" }
-      ]
-    }
-  ];
+  const { transaction: tx, isLoading, isError, error, notFound } = useTransaction(id);
 
-  // Load transactions from localStorage
-  useEffect(() => {
-    let list = [];
-    const stored = localStorage.getItem("netly_transactions");
-    if (stored) {
-      try {
-        list = JSON.parse(stored);
-      } catch (err) {
-        console.error(err);
-        list = defaultBackupTransactions;
-      }
-    } else {
-      list = defaultBackupTransactions;
-      localStorage.setItem("netly_transactions", JSON.stringify(defaultBackupTransactions));
-    }
+  const queryClient = useQueryClient();
 
-    setTransactions(list);
-    const found = list.find(t => t.id === id);
-    if (found) {
-      setTx(found);
-    } else if (list.length > 0) {
-      // Fallback to first if ID not found
-      setTx(list[0]);
-    }
-  }, [id]);
+  const disputeMutation = useMutation({
+    mutationFn: raiseDispute,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transaction", id] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      setDisputeModalOpen(false);
+      setJustification("");
+      toast.success("Dispute raised.");
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  // There is no admin refund endpoint. Refunds only happen inside
+  // processCancellation (party-authenticated, amount set by policy) or
+  // resolveDispute. Saying so beats a success toast that moves no money.
+  const notImplementedRefund = () =>
+    toast.error(
+      "No admin refund endpoint exists yet — refunds are issued by cancellation or dispute resolution."
+    );
+
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-bg" />
+        <p className="text-xs text-text-muted">Loading transaction details...</p>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-2 text-center px-4">
+        <h3 className="text-sm font-semibold text-red-600">Could not load this transaction</h3>
+        <p className="text-xs text-text-muted font-light max-w-sm">
+          {error?.message || "Check your connection and try again."}
+        </p>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-3 text-center px-4">
+        <h3 className="text-sm font-semibold text-text-primary">Transaction not found</h3>
+        <p className="text-xs text-text-muted font-light">
+          No booking exists with id <span className="font-mono">{id}</span>.
+        </p>
+        <button
+          onClick={() => router.push("/transactions")}
+          className="text-xs text-primary-bg hover:underline cursor-pointer"
+        >
+          Back to transactions
+        </button>
+      </div>
+    );
+  }
 
   if (!tx) {
     return (
@@ -105,22 +119,6 @@ export default function TransactionDetailPage() {
       pauseOnHover: false,
       draggable: false,
     });
-  };
-
-  // Helper to update status in localStorage
-  const updateStatus = (newStatus, customUpdates = {}) => {
-    const updatedTx = { ...tx, status: newStatus, ...customUpdates };
-
-    // Add history log entry
-    const actionDate = "Jun 24, 2027 • 12:00 PM";
-    if (!updatedTx.history) updatedTx.history = [];
-    updatedTx.history.push({ status: newStatus, date: actionDate });
-
-    const newList = transactions.map(t => t.id === tx.id ? updatedTx : t);
-    setTransactions(newList);
-    setTx(updatedTx);
-    localStorage.setItem("netly_transactions", JSON.stringify(newList));
-    toast.success(`Transaction status updated to ${newStatus}!`);
   };
 
   // Timeline checkpoints helper based on Figma PDFs
@@ -549,7 +547,7 @@ export default function TransactionDetailPage() {
                     Resend Payment Reminder
                   </button>
                   <button
-                    onClick={() => updateStatus("Refunded", { refundedAt: "Jun 24, 2027" })}
+                    onClick={notImplementedRefund}
                     className="w-full bg-white border border-border-main text-text-primary hover:bg-page-bg font-semibold text-xs py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <Zap size={14} /> Force Manual Transfer
@@ -583,7 +581,7 @@ export default function TransactionDetailPage() {
 
                   {currentStatus === "Refund Requested" && (
                     <button
-                      onClick={() => updateStatus("Refunded")}
+                      onClick={notImplementedRefund}
                       className="w-full bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                     >
                       Process Refund
@@ -871,13 +869,11 @@ export default function TransactionDetailPage() {
                     if (justification.trim().length < 20) {
                       return;
                     }
-                    updateStatus("Dispute", {
-                      disputeId: "DISP-9901",
-                      disputeOpenedAt: "Jun 24, 2027 • 09:45 AM",
-                      disputeStatus: "Open"
+                    disputeMutation.mutate({
+                      bookingId: tx.id,
+                      reason: justification.trim(),
+                      raisedBy: "client"
                     });
-                    setDisputeModalOpen(false);
-                    setJustification("");
                   }}
                   disabled={justification.trim().length < 20}
                   className={`flex-1 font-semibold text-xs py-2.5 rounded-xl transition text-center text-white ${justification.trim().length >= 20

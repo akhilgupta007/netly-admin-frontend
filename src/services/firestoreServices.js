@@ -6,6 +6,7 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
   limit as fsLimit,
 } from "@/lib/firebase";
 import {
@@ -23,6 +24,7 @@ import {
   filterAndPaginate,
   titleCase,
   toMillis,
+  toDate,
 } from "@/services/firestoreReads";
 
 export { formatFirestoreDate, formatFirestoreDateTime };
@@ -750,6 +752,692 @@ export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
     });
   } catch (error) {
     console.warn("Firestore fetchAuditLogs warning:", error.message || error);
+    throw error;
+  }
+}
+
+/**
+ * 11. Data access log entries — who viewed personal data.
+ *
+ * Counterpart to the audit log: that records mutations, this records reads.
+ * Written server-side by the logDataAccess callable.
+ * @param {object} params - Options.
+ * @param {number} params.max - Cap on documents fetched (default 500).
+ * @return {Promise<Array<object>>} Entries, newest first.
+ */
+export async function fetchDataAccessLogsFromFirestore({ max = 500 } = {}) {
+  try {
+    const snapshot = await getDocs(
+      query(
+        collection(db, "data_access_logs"),
+        orderBy("createdAt", "desc"),
+        fsLimit(max),
+      ),
+    );
+
+    return snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        timestamp: formatFirestoreDateTime(data.createdAt),
+        createdAtRaw: data.createdAt || null,
+        admin: data.adminEmail || "—",
+        adminRole: data.adminRole || null,
+        dataType: data.dataType || "—",
+        recordId: data.recordId || "—",
+        subjectUid: data.subjectUid || null,
+        reason: data.reason || "",
+        ipAddress: data.ipAddress || "—",
+      };
+    });
+  } catch (error) {
+    console.error("Firestore fetchDataAccessLogs error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 12. Consent records.
+ *
+ * Consent is captured by the app at sign-up; the admin panel only reads it and
+ * can withdraw it on request. Users who have never been asked show as null
+ * rather than false — "not recorded" is not the same as "declined".
+ * @return {Promise<Array<object>>} One row per client and provider.
+ */
+export async function fetchConsentRecordsFromFirestore() {
+  try {
+    const groups = await Promise.all(
+      ["client", "provider"].map((type) => loadUsersByType(type)),
+    );
+
+    return groups
+      .flat()
+      .map(({ uid, data }) => ({
+        uid,
+        name: displayName(data, "User"),
+        email: data.email || "",
+        accountType: data.accountType || "",
+        dataConsent: data.dataConsent ?? null,
+        marketingConsent: data.marketingConsent ?? null,
+        dataConsentTime: formatFirestoreDateTime(
+          data.dataConsentUpdatedAt || data.createdAt,
+        ),
+        marketingConsentTime: formatFirestoreDateTime(
+          data.marketingConsentUpdatedAt || data.createdAt,
+        ),
+        lastUpdated: formatFirestoreDate(data.updatedAt || data.createdAt),
+        updatedAtRaw: data.updatedAt || data.createdAt || null,
+      }))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  } catch (error) {
+    console.error("Firestore fetchConsentRecords error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 13. Dashboard metrics.
+ *
+ * Every figure is computed from live data. Where a collection is empty the
+ * metric is genuinely zero rather than hidden — a dashboard that invents
+ * plausible numbers is worse than one that admits there is no activity yet.
+ *
+ * @param {object} params - Options.
+ * @param {Date} params.startDate - Range start (inclusive).
+ * @param {Date} params.endDate - Range end (inclusive).
+ * @return {Promise<object>} Formatted metric strings plus the daily series.
+ */
+export async function fetchDashboardMetricsFromFirestore({
+  startDate,
+  endDate,
+} = {}) {
+  const from = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+  const to = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+  const inRange = (ts) => {
+    const at = toMillis(ts);
+    if (at === null) return false;
+    if (from !== null && at < from) return false;
+    if (to !== null && at > to) return false;
+    return true;
+  };
+
+  /**
+   * Reads a collection, tolerating one that does not exist or is unreadable.
+   * @param {string} name - Collection name.
+   * @return {Promise<Array<object>>} Documents.
+   */
+  const safeAll = async (name) => {
+    try {
+      const snap = await getDocs(collection(db, name));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (error) {
+      console.warn(`dashboard: could not read ${name}:`, error?.code || error?.message);
+      return [];
+    }
+  };
+
+  try {
+    const [clients, providers, bookings, disputes, creditRequests, withdrawals] =
+      await Promise.all([
+        loadUsersByType("client"),
+        loadUsersByType("provider"),
+        safeAll("bookings"),
+        safeAll("disputes"),
+        safeAll("wallet_credit_requests"),
+        safeAll("withdrawal_requests"),
+      ]);
+
+    const clientProfiles = await loadProfileMap(
+      "client",
+      clients.map((c) => c.uid),
+    );
+    const providerProfiles = await loadProfileMap(
+      "provider",
+      providers.map((p) => p.uid),
+    );
+
+    // ── Bookings in range ──────────────────────────────────
+    const ranged = bookings.filter((b) => inRange(b.createdAt || b.created_at));
+    const norm = (v) => String(v || "").toLowerCase();
+    const completed = ranged.filter((b) => norm(b.status) === "completed").length;
+    const cancelled = ranged.filter((b) =>
+      norm(b.status).startsWith("cancelled"),
+    ).length;
+    const finished = completed + cancelled;
+
+    const sum = (list, key) =>
+      list.reduce((acc, b) => acc + (Number(b[key]) || 0), 0);
+
+    const gmv = sum(ranged, "transactionAmount") || sum(ranged, "price");
+    const revenue = sum(ranged, "platformRevenue");
+    const fees = sum(ranged, "clientServiceFee");
+
+    // ── Live wallet liability (not range-bound) ────────────
+    let liability = 0;
+    clientProfiles.forEach((p) => {
+      liability += Number(p.walletBalance) || 0;
+    });
+
+    // ── Queues ─────────────────────────────────────────────
+    const openDisputes = disputes.filter((d) =>
+      ["open", "underreview"].includes(norm(d.status).replace(/[^a-z]/g, "")),
+    ).length;
+    const pendingCredits = creditRequests.filter(
+      (r) => norm(r.status) === "pending",
+    ).length;
+    const pendingWithdrawals = withdrawals.filter(
+      (r) => norm(r.status) === "pending",
+    ).length;
+
+    let kycQueue = 0;
+    providerProfiles.forEach((p) => {
+      if (norm(p.kycStatus) === "pending") kycQueue += 1;
+    });
+
+    // ── Accounts ───────────────────────────────────────────
+    const newClients = clients.filter((c) => inRange(c.data.createdAt)).length;
+    const newProviders = providers.filter((p) => inRange(p.data.createdAt)).length;
+    const suspended = [...clients, ...providers].filter(
+      (u) => norm(u.data.status) === "banned",
+    ).length;
+
+    // ── Daily series: real refunds vs wallet credits ───────
+    // Outbound = money that actually left the platform back to a card.
+    //   · bookings marked refundedToCard by the charge.refunded webhook
+    //   · approved withdrawals, which refund to the original card
+    // Retained = money kept in the ecosystem as wallet credit instead
+    //   (approved wallet_credit_requests).
+    const outboundEvents = [
+      ...bookings
+        .filter((b) => b.refundedToCard)
+        .map((b) => ({
+          at: toMillis(b.refundedToCardAt || b.refundedAt),
+          amount: Number(b.refundedToCardAmount) || 0,
+        })),
+      ...withdrawals
+        .filter((w) => norm(w.status) === "approved")
+        .map((w) => ({
+          at: toMillis(w.resolvedAt),
+          amount: Number(w.refundedAmount ?? w.amount) || 0,
+        })),
+    ].filter((e) => e.at !== null);
+
+    const retainedEvents = creditRequests
+      .filter((r) => norm(r.status) === "approved")
+      .map((r) => ({
+        at: toMillis(r.resolvedAt || r.createdAt),
+        amount: Number(r.amount) || 0,
+      }))
+      .filter((e) => e.at !== null);
+
+    const bucket = (events, t, next) =>
+      Math.round(
+        events
+          .filter((e) => e.at >= t && e.at < next)
+          .reduce((a, e) => a + e.amount, 0),
+      );
+
+    const days = [];
+    if (from !== null && to !== null) {
+      for (let t = from; t <= to; t += 86400000) {
+        const next = t + 86400000;
+        days.push({
+          label: new Date(t).toLocaleDateString("en-US", { weekday: "short" }),
+          outbound: bucket(outboundEvents, t, next),
+          retained: bucket(retainedEvents, t, next),
+        });
+        if (days.length >= 31) break;
+      }
+    }
+
+    const currency = (n) =>
+      `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    return {
+      bookings: ranged.length.toLocaleString(),
+      completionRate: finished > 0 ? `${((completed / finished) * 100).toFixed(1)}%` : "—",
+      openDisputes: String(openDisputes),
+      walletCreditsPending: String(pendingCredits),
+      // Client cash-out requests — the closest real analogue to a refund queue.
+      refundRequests: String(pendingWithdrawals),
+      kycDocsInQueue: String(kycQueue),
+
+      gmv: currency(gmv),
+      revenue: currency(revenue),
+      fees: currency(fees),
+      liability: currency(liability),
+
+      newClients: newClients.toLocaleString(),
+      newProviders: newProviders.toLocaleString(),
+      suspended: String(suspended),
+      unresolvedDisputes: String(openDisputes),
+
+      series: days,
+      totals: { clients: clients.length, providers: providers.length },
+    };
+  } catch (error) {
+    console.error("Firestore fetchDashboardMetrics error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Maps a raw booking status onto the label the Transactions screens use.
+ *
+ * Three vocabularies are in play: the Cloud Functions write PascalCase
+ * (`Requests`, `OnTheWay`), Schema v3.0 §8 specifies lowercase, and this UI was
+ * built around a third set (`Finalised`, `Pending Provider Acceptance`).
+ * Matching case-insensitively means the screen works whichever the app writes.
+ *
+ * @param {object} booking - Raw booking data.
+ * @return {string} Display status.
+ */
+function transactionStatus(booking) {
+  const raw = String(booking.status || "").toLowerCase().replace(/[\s_-]/g, "");
+
+  // Terminal money states take precedence over the lifecycle status.
+  if (booking.refundedToCard) return "Refunded";
+  if (booking.disputeId || booking.hasOpenDispute) return "Dispute";
+
+  switch (raw) {
+    case "draft":
+      return "Quote Pending";
+    case "pending":
+      return "Pending Payment";
+    case "requests":
+      return "Pending Provider Acceptance";
+    case "confirmed":
+      return "Confirmed";
+    case "ontheway":
+    case "inprogress":
+      return "In Progress";
+    case "completed":
+      // Payout released means the money is settled, not just the service.
+      return booking.payoutReleased ? "Finalised" : "Completed";
+    case "cancelled":
+    case "cancelledbyprofessional":
+      return "Cancelled";
+    default:
+      return booking.status || "Unknown";
+  }
+}
+
+/**
+ * Shapes one booking into the row the Transactions screens expect.
+ * @param {string} id - Booking document id.
+ * @param {object} b - Booking data.
+ * @param {Map<string, object>} users - uid → user data.
+ * @return {object} Transaction row.
+ */
+function toTransaction(id, b, users) {
+  const client = users.get(b.clientId) || null;
+  const provider = users.get(b.providerId || b.professionalId) || null;
+  const when = b.serviceDateAndTime || b.scheduledAt || b.createdAt;
+  const at = toDate(when);
+
+  const serviceAmount = Number(b.transactionAmount ?? b.price) || 0;
+
+  return {
+    id,
+    status: transactionStatus(b),
+    rawStatus: b.status || "",
+    client: {
+      uid: b.clientId || null,
+      name: client ? displayName(client, "Client") : "Unknown client",
+      email: client?.email || "",
+    },
+    provider: {
+      uid: b.providerId || b.professionalId || null,
+      name: provider ? displayName(provider, "Provider") : "Unassigned",
+      email: provider?.email || "",
+    },
+    category: b.serviceTitle || b.categoryId || "—",
+    date: formatFirestoreDate(when),
+    time: at
+      ? at.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+      : "",
+    createdAtRaw: b.createdAt || when || null,
+    serviceAmount,
+    totalPaid: Number(b.totalChargedToClient) || serviceAmount,
+    providerPayout: Number(b.providerPayout) || 0,
+    commission: Number(b.platformRevenue) || 0,
+    clientServiceFee: Number(b.clientServiceFee) || 0,
+    taxAmount: Number(b.taxAmount) || 0,
+    tip: Number(b.tip) || 0,
+    pricingType: b.pricingType || "—",
+    description: b.notes || "",
+    payoutReleased: Boolean(b.payoutReleased),
+    refundAmount: Number(b.refundAmount) || 0,
+    refundedToCard: Boolean(b.refundedToCard),
+    stripePaymentIntentId: b.stripePaymentIntentId || null,
+    stripeInvoicePdfUrl: b.stripeInvoicePdfUrl || null,
+    stripeTransferId: b.stripeTransferId || null,
+    isRecurring: Boolean(b.isRecurring),
+    scheduleId: b.scheduleId || null,
+    addressLines: b.addressLines || [],
+  };
+}
+
+/**
+ * 14. Transactions — bookings with their payment detail.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
+ */
+export async function fetchTransactionsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    filterCategory = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "bookings"), fsLimit(1000)),
+    );
+    if (snapshot.empty) return { items: [], total: 0, totalPages: 1 };
+
+    // One lookup per distinct participant, not per booking.
+    const uids = [
+      ...new Set(
+        snapshot.docs.flatMap((d) => {
+          const b = d.data();
+          return [b.clientId, b.providerId || b.professionalId];
+        }).filter(Boolean),
+      ),
+    ];
+    const users = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            return snap.exists() ? [uid, snap.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    let items = snapshot.docs.map((d) => toTransaction(d.id, d.data(), users));
+
+    if (filterCategory !== "All") {
+      items = items.filter(
+        (t) => String(t.category).toLowerCase() === filterCategory.toLowerCase(),
+      );
+    }
+
+    items.sort(
+      (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+    );
+
+    return filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["id", "category"],
+      filterStatus,
+      startDate,
+      endDate,
+      page,
+      limit,
+    });
+  } catch (error) {
+    console.error("Firestore fetchTransactions error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 15. A single transaction, for the detail screen.
+ * @param {string} id - Booking document id.
+ * @return {Promise<object|null>} The transaction, or null if absent.
+ */
+export async function fetchTransactionByIdFromFirestore(id) {
+  if (!id) return null;
+  try {
+    const snap = await getDoc(doc(db, "bookings", id));
+    if (!snap.exists()) return null;
+    const b = snap.data();
+
+    const uids = [b.clientId, b.providerId || b.professionalId].filter(Boolean);
+    const users = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const u = await getDoc(doc(db, "users", uid));
+            return u.exists() ? [uid, u.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    return toTransaction(snap.id, b, users);
+  } catch (error) {
+    console.error("Firestore fetchTransactionById error:", error);
+    throw error;
+  }
+}
+
+/** Schema v3.0 §10 dispute statuses → the three the UI groups by. */
+const DISPUTE_STATUS_LABELS = {
+  open: "Open",
+  underreview: "Under Review",
+  resolvedinclientfavor: "Resolved",
+  resolvedinproviderfavor: "Resolved",
+  resolvedsplit: "Resolved",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+};
+
+/**
+ * Display label plus the specific outcome, which "Resolved" alone loses.
+ * @param {string} raw - Stored status.
+ * @return {{label: string, outcome: string|null}} Display status.
+ */
+function disputeStatus(raw) {
+  const key = String(raw || "").toLowerCase().replace(/[\s_-]/g, "");
+  const outcome =
+    key === "resolvedinclientfavor" ? "Favoured client" :
+    key === "resolvedinproviderfavor" ? "Favoured provider" :
+    key === "resolvedsplit" ? "Split decision" : null;
+  return { label: DISPUTE_STATUS_LABELS[key] || raw || "Open", outcome };
+}
+
+/**
+ * Shapes one dispute for the list and detail screens.
+ * @param {string} id - Dispute document id.
+ * @param {object} d - Dispute data.
+ * @param {Map<string, object>} users - uid → user data.
+ * @return {object} Dispute row.
+ */
+function toDispute(id, d, users) {
+  const client = users.get(d.clientId) || null;
+  const provider = users.get(d.providerId) || null;
+  const { label, outcome } = disputeStatus(d.status);
+
+  return {
+    id,
+    txnId: d.bookingId || "—",
+    bookingId: d.bookingId || null,
+    clientId: d.clientId || null,
+    providerId: d.providerId || null,
+    client: client ? displayName(client, "Client") : "Unknown client",
+    clientEmail: client?.email || "",
+    provider: provider ? displayName(provider, "Provider") : "Unassigned",
+    providerEmail: provider?.email || "",
+    category: d.serviceTitle || "—",
+    dateOpened: formatFirestoreDate(d.createdAt),
+    createdAtRaw: d.createdAt || null,
+    status: label,
+    outcome,
+    rawStatus: d.status || "",
+    raisedBy: d.raisedBy || null,
+    reason: d.reason || "—",
+    description: d.description || "",
+    serviceAmount: Number(d.bookingAmount) || 0,
+    refundAmount: Number(d.refundAmount) || 0,
+    creditAmount: Number(d.creditAmount) || 0,
+    attachments: d.attachments || [],
+    resolutionNote: d.resolutionNote || "",
+    resolvedBy: d.resolvedBy || null,
+    resolvedAt: formatFirestoreDateTime(d.resolvedAt),
+  };
+}
+
+/**
+ * 16. Disputes.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<Array<object>>} Disputes, newest first.
+ */
+export async function fetchDisputesFromFirestore() {
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "disputes"), fsLimit(500)),
+    );
+    if (snapshot.empty) return [];
+
+    const uids = [
+      ...new Set(
+        snapshot.docs
+          .flatMap((d) => [d.data().clientId, d.data().providerId])
+          .filter(Boolean),
+      ),
+    ];
+    const users = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const u = await getDoc(doc(db, "users", uid));
+            return u.exists() ? [uid, u.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    return snapshot.docs
+      .map((d) => toDispute(d.id, d.data(), users))
+      .sort(
+        (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+      );
+  } catch (error) {
+    console.error("Firestore fetchDisputes error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 17. One dispute, for the detail screen.
+ * @param {string} id - Dispute document id.
+ * @return {Promise<object|null>} The dispute, or null.
+ */
+export async function fetchDisputeByIdFromFirestore(id) {
+  if (!id) return null;
+  try {
+    const snap = await getDoc(doc(db, "disputes", id));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+
+    const users = new Map(
+      (await Promise.all(
+        [d.clientId, d.providerId].filter(Boolean).map(async (uid) => {
+          try {
+            const u = await getDoc(doc(db, "users", uid));
+            return u.exists() ? [uid, u.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    return toDispute(snap.id, d, users);
+  } catch (error) {
+    console.error("Firestore fetchDisputeById error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 18. The chat thread for a booking, as the dispute screen renders it.
+ *
+ * Threads live at chat/{chatId} keyed on the booking, with messages in a
+ * subcollection. Sender is a DocumentReference, so each message is attributed
+ * by comparing it against the thread's client and provider.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.bookingId - Booking the thread belongs to.
+ * @param {string} params.clientId - For attributing senders.
+ * @return {Promise<{chatId: string|null, messages: Array<object>}>} The thread.
+ */
+export async function fetchDisputeChatFromFirestore({ bookingId, clientId } = {}) {
+  if (!bookingId) return { chatId: null, messages: [] };
+
+  try {
+    // Conventional id first, then a query for older threads.
+    let chatDoc = await getDoc(doc(db, "chat", `booking_${bookingId}`));
+    if (!chatDoc.exists()) {
+      const found = await getDocs(
+        query(collection(db, "chat"), where("bookingId", "==", bookingId)),
+      );
+      if (found.empty) return { chatId: null, messages: [] };
+      chatDoc = found.docs[0];
+    }
+
+    const chat = chatDoc.data();
+    const snapshot = await getDocs(
+      query(
+        collection(db, "chat", chatDoc.id, "messages"),
+        orderBy("createdAt", "asc"),
+        fsLimit(300),
+      ),
+    );
+
+    const messages = snapshot.docs.map((m) => {
+      const msg = m.data();
+      const senderUid = msg.senderRef?.id || null;
+      const role = msg.isAdminMessage || msg.senderRole === "admin"
+        ? "admin"
+        : senderUid && senderUid === (clientId || chat.clientId)
+          ? "client"
+          : "provider";
+
+      // Booking-type messages carry JSON rather than prose.
+      let text = msg.message || "";
+      if (msg.messageType === "booking") {
+        try {
+          const parsed = JSON.parse(text);
+          text = `Booking ${parsed.bookingId || ""} — ${parsed.service || ""}, ${parsed.date || ""} ${parsed.time || ""}`.trim();
+        } catch {
+          // Leave the raw text if it is not the expected JSON.
+        }
+      }
+
+      return {
+        id: m.id,
+        role,
+        sender:
+          role === "admin"
+            ? msg.senderEmail || "Netly admin"
+            : role === "client"
+              ? chat.clientName || "Client"
+              : chat.professionalName || "Provider",
+        text,
+        image: msg.image || "",
+        messageType: msg.messageType || "text",
+        time: formatFirestoreDateTime(msg.createdAt),
+        createdAtRaw: msg.createdAt || null,
+      };
+    });
+
+    return { chatId: chatDoc.id, messages, chat };
+  } catch (error) {
+    console.error("Firestore fetchDisputeChat error:", error);
     throw error;
   }
 }

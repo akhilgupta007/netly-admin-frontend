@@ -80,3 +80,45 @@ export const adjustWalletBalance = ({ uid, amount, type, reason }) =>
 /** action is "approve" | "reject" — one function handles both. */
 export const approveWalletCreditRequest = ({ requestId, action }) =>
   callFunction("approveWalletCreditRequest", { requestId, action });
+
+// ─── Compliance ────────────────────────────────────────────
+
+/** dataType must be one of the closed list the backend accepts. */
+export const logDataAccess = ({ dataType, recordId, subjectUid, reason }) =>
+  callFunction("logDataAccess", { dataType, recordId, subjectUid, reason });
+
+/** Withdrawal only — passing true is rejected by the backend. */
+export const updateUserConsent = ({ uid, marketingConsent, dataConsent, reason }) =>
+  callFunction("updateUserConsent", { uid, marketingConsent, dataConsent, reason });
+
+export const exportUserData = ({ uid }) =>
+  callFunction("exportUserData", { uid });
+
+// ─── Transactions ──────────────────────────────────────────
+
+/** raisedBy is "client" | "provider". Admins may raise on a client's behalf. */
+export const raiseDispute = ({ bookingId, reason, raisedBy }) =>
+  callFunction("raiseDispute", { bookingId, reason, raisedBy });
+
+// ─── Disputes ──────────────────────────────────────────────
+
+/** resolution is "client_favour" | "provider_favour" | "split". */
+export const resolveDispute = ({
+  disputeId,
+  resolution,
+  clientRefundAmount,
+  providerCreditAmount,
+  refundToCard,
+  adminNotes
+}) =>
+  callFunction("resolveDispute", {
+    disputeId,
+    resolution,
+    clientRefundAmount,
+    providerCreditAmount,
+    refundToCard,
+    adminNotes
+  });
+
+export const postDisputeMessage = ({ bookingId, message, disputeId }) =>
+  callFunction("postDisputeMessage", { bookingId, message, disputeId });

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { logDataAccess } from "@/lib/callables";
+import React, { useState, useMemo, useEffect} from "react";
 import { Search, ChevronDown, X, ArrowUpRight, ArrowDownUp } from "lucide-react";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
@@ -16,6 +17,18 @@ export default function WalletHistoryModal({ wallet, isOpen, onClose }) {
 
   // Hooks must run unconditionally; the query itself is gated on `wallet`.
   const { history, isLoading, isError, error } = useWalletHistory(wallet);
+
+  // Record that this personal data was viewed. Fire-and-forget: a
+  // logging failure must never block the reviewer.
+  useEffect(() => {
+    if (!isOpen || !wallet?.uid) return;
+    logDataAccess({
+      dataType: "Wallet History",
+      recordId: wallet.uid,
+      subjectUid: wallet.uid,
+      reason: "Opened from the admin panel",
+    }).catch((e) => console.warn("data access log failed:", e.message));
+  }, [isOpen, wallet?.uid]);
 
   if (!isOpen || !wallet) return null;
 

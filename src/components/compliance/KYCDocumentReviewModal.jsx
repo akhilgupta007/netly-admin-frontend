@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ShieldAlert, FileText, Check, Send } from "lucide-react";
 import { toast } from "react-toastify";
+import { logDataAccess } from "@/lib/callables";
 import { getInitials } from "@/lib/utils";
 
 export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprove, onReject, onRequestResubmission, isPending }) {
@@ -23,6 +24,18 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
       setLoadFailed(false);
     }
   }, [isOpen, item]);
+
+  // Record that this personal data was viewed. Fire-and-forget: a
+  // logging failure must never block the reviewer.
+  useEffect(() => {
+    if (!isOpen || !item?.uid) return;
+    logDataAccess({
+      dataType: "KYC Document",
+      recordId: item.uid,
+      subjectUid: item.uid,
+      reason: "Opened from the admin panel",
+    }).catch((e) => console.warn("data access log failed:", e.message));
+  }, [isOpen, item?.uid]);
 
   if (!isOpen || !item) return null;
 

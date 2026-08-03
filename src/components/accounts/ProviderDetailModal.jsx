@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   X,
   CreditCard,
@@ -11,6 +11,7 @@ import {
   Star,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { logDataAccess } from "@/lib/callables";
 import { getInitials } from "@/lib/utils";
 
 export default function ProviderDetailModal({
@@ -22,6 +23,18 @@ export default function ProviderDetailModal({
   onResetPassword,
   isResettingPassword,
 }) {
+  // Record that this personal data was viewed. Fire-and-forget: a
+  // logging failure must never block the reviewer.
+  useEffect(() => {
+    if (!isOpen || !provider?.uid) return;
+    logDataAccess({
+      dataType: "Provider Profile",
+      recordId: provider.uid,
+      subjectUid: provider.uid,
+      reason: "Opened from the admin panel",
+    }).catch((e) => console.warn("data access log failed:", e.message));
+  }, [isOpen, provider?.uid]);
+
   if (!isOpen || !provider) return null;
 
   // Mock static questions list matching layout (Slide 7)
