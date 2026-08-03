@@ -99,3 +99,26 @@ export const exportUserData = ({ uid }) =>
 /** raisedBy is "client" | "provider". Admins may raise on a client's behalf. */
 export const raiseDispute = ({ bookingId, reason, raisedBy }) =>
   callFunction("raiseDispute", { bookingId, reason, raisedBy });
+
+// ─── Disputes ──────────────────────────────────────────────
+
+/** resolution is "client_favour" | "provider_favour" | "split". */
+export const resolveDispute = ({
+  disputeId,
+  resolution,
+  clientRefundAmount,
+  providerCreditAmount,
+  refundToCard,
+  adminNotes
+}) =>
+  callFunction("resolveDispute", {
+    disputeId,
+    resolution,
+    clientRefundAmount,
+    providerCreditAmount,
+    refundToCard,
+    adminNotes
+  });
+
+export const postDisputeMessage = ({ bookingId, message, disputeId }) =>
+  callFunction("postDisputeMessage", { bookingId, message, disputeId });

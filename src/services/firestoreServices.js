@@ -6,6 +6,7 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
   limit as fsLimit,
 } from "@/lib/firebase";
 import {
@@ -1217,6 +1218,226 @@ export async function fetchTransactionByIdFromFirestore(id) {
     return toTransaction(snap.id, b, users);
   } catch (error) {
     console.error("Firestore fetchTransactionById error:", error);
+    throw error;
+  }
+}
+
+/** Schema v3.0 §10 dispute statuses → the three the UI groups by. */
+const DISPUTE_STATUS_LABELS = {
+  open: "Open",
+  underreview: "Under Review",
+  resolvedinclientfavor: "Resolved",
+  resolvedinproviderfavor: "Resolved",
+  resolvedsplit: "Resolved",
+  rejected: "Rejected",
+  withdrawn: "Withdrawn",
+};
+
+/**
+ * Display label plus the specific outcome, which "Resolved" alone loses.
+ * @param {string} raw - Stored status.
+ * @return {{label: string, outcome: string|null}} Display status.
+ */
+function disputeStatus(raw) {
+  const key = String(raw || "").toLowerCase().replace(/[\s_-]/g, "");
+  const outcome =
+    key === "resolvedinclientfavor" ? "Favoured client" :
+    key === "resolvedinproviderfavor" ? "Favoured provider" :
+    key === "resolvedsplit" ? "Split decision" : null;
+  return { label: DISPUTE_STATUS_LABELS[key] || raw || "Open", outcome };
+}
+
+/**
+ * Shapes one dispute for the list and detail screens.
+ * @param {string} id - Dispute document id.
+ * @param {object} d - Dispute data.
+ * @param {Map<string, object>} users - uid → user data.
+ * @return {object} Dispute row.
+ */
+function toDispute(id, d, users) {
+  const client = users.get(d.clientId) || null;
+  const provider = users.get(d.providerId) || null;
+  const { label, outcome } = disputeStatus(d.status);
+
+  return {
+    id,
+    txnId: d.bookingId || "—",
+    bookingId: d.bookingId || null,
+    clientId: d.clientId || null,
+    providerId: d.providerId || null,
+    client: client ? displayName(client, "Client") : "Unknown client",
+    clientEmail: client?.email || "",
+    provider: provider ? displayName(provider, "Provider") : "Unassigned",
+    providerEmail: provider?.email || "",
+    category: d.serviceTitle || "—",
+    dateOpened: formatFirestoreDate(d.createdAt),
+    createdAtRaw: d.createdAt || null,
+    status: label,
+    outcome,
+    rawStatus: d.status || "",
+    raisedBy: d.raisedBy || null,
+    reason: d.reason || "—",
+    description: d.description || "",
+    serviceAmount: Number(d.bookingAmount) || 0,
+    refundAmount: Number(d.refundAmount) || 0,
+    creditAmount: Number(d.creditAmount) || 0,
+    attachments: d.attachments || [],
+    resolutionNote: d.resolutionNote || "",
+    resolvedBy: d.resolvedBy || null,
+    resolvedAt: formatFirestoreDateTime(d.resolvedAt),
+  };
+}
+
+/**
+ * 16. Disputes.
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<Array<object>>} Disputes, newest first.
+ */
+export async function fetchDisputesFromFirestore() {
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, "disputes"), fsLimit(500)),
+    );
+    if (snapshot.empty) return [];
+
+    const uids = [
+      ...new Set(
+        snapshot.docs
+          .flatMap((d) => [d.data().clientId, d.data().providerId])
+          .filter(Boolean),
+      ),
+    ];
+    const users = new Map(
+      (await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const u = await getDoc(doc(db, "users", uid));
+            return u.exists() ? [uid, u.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    return snapshot.docs
+      .map((d) => toDispute(d.id, d.data(), users))
+      .sort(
+        (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+      );
+  } catch (error) {
+    console.error("Firestore fetchDisputes error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 17. One dispute, for the detail screen.
+ * @param {string} id - Dispute document id.
+ * @return {Promise<object|null>} The dispute, or null.
+ */
+export async function fetchDisputeByIdFromFirestore(id) {
+  if (!id) return null;
+  try {
+    const snap = await getDoc(doc(db, "disputes", id));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+
+    const users = new Map(
+      (await Promise.all(
+        [d.clientId, d.providerId].filter(Boolean).map(async (uid) => {
+          try {
+            const u = await getDoc(doc(db, "users", uid));
+            return u.exists() ? [uid, u.data()] : null;
+          } catch {
+            return null;
+          }
+        }),
+      )).filter(Boolean),
+    );
+
+    return toDispute(snap.id, d, users);
+  } catch (error) {
+    console.error("Firestore fetchDisputeById error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 18. The chat thread for a booking, as the dispute screen renders it.
+ *
+ * Threads live at chat/{chatId} keyed on the booking, with messages in a
+ * subcollection. Sender is a DocumentReference, so each message is attributed
+ * by comparing it against the thread's client and provider.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.bookingId - Booking the thread belongs to.
+ * @param {string} params.clientId - For attributing senders.
+ * @return {Promise<{chatId: string|null, messages: Array<object>}>} The thread.
+ */
+export async function fetchDisputeChatFromFirestore({ bookingId, clientId } = {}) {
+  if (!bookingId) return { chatId: null, messages: [] };
+
+  try {
+    // Conventional id first, then a query for older threads.
+    let chatDoc = await getDoc(doc(db, "chat", `booking_${bookingId}`));
+    if (!chatDoc.exists()) {
+      const found = await getDocs(
+        query(collection(db, "chat"), where("bookingId", "==", bookingId)),
+      );
+      if (found.empty) return { chatId: null, messages: [] };
+      chatDoc = found.docs[0];
+    }
+
+    const chat = chatDoc.data();
+    const snapshot = await getDocs(
+      query(
+        collection(db, "chat", chatDoc.id, "messages"),
+        orderBy("createdAt", "asc"),
+        fsLimit(300),
+      ),
+    );
+
+    const messages = snapshot.docs.map((m) => {
+      const msg = m.data();
+      const senderUid = msg.senderRef?.id || null;
+      const role = msg.isAdminMessage || msg.senderRole === "admin"
+        ? "admin"
+        : senderUid && senderUid === (clientId || chat.clientId)
+          ? "client"
+          : "provider";
+
+      // Booking-type messages carry JSON rather than prose.
+      let text = msg.message || "";
+      if (msg.messageType === "booking") {
+        try {
+          const parsed = JSON.parse(text);
+          text = `Booking ${parsed.bookingId || ""} — ${parsed.service || ""}, ${parsed.date || ""} ${parsed.time || ""}`.trim();
+        } catch {
+          // Leave the raw text if it is not the expected JSON.
+        }
+      }
+
+      return {
+        id: m.id,
+        role,
+        sender:
+          role === "admin"
+            ? msg.senderEmail || "Netly admin"
+            : role === "client"
+              ? chat.clientName || "Client"
+              : chat.professionalName || "Provider",
+        text,
+        image: msg.image || "",
+        messageType: msg.messageType || "text",
+        time: formatFirestoreDateTime(msg.createdAt),
+        createdAtRaw: msg.createdAt || null,
+      };
+    });
+
+    return { chatId: chatDoc.id, messages, chat };
+  } catch (error) {
+    console.error("Firestore fetchDisputeChat error:", error);
     throw error;
   }
 }
