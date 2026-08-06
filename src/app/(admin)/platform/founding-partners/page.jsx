@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Search, ChevronDown, MoreHorizontal, Eye, Slash } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
@@ -11,143 +11,14 @@ import CardWrapper from "@/components/ui/CardWrapper";
 
 // Import custom Firestore React Query hook
 import { useProviders } from "@/hooks/useProviders";
+import { toMillis } from "@/services/firestoreReads";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateAccountStatus, resetUserPassword } from "@/lib/callables";
+import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 // Initial Mock Partners list matching Screenshot 1 values
-const initialPartners = [
-  {
-    id: "PTN-001",
-    name: "Maya Johnson",
-    email: "maya.johnson@icloud.com",
-    date: "Jul 20, 2026",
-    dateTime: new Date(2026, 6, 20),
-    status: "Active"
-  },
-  {
-    id: "PTN-002",
-    name: "Sofia Kumar",
-    email: "sofia.kumar@yahoo.com",
-    date: "May 15, 2026",
-    dateTime: new Date(2026, 4, 15),
-    status: "Banned"
-  },
-  {
-    id: "PTN-003",
-    name: "Zara Patel",
-    email: "zara.patel@gmail.com",
-    date: "Jun 10, 2026",
-    dateTime: new Date(2026, 5, 10),
-    status: "Active"
-  },
-  {
-    id: "PTN-004",
-    name: "Liam Thompson",
-    email: "liam.thompson@outlook.com",
-    date: "Jun 01, 2026",
-    dateTime: new Date(2026, 5, 1),
-    status: "Suspended"
-  },
-  {
-    id: "PTN-005",
-    name: "Ethan Zhang",
-    email: "ethan.zhang@gmail.com",
-    date: "Jul 05, 2026",
-    dateTime: new Date(2026, 6, 5),
-    status: "Active"
-  },
-  {
-    id: "PTN-006",
-    name: "Jamal Carter",
-    email: "jamal.carter@example.com",
-    date: "May 10, 2026",
-    dateTime: new Date(2026, 4, 10),
-    status: "Active"
-  },
-  {
-    id: "PTN-007",
-    name: "Amara Osei",
-    email: "amara@gmail.com",
-    date: "Apr 25, 2026",
-    dateTime: new Date(2026, 3, 25),
-    status: "Suspended"
-  },
-  {
-    id: "PTN-008",
-    name: "Liam Chen",
-    email: "liam.chen@example.com",
-    date: "May 10, 2026",
-    dateTime: new Date(2026, 4, 10),
-    status: "Active"
-  },
-  {
-    id: "PTN-009",
-    name: "Sofia Patel",
-    email: "sofia.patel@email.com",
-    date: "Jun 15, 2026",
-    dateTime: new Date(2026, 5, 15),
-    status: "Suspended"
-  },
-  {
-    id: "PTN-010",
-    name: "Ethan Martinez",
-    email: "ethan.martinez@domain.com",
-    date: "Jul 22, 2026",
-    dateTime: new Date(2026, 6, 22),
-    status: "Active"
-  },
-  {
-    id: "PTN-011",
-    name: "Benjamin White",
-    email: "benjamin.white@clean.io",
-    date: "Apr 18, 2026",
-    dateTime: new Date(2026, 3, 18),
-    status: "Invited"
-  },
-  {
-    id: "PTN-012",
-    name: "Oliver Anderson",
-    email: "oliver@clean.io",
-    date: "May 02, 2026",
-    dateTime: new Date(2026, 4, 2),
-    status: "Invited"
-  },
-  {
-    id: "PTN-013",
-    name: "Mason Wilson",
-    email: "mason@clean.io",
-    date: "Jun 11, 2026",
-    dateTime: new Date(2026, 5, 11),
-    status: "Invited"
-  },
-  {
-    id: "PTN-014",
-    name: "Lucas Taylor",
-    email: "lucas@clean.io",
-    date: "Jul 01, 2026",
-    dateTime: new Date(2026, 6, 1),
-    status: "Invited"
-  },
-  {
-    id: "PTN-015",
-    name: "Harper Martin",
-    email: "harper@clean.io",
-    date: "Jul 15, 2026",
-    dateTime: new Date(2026, 6, 15),
-    status: "Invited"
-  },
-  {
-    id: "PTN-016",
-    name: "Charlotte Lee",
-    email: "charlotte@clean.io",
-    date: "Apr 29, 2026",
-    dateTime: new Date(2026, 3, 29),
-    status: "Declined"
-  }
-];
 
 export default function FoundingPartnersPage() {
-  const [partners, setPartners] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [startDate, setStartDate] = useState(null);
@@ -165,58 +36,38 @@ export default function FoundingPartnersPage() {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef(null);
 
-  // Firestore React Query hook
-  const { providers: queryProviders } = useProviders();
+  // Firestore React Query hook. isLoading/isFetching come from the query
+  // itself — a timer would clear before the data arrived.
+  const {
+    providers: queryProviders,
+    isLoading,
+    isFetching,
+    isError,
+  } = useProviders();
   const queryClient = useQueryClient();
 
-  // Load from Firestore query or LocalStorage
-  useEffect(() => {
-    if (queryProviders && queryProviders.length > 0) {
-      // isFoundingPartner is the real flag (written by inviteUser). The old
-      // badges check could never match — badges is hardcoded to
-      // ["Provider Pro"] in firestoreServices and never held "Founding
-      // Provider", so this list was always empty and fell back to mock data.
-      const foundingList = queryProviders
-        .filter((p) => p.isFoundingPartner)
-        .map(p => ({
-          id: p.id,
-          uid: p.uid,
-          name: p.name,
-          email: p.email,
-          date: p.joinDate,
-          dateTime: new Date(),
-          status: p.status,
-          city: p.city,
-          rating: p.rating
-        }));
-
-      if (foundingList.length > 0) {
-        setPartners(foundingList);
-        return;
-      }
-    }
-
-    const stored = localStorage.getItem("netly_founding_partners");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored).map(item => ({
-          ...item,
-          dateTime: item.dateTime ? new Date(item.dateTime) : new Date()
-        }));
-        setPartners(parsed);
-      } catch (e) {
-        setPartners(initialPartners);
-      }
-    } else {
-      setPartners(initialPartners);
-    }
-  }, [queryProviders]);
-
-  const [isLoading, setIsLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Derived, not copied into state. Copying via an effect meant the first paint
+  // happened before the query resolved, so stale localStorage/mock rows showed
+  // and were then swapped for the real ones.
+  //
+  // isFoundingPartner is the real flag, written by inviteUser.
+  const partners = useMemo(
+      () =>
+        (queryProviders || [])
+            .filter((p) => p.isFoundingPartner)
+            .map((p) => ({
+              id: p.id,
+              uid: p.uid,
+              name: p.name,
+              email: p.email,
+              date: p.joinDate,
+              dateTime: p.createdAtRaw ? new Date(toMillis(p.createdAtRaw)) : null,
+              status: p.status,
+              city: p.city,
+              rating: p.rating,
+            })),
+      [queryProviders],
+  );
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -322,6 +173,7 @@ export default function FoundingPartnersPage() {
 
       {/* Main Table Container Box */}
       <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+        <RefreshingBar active={isFetching && !isLoading} />
 
         {/* Filters control bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
@@ -372,9 +224,7 @@ export default function FoundingPartnersPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
-            <span className="text-xs text-text-muted animate-pulse font-light">Loading Founding Partners Data...</span>
-          </div>
+          <ListSkeleton rows={6} columns={5} firstColAvatar />
         ) : filteredPartners.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />

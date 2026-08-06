@@ -3,6 +3,24 @@
 import React, { useState } from "react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useFeeReport } from "@/hooks/useFinance";
+
+/** Formats a number as CAD, or an em dash while loading. */
+const currency = (n) =>
+  n === null || n === undefined ?
+    "—" :
+    `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Rounds a maximum up to a readable axis top. */
+function axisTop(max) {
+  if (!max || max <= 0) return 100;
+  const mag = Math.pow(10, Math.floor(Math.log10(max)));
+  return Math.ceil(max / mag) * mag;
+}
+
+/** Abbreviates an axis value, e.g. 7500 → "$7.5k". */
+const axisLabel = (v) =>
+  v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v.toFixed(0)}`;
 
 export default function FeeReportTab({
   startDate,
@@ -10,11 +28,28 @@ export default function FeeReportTab({
   onDateChange
 }) {
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+
+  const { series, totals, isLoading, isError } = useFeeReport({ startDate, endDate });
+
+  // The axis was fixed at $0–$10k, which would clip any larger day. It now
+  // scales to the range actually returned.
+  const top = axisTop(Math.max(0, ...series.map((r) => r.clientFee)));
+  // Bars are laid out across the fixed 540-unit viewBox, so the spacing has to
+  // come from the day count rather than a hardcoded 65.
+  const plotWidth = 520 - 60;
+  const step = series.length > 0 ? plotWidth / series.length : plotWidth;
+  const barWidth = Math.max(6, Math.min(30, step * 0.55));
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main animate-scale-up space-y-2">
+        <h3 className="text-sm font-semibold text-text-primary">Could not load report data</h3>
+        <p className="text-xs text-text-muted font-light">
+          Check your connection and refresh. Figures are read directly from Firestore.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -58,19 +93,19 @@ export default function FeeReportTab({
       {/* Metric cards layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <CardWrapper
-          name="Total 5% fees collected"
-          value="$2,625.25"
-          subtext="This week"
+          name="Client fees collected (5%)"
+          value={currency(totals?.clientFee)}
+          subtext="Selected range"
         />
         <CardWrapper
           name="Transaction count"
-          value="47"
-          subtext="This week"
+          value={totals ? totals.bookings.toLocaleString() : "—"}
+          subtext="Paid bookings in range"
         />
         <CardWrapper
-          name="Average fee per transaction"
-          value="$55.86"
-          subtext="This week"
+          name="Provider commission (15%)"
+          value={currency(totals?.providerCommission)}
+          subtext={totals ? `Effective take rate ${totals.effectiveRate}%` : "Selected range"}
         />
       </div>
 
@@ -78,7 +113,7 @@ export default function FeeReportTab({
       <div className="bg-white border border-border-main p-4 rounded-2xl shadow-xs">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-semibold text-sm text-text-primary">5% Fees Collected by Day</h3>
-          <span className="text-[10px] text-text-muted font-medium pr-4">This week · USD</span>
+          <span className="text-[10px] text-text-muted font-medium pr-4">Selected range · CAD</span>
         </div>
         <div className="relative w-full overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
           <div className="min-w-125 sm:min-w-0">
@@ -90,31 +125,29 @@ export default function FeeReportTab({
               <line x1="45" y1="110" x2="520" y2="110" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
               <line x1="45" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
 
-              {/* Y-axis labels */}
-              <text x="5" y="24" className="md:text-[6px] text-[10px] text-text-muted fill-current">$10.0k</text>
-              <text x="5" y="54" className="md:text-[6px] text-[10px] text-text-muted fill-current">$7.5k</text>
-              <text x="5" y="84" className="md:text-[6px] text-[10px] text-text-muted fill-current">$5.0k</text>
-              <text x="5" y="114" className="md:text-[6px] text-[10px] text-text-muted fill-current">$2.5k</text>
-              <text x="5" y="144" className="md:text-[6px] text-[10px] text-text-muted fill-current">$0.0k</text>
+              {/* Y-axis labels — scaled to the data */}
+              {[0, 1, 2, 3, 4].map((i) => (
+                <text
+                  key={i}
+                  x="5"
+                  y={24 + i * 30}
+                  className="md:text-[6px] text-[10px] text-text-muted fill-current"
+                >
+                  {axisLabel((top * (4 - i)) / 4)}
+                </text>
+              ))}
 
               {/* Bars group */}
-              {(() => {
-                const baseStart = startDate || new Date(2026, 6, 1);
-                const staticValues = [4000, 8200, 4800, 6900, 3200, 6000, 8000];
-                return Array.from({ length: 7 }).map((_, index) => {
-                  const d = new Date(baseStart);
-                  d.setDate(baseStart.getDate() + index);
-                  const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-                  const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                  return {
-                    dayName,
-                    fullDate,
-                    val: staticValues[index]
-                  };
-                });
-              })().map((item, index) => {
-                const x_center = 75 + index * 65;
-                const barHeight = (item.val / 10000) * 120;
+              {series.map((row, index) => {
+                const item = {
+                  dayName: row.day,
+                  fullDate: new Date(row.date).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric", year: "numeric",
+                  }),
+                  val: row.clientFee,
+                };
+                const x_center = 60 + step * (index + 0.5);
+                const barHeight = top > 0 ? (item.val / top) * 120 : 0;
                 return (
                   <g key={index}>
                     {hoveredBarIndex === index && (
@@ -124,13 +157,13 @@ export default function FeeReportTab({
                         textAnchor="middle"
                         className="sm:text-[7px] text-[10px] font-semibold text-text-primary fill-current animate-scale-up"
                       >
-                        ${item.val.toLocaleString()}
+                        {currency(item.val)}
                       </text>
                     )}
                     <rect
-                      x={x_center - 15}
+                      x={x_center - barWidth / 2}
                       y={140 - barHeight}
-                      width="30"
+                      width={barWidth}
                       height={barHeight}
                       rx="6"
                       onMouseEnter={() => setHoveredBarIndex(index)}

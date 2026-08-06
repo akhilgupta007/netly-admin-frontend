@@ -20,6 +20,7 @@ export function useDisputes() {
   return {
     disputes: query.data || [],
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };
@@ -40,6 +41,7 @@ export function useDispute(id) {
   return {
     dispute: query.data || null,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     notFound: query.isSuccess && query.data === null,
@@ -70,6 +72,7 @@ export function useDisputeChat(dispute) {
     chatId: query.data?.chatId || null,
     messages: query.data?.messages || [],
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };

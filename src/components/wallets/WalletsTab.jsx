@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { Search, MoreVertical, History, Settings2 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
+import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
 export default function WalletsTab({
   wallets,
   isLoading,
+  isFetching,
   isError,
   error,
   searchTerm,
@@ -38,6 +40,7 @@ export default function WalletsTab({
 
   return (
     <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+      <RefreshingBar active={isFetching && !isLoading} />
       {/* Filters controls bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
         <div className="relative flex-1">
@@ -60,19 +63,15 @@ export default function WalletsTab({
               <th className="px-4 py-3 font-semibold">Client</th>
               <th className="px-4 py-3 font-semibold">Mail Address</th>
               <th className="px-4 py-3 font-semibold">Current Balance</th>
+              <th className="px-4 py-3 font-semibold">Reserved</th>
+              <th className="px-4 py-3 font-semibold">Payable Friday</th>
               <th className="px-4 py-3 font-semibold">Last Transaction</th>
               <th className="px-4 py-3 font-semibold w-10"></th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
             {isLoading ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
-                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
-                    <span className="text-xs text-text-muted animate-pulse font-light">Loading Wallets Data...</span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton columns={8} rows={6} firstColAvatar />
             ) : paginated.length > 0 ? (
               paginated.map((item, idx) => (
                 <tr key={item.id} className="hover:bg-page-bg/50 transition">
@@ -84,6 +83,24 @@ export default function WalletsTab({
                   </td>
                   <td className="px-4 py-3">{item.client.email}</td>
                   <td className="px-4 py-3">${item.balance.toFixed(2)}</td>
+                  <td className="px-4 py-3">
+                    {item.reserved === null ? (
+                      <span className="text-text-muted">—</span>
+                    ) : (
+                      <span title="This week's earnings, locked until the week closes">
+                        ${item.reserved.toFixed(2)}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {item.active === null ? (
+                      <span className="text-text-muted">—</span>
+                    ) : (
+                      <span title="Cleared last week — transfers on the coming Friday">
+                        ${item.active.toFixed(2)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="block text-text-primary">{item.lastTxDate}</span>
                     <span className="block md:text-[10px] text-[7px] text-text-muted pt-1">{item.lastTxTime}</span>
@@ -135,7 +152,7 @@ export default function WalletsTab({
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="px-6 py-12 text-center text-text-muted font-light">
+                <td colSpan="7" className="px-6 py-12 text-center text-text-muted font-light">
                   <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
                     <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
                     <span>No clients found matching filter criteria.</span>

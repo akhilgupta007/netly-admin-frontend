@@ -9,6 +9,7 @@ import { useAuditLogs } from "@/hooks/useAuditLogs";
 import { auditActionLabel, auditActionClass } from "@/lib/auditActions";
 import { toMillis } from "@/services/firestoreReads";
 import { roleLabel } from "@/lib/adminRoles";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 
 export default function AuditLogsTab() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -135,9 +136,7 @@ export default function AuditLogsTab() {
 
       {/* Logs Table grid */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
-          <span className="text-xs text-text-muted animate-pulse font-light">Loading Audit Logs Data...</span>
-        </div>
+          <ListSkeleton rows={6} columns={5} firstColAvatar />
       ) : isError ? (
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white min-h-80">
           <h3 className="text-sm font-semibold text-red-600">Could not load audit logs</h3>

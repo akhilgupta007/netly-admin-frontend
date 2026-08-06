@@ -15,6 +15,7 @@ export function useUsers() {
   return {
     users: query.data || EMPTY_ARRAY,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch,

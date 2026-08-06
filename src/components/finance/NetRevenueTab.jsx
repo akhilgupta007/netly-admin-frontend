@@ -6,6 +6,13 @@ import { toast } from "react-toastify";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useFinanceReports } from "@/hooks/useFinance";
+
+/** Formats a number as currency, or an em dash while loading. */
+const currency = (n) =>
+  n === null || n === undefined ?
+    "—" :
+    `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function NetRevenueTab() {
   const [chartType, setChartType] = useState("Line"); // "Bar" | "Line"
@@ -14,26 +21,15 @@ export default function NetRevenueTab() {
   const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
   const [hoveredValue, setHoveredValue] = useState(null);
 
-  const getChartData = () => {
-    const data = [];
-    const baseVal = category === "All" ? 1 : 0.4;
-    const mockFees = [4000, 4200, 3800, 5200, 6500, 4100, 3900];
-    const mockCommissions = [5000, 3800, 5500, 3200, 2500, 4300, 5100];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-      const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-      data.push({
-        dayName,
-        fullDate,
-        fee: Math.round(mockFees[i] * baseVal),
-        commission: Math.round(mockCommissions[i] * baseVal)
-      });
-    }
-    return data;
-  };
-  const chartData = getChartData();
+  const { revenue, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
+
+  const chartData = revenue.map((r) => ({
+    ...r,
+    dayName: r.day,
+    fullDate: new Date(r.date).toLocaleDateString("en-US", {
+      month: "short", day: "numeric", year: "numeric",
+    }),
+  }));
 
   const handleExportCSV = () => {
     const headers = ["Day", "Platform Fees ($)", "Commissions ($)"];
@@ -47,11 +43,17 @@ export default function NetRevenueTab() {
     exportPDF("Net Revenue Report", headers, rows, `net_revenue_${Date.now()}.pdf`);
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main animate-scale-up space-y-2">
+        <h3 className="text-sm font-semibold text-text-primary">Could not load report data</h3>
+        <p className="text-xs text-text-muted font-light">
+          Check your connection and refresh. Figures are read directly from Firestore.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -112,17 +114,17 @@ export default function NetRevenueTab() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <CardWrapper
           name="Total fees"
-          value="$2,245.00"
+          value={currency(totals?.fees)}
           subtext="5% fee"
         />
         <CardWrapper
           name="Total commissions"
-          value="$6,735.00"
+          value={currency(totals?.commission)}
           subtext="15% commission"
         />
         <CardWrapper
           name="Net revenue"
-          value="$8,980.00"
+          value={currency(totals?.netRevenue)}
           subtext="Combined Value"
         />
         <CardWrapper

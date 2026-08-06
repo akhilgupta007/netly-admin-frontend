@@ -85,18 +85,20 @@ export default function WalletsRefundsPage() {
   const queryClient = useQueryClient();
 
   // Live data. Each tab only queries while it is the active one.
-  const { wallets, isLoading: walletsLoading, isError: walletsError } = useWallets(
+  const { wallets, isLoading: walletsLoading, isFetching: walletsFetching, isError: walletsError } = useWallets(
     {},
     { enabled: activeTab === "wallets" }
   );
   const {
     requests: creditQueue,
     isLoading: creditLoading,
+    isFetching: creditFetching,
     isError: creditError
   } = useWalletCreditRequests({}, { enabled: activeTab === "credit" });
   const {
     payouts: transferQueue,
     isLoading: transferLoading,
+    isFetching: transferFetching,
     isError: transferError
   } = usePayoutLogs({}, { enabled: activeTab === "transfer" });
 
@@ -269,6 +271,7 @@ export default function WalletsRefundsPage() {
       {activeTab === "wallets" && (
         <WalletsTab
           isLoading={walletsLoading}
+          isFetching={walletsFetching}
           isError={walletsError}
           wallets={filteredWallets}
           searchTerm={searchTerm}
@@ -290,6 +293,8 @@ export default function WalletsRefundsPage() {
       {activeTab === "credit" && (
         <WalletCreditQueueTab
           isLoading={creditLoading}
+
+          isFetching={creditFetching}
           isError={creditError}
           creditQueue={filteredCreditQueue}
           startDate={startDate}
@@ -320,6 +325,7 @@ export default function WalletsRefundsPage() {
       {activeTab === "transfer" && (
         <TransferQueueTab
           isLoading={transferLoading}
+          isFetching={transferFetching}
           isError={transferError}
           transferQueue={filteredTransferQueue}
           startDate={startDate}

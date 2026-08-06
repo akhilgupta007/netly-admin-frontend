@@ -20,6 +20,7 @@ export function useProviders(params = {}, options = {}) {
     total: result.total || 0,
     totalPages: result.totalPages || 1,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     refetch: query.refetch

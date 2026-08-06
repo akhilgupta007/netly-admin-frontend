@@ -20,6 +20,15 @@
 
   /* Font */
   --font-onest: var(--font-onest-var);
+
+  /* Animations */
+  --animate-refresh-sweep: refresh-sweep 1.1s ease-in-out infinite;
+}
+
+/* Indeterminate sweep for the background-refetch bar. */
+@keyframes refresh-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
 }
 
 /* ========================================

@@ -29,6 +29,7 @@ export function useWallets(params = {}, options = {}) {
     total: result.total,
     totalPages: result.totalPages,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };
@@ -53,6 +54,7 @@ export function useWalletCreditRequests(params = {}, options = {}) {
     total: result.total,
     totalPages: result.totalPages,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };
@@ -77,6 +79,7 @@ export function usePayoutLogs(params = {}, options = {}) {
     total: result.total,
     totalPages: result.totalPages,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };
@@ -104,6 +107,7 @@ export function useWalletHistory(wallet) {
   return {
     history: query.data || [],
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };

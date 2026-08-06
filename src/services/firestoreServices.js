@@ -31,6 +31,13 @@ export { formatFirestoreDate, formatFirestoreDateTime };
 
 /** Human labels for the `type` values written into the wallet ledgers. */
 const WALLET_TX_LABELS = {
+  cancellation_credit: "Cancellation credit",
+  booking_payment: "Booking payment",
+  admin_credit: "Admin wallet credit",
+  withdrawal: "Withdrawal",
+  job_payout: "Job earnings",
+  adjustment: "Adjustment",
+  // Legacy entries written before the wallet schema migration.
   refund: "Refund credited",
   payment: "Booking payment",
   payout: "Payout to bank",
@@ -426,12 +433,21 @@ export async function fetchWalletsFromFirestore(params = {}) {
       wanted.map(async (type) => {
         const users = await loadUsersByType(type);
         if (users.length === 0) return [];
-        const profiles = await loadProfileMap(
-          type,
-          users.map((u) => u.uid),
-        );
+        const uids = users.map((u) => u.uid);
+        // walletUser / walletProvider are the source of truth; the profile
+        // mirrors are only a fallback for accounts that predate the wallet doc.
+        const [wallets, profiles] = await Promise.all([
+          loadProfileMap(type === "client" ? "walletUser" : "walletProvider", uids),
+          loadProfileMap(type, uids),
+        ]);
         return users.map(({ uid, data }) => {
-          const profile = profiles.get(uid) || {};
+          const mirror = profiles.get(uid) || {};
+          const wallet = wallets.get(uid) || {};
+          const balance = Number(
+            wallet.balance ?? mirror.walletBalance ?? 0,
+          ) || 0;
+          const reserved = Number(wallet.reservedAmount) || 0;
+          const active = Number(wallet.activeAmount) || 0;
           return {
             id: `W-${uid.slice(0, 6)}`,
             uid,
@@ -442,11 +458,15 @@ export async function fetchWalletsFromFirestore(params = {}) {
             },
             name: displayName(data, "Account"),
             email: data.email || "",
-            balance: Number(profile.walletBalance) || 0,
-            creditUsed: Number(profile.creditUsed) || 0,
-            lastTxDate: formatFirestoreDate(profile.updatedAt),
+            balance,
+            // Providers only. Reserved is this week's earnings, still locked;
+            // active is what pays out on the coming Friday.
+            reserved: type === "provider" ? reserved : null,
+            active: type === "provider" ? active : null,
+            creditUsed: Number(wallet.creditUsed ?? mirror.creditUsed) || 0,
+            lastTxDate: formatFirestoreDate(wallet.updatedAt || mirror.updatedAt),
             lastTxTime: "",
-            updatedAtRaw: profile.updatedAt || null,
+            updatedAtRaw: wallet.updatedAt || mirror.updatedAt || null,
             status: titleCase(data.status, "Active"),
           };
         });
@@ -562,9 +582,9 @@ export async function fetchWalletCreditRequestsFromFirestore(params = {}) {
 /**
  * 10. One account's wallet ledger.
  *
- * The two account types keep separate ledgers under their profile document:
- *   clients   → users/{uid}/client/{uid}/walletTransactions
- *   providers → users/{uid}/provider/{uid}/transactions
+ * Wallet schema v1.0 keys both ledgers off the wallet document:
+ *   clients   → users/{uid}/walletUser/{uid}/transactions
+ *   providers → users/{uid}/walletProvider/{uid}/transactions
  *
  * Entries record `balanceAfter`, so the running balance is read straight from
  * the ledger rather than recomputed — recomputing would drift the moment an
@@ -585,8 +605,8 @@ export async function fetchWalletHistoryFromFirestore({
 
   const isClient = accountType === "client";
   const path = isClient ?
-    ["users", uid, "client", uid, "walletTransactions"] :
-    ["users", uid, "provider", uid, "transactions"];
+    ["users", uid, "walletUser", uid, "transactions"] :
+    ["users", uid, "walletProvider", uid, "transactions"];
 
   try {
     const snapshot = await getDocs(
@@ -595,18 +615,30 @@ export async function fetchWalletHistoryFromFirestore({
 
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
-      const amount = Number(data.amount ?? data.transactionAmount) || 0;
-      // Debits are the entries that take money out of the wallet.
-      const isDebit = ["payment", "adminDebit", "payout"].includes(data.type);
+      const raw = Number(data.amount ?? data.transactionAmount) || 0;
+      // Amounts are signed in the wallet schema. Fall back to the legacy
+      // `type` field for entries written before the migration.
+      const isDebit =
+        data.isCredit === undefined ?
+          ["payment", "adminDebit", "payout"].includes(data.type) :
+          !data.isCredit;
+      const amount = Math.abs(raw);
 
       return {
         id: docSnap.id,
         date: formatFirestoreDateTime(data.createdAt),
         createdAtRaw: data.createdAt || null,
-        description: WALLET_TX_LABELS[data.type] || data.reason || data.type || "Transaction",
-        reason: data.reason || "",
+        description:
+          data.title ||
+          WALLET_TX_LABELS[data.kind] ||
+          WALLET_TX_LABELS[data.type] ||
+          data.reason ||
+          "Transaction",
+        reason: data.subtitle || data.description || data.reason || "",
         type: isDebit ? "Debit" : "Credit",
-        rawType: data.type || "",
+        rawType: data.kind || data.type || "",
+        // Provider earnings stay locked until the week closes.
+        released: data.releasedAt ? true : null,
         amount,
         txn: data.bookingId || data.stripeTransferId || "-",
         // Older entries predate balanceAfter; null renders as a dash rather
@@ -887,14 +919,13 @@ export async function fetchDashboardMetricsFromFirestore({
         safeAll("withdrawal_requests"),
       ]);
 
-    const clientProfiles = await loadProfileMap(
-      "client",
-      clients.map((c) => c.uid),
-    );
-    const providerProfiles = await loadProfileMap(
-      "provider",
-      providers.map((p) => p.uid),
-    );
+    const [clientProfiles, providerProfiles, clientWallets, providerWallets] =
+      await Promise.all([
+        loadProfileMap("client", clients.map((c) => c.uid)),
+        loadProfileMap("provider", providers.map((p) => p.uid)),
+        loadProfileMap("walletUser", clients.map((c) => c.uid)),
+        loadProfileMap("walletProvider", providers.map((p) => p.uid)),
+      ]);
 
     // ── Bookings in range ──────────────────────────────────
     const ranged = bookings.filter((b) => inRange(b.createdAt || b.created_at));
@@ -913,10 +944,32 @@ export async function fetchDashboardMetricsFromFirestore({
     const fees = sum(ranged, "clientServiceFee");
 
     // ── Live wallet liability (not range-bound) ────────────
-    let liability = 0;
-    clientProfiles.forEach((p) => {
-      liability += Number(p.walletBalance) || 0;
+    // Everything the platform owes but has not yet paid out: client balances
+    // plus both provider buckets. Reserved is not payable this Friday, but it
+    // is still money owed, so it belongs in the liability total.
+    let clientLiability = 0;
+    clients.forEach(({ uid }) => {
+      const w = clientWallets.get(uid);
+      clientLiability += Number(
+        w?.balance ?? clientProfiles.get(uid)?.walletBalance ?? 0,
+      ) || 0;
     });
+
+    let providerReserved = 0;
+    let providerActive = 0;
+    providers.forEach(({ uid }) => {
+      const w = providerWallets.get(uid);
+      if (w) {
+        providerReserved += Number(w.reservedAmount) || 0;
+        providerActive += Number(w.activeAmount) || 0;
+      } else {
+        // Pre-migration provider: the whole mirrored balance is unclassified,
+        // so treat it as payable rather than dropping it.
+        providerActive += Number(providerProfiles.get(uid)?.walletBalance) || 0;
+      }
+    });
+
+    const liability = clientLiability + providerReserved + providerActive;
 
     // ── Queues ─────────────────────────────────────────────
     const openDisputes = disputes.filter((d) =>
@@ -1006,6 +1059,11 @@ export async function fetchDashboardMetricsFromFirestore({
       revenue: currency(revenue),
       fees: currency(fees),
       liability: currency(liability),
+      // Broken out so the payout view can show what is actually due on Friday
+      // versus what is still seasoning in this week's reserve.
+      clientLiability: currency(clientLiability),
+      providerReserved: currency(providerReserved),
+      providerActive: currency(providerActive),
 
       newClients: newClients.toLocaleString(),
       newProviders: newProviders.toLocaleString(),
@@ -1471,6 +1529,518 @@ export async function fetchAdminsFromFirestore() {
       );
   } catch (error) {
     console.error("Firestore fetchAdmins error:", error);
+    throw error;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * FINANCE & SETTINGS
+ * ════════════════════════════════════════════════════════════════ */
+
+/**
+ * Reads a collection, tolerating one that does not exist or is unreadable.
+ *
+ * Several finance collections only appear once the first document is written,
+ * so a missing collection is a normal state rather than an error.
+ *
+ * @param {string} name - Collection name.
+ * @return {Promise<Array<object>>} Documents, id included.
+ */
+async function safeCollection(name) {
+  try {
+    const snap = await getDocs(collection(db, name));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch (error) {
+    console.warn(`finance: could not read ${name}:`, error?.code || error?.message);
+    return [];
+  }
+}
+
+/**
+ * Has this booking been paid for?
+ *
+ * A PaymentIntent alone is not sufficient: a booking fully covered by wallet
+ * credit may never reach Stripe, so it would be missing from every revenue
+ * report. Status past Confirmed is the other proof of payment, since
+ * onPaymentSucceeded is what sets it.
+ *
+ * @param {object} b - Booking document.
+ * @return {boolean} True when money has changed hands.
+ */
+function isPaidBooking(b) {
+  if (b.stripePaymentIntentId) return true;
+  const st = String(b.status || "").toLowerCase().replace(/[\s_-]/g, "");
+  return ["confirmed", "ontheway", "inprogress", "completed"].includes(st);
+}
+
+/** Inclusive day-boundary range test built from a start/end pair. */
+function rangeTest(startDate, endDate) {
+  const from = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+  const to = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+  return {
+    from,
+    to,
+    inRange: (ts) => {
+      const at = toMillis(ts);
+      if (at === null) return false;
+      if (from !== null && at < from) return false;
+      if (to !== null && at > to) return false;
+      return true;
+    },
+  };
+}
+
+/**
+ * Buckets dated amounts into one entry per day across the range.
+ *
+ * @param {object} params - Options.
+ * @param {number} params.from - Range start in ms.
+ * @param {number} params.to - Range end in ms.
+ * @param {object} params.serieses - Map of key → [{at, amount}].
+ * @return {Array<object>} One row per day: {day, label, date, ...keys}.
+ */
+function dailySeries({ from, to, serieses }) {
+  const rows = [];
+  if (from === null || to === null) return rows;
+
+  for (let t = from; t <= to; t += 86400000) {
+    const next = t + 86400000;
+    const d = new Date(t);
+    const row = {
+      day: d.toLocaleDateString("en-US", { weekday: "short" }),
+      label: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      date: d.toISOString().slice(0, 10),
+    };
+    for (const [key, events] of Object.entries(serieses)) {
+      row[key] =
+        Math.round(
+            events
+                .filter((e) => e.at >= t && e.at < next)
+                .reduce((a, e) => a + e.amount, 0) * 100,
+        ) / 100;
+    }
+    rows.push(row);
+    if (rows.length >= 62) break;
+  }
+  return rows;
+}
+
+/**
+ * 19. The signed-in admin's own profile.
+ *
+ * Reads the users document rather than the auth token, because the token only
+ * carries uid/email/role — the name and phone live in Firestore.
+ *
+ * @param {string} uid - The admin's uid.
+ * @return {Promise<object|null>} Profile fields, or null when absent.
+ */
+export async function fetchAdminProfileFromFirestore(uid) {
+  if (!uid) return null;
+  try {
+    const snap = await getDoc(doc(db, "users", uid));
+    if (!snap.exists()) return null;
+    const d = snap.data();
+
+    // Names are stored variously across records; derive both halves from
+    // whichever fields are present so the form never opens blank.
+    const full = (d.fullName || d.name || "").trim();
+    const first = d.firstName || full.split(" ")[0] || "";
+    const last = d.lastName || full.split(" ").slice(1).join(" ") || "";
+
+    return {
+      uid,
+      firstName: first,
+      lastName: last,
+      fullName: full || `${first} ${last}`.trim(),
+      email: d.email || "",
+      phoneNumber: d.phoneNumber || d.phone || "",
+      role: d.role || d.adminRole || "",
+      status: titleCase(d.status, "Active"),
+      createdAtRaw: d.createdAt || null,
+      lastLoginRaw: d.lastLoginAt || null,
+    };
+  } catch (error) {
+    console.error("Firestore fetchAdminProfile error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 20. Provider payout queue — who is owed what, and what has been paid.
+ *
+ * Under the weekly model a provider's wallet splits in two: reservedAmount is
+ * the current Mon–Sun week and is not payable, activeAmount cleared last week
+ * and goes out this Friday. The queue shows both, because "wallet balance"
+ * alone would imply the whole figure is due.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.searchTerm - Free-text filter.
+ * @param {string} params.status - "All" or a payout status.
+ * @param {number} params.page - 1-based page.
+ * @param {number} params.limit - Page size.
+ * @return {Promise<object>} Paginated rows plus totals.
+ */
+export async function fetchPayoutQueueFromFirestore(params = {}) {
+  const { searchTerm = "", status = "All", page = 1, limit = 8 } = params;
+
+  try {
+    const providers = await loadUsersByType("provider");
+    const uids = providers.map((p) => p.uid);
+
+    const [profiles, wallets, payoutLogs, bookings] = await Promise.all([
+      loadProfileMap("provider", uids),
+      loadProfileMap("walletProvider", uids),
+      safeCollection("payout_logs"),
+      safeCollection("bookings"),
+    ]);
+
+    // Most recent payout attempt per provider, and completed-booking counts.
+    const lastPayout = new Map();
+    payoutLogs.forEach((log) => {
+      const at = toMillis(log.processedAt);
+      const prev = lastPayout.get(log.cleanerId);
+      if (!prev || (at !== null && at > prev.at)) {
+        lastPayout.set(log.cleanerId, { ...log, at });
+      }
+    });
+
+    const completedCount = new Map();
+    bookings.forEach((b) => {
+      if (String(b.status || "").toLowerCase() !== "completed") return;
+      const pid = b.providerId || b.professionalId;
+      if (pid) completedCount.set(pid, (completedCount.get(pid) || 0) + 1);
+    });
+
+    const items = providers.map(({ uid, data }) => {
+      const profile = profiles.get(uid) || {};
+      const wallet = wallets.get(uid) || {};
+      const reserved = Number(wallet.reservedAmount) || 0;
+      const active = Number(wallet.activeAmount) || 0;
+      const balance = Number(wallet.balance ?? profile.walletBalance) || 0;
+      const last = lastPayout.get(uid);
+      const payoutReady = Boolean(profile.stripeAccountId && profile.payoutsEnabled);
+
+      // Status describes what happens next, which is what an admin needs to
+      // know — not merely what happened last.
+      let payoutStatus; let statusDesc;
+      if (!payoutReady) {
+        payoutStatus = "Blocked";
+        statusDesc = profile.stripeAccountId ?
+          "Stripe payouts not yet enabled" :
+          "No Stripe Connect account";
+      } else if (last?.status === "failed") {
+        payoutStatus = "Failed";
+        statusDesc = last.errorMessage || "Last transfer failed";
+      } else if (active > 0) {
+        payoutStatus = "Pending";
+        statusDesc = "Payable this Friday";
+      } else if (reserved > 0) {
+        payoutStatus = "Reserved";
+        statusDesc = "Seasoning until Sunday close";
+      } else {
+        payoutStatus = "Nothing due";
+        statusDesc = "No balance to pay";
+      }
+
+      return {
+        id: uid,
+        uid,
+        provider: displayName(data, "Provider"),
+        email: data.email || "",
+        initials: displayName(data, "Provider")
+            .split(" ").filter(Boolean).slice(0, 2)
+            .map((w) => w[0]?.toUpperCase()).join("") || "P",
+        walletBalance: balance,
+        reserved,
+        active,
+        walletStatus: payoutReady ? "Ready for payout" : "Pending verification",
+        payoutReady,
+        completedBookings: completedCount.get(uid) || 0,
+        lastPayoutDate: last ? formatFirestoreDate(last.processedAt) : "—",
+        lastPayoutAmount: last ? Number(last.amount) || 0 : null,
+        transferredAmount: last?.status === "succeeded" ? Number(last.amount) || 0 : null,
+        stripeTransferId: last?.stripeTransferId || null,
+        weekKey: last?.weekKey || null,
+        status: payoutStatus,
+        statusDesc,
+      };
+    });
+
+    items.sort((a, b) => b.active - a.active || b.reserved - a.reserved);
+
+    const result = filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["provider", "email"],
+      filterStatus: status,
+      statusField: "status",
+      page,
+      limit,
+    });
+
+    return {
+      ...result,
+      totals: {
+        payableFriday: items.reduce((a, i) => a + i.active, 0),
+        reserved: items.reduce((a, i) => a + i.reserved, 0),
+        blocked: items.filter((i) => !i.payoutReady).length,
+        providers: items.length,
+      },
+    };
+  } catch (error) {
+    console.error("Firestore fetchPayoutQueue error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 21. Finance report series — one call serves all four report tabs.
+ *
+ * Every tab is a daily aggregation over bookings, so they share one read
+ * instead of four. Amounts come from the fee fields sendOffer wrote onto the
+ * booking, which is what the money actually was at the time — recomputing from
+ * percentages would silently rewrite history if a fee rate ever changes.
+ *
+ * @param {object} params - Options.
+ * @param {Date} params.startDate - Range start.
+ * @param {Date} params.endDate - Range end.
+ * @return {Promise<object>} {volume, revenue, funding, totals}.
+ */
+export async function fetchFinanceReportsFromFirestore({
+  startDate,
+  endDate,
+} = {}) {
+  const { from, to, inRange } = rangeTest(startDate, endDate);
+
+  try {
+    const [bookings, creditRequests, withdrawals] = await Promise.all([
+      safeCollection("bookings"),
+      safeCollection("wallet_credit_requests"),
+      safeCollection("withdrawal_requests"),
+    ]);
+
+    const paid = bookings.filter(
+        (b) => isPaidBooking(b) && inRange(b.confirmedAt || b.createdAt),
+    );
+    const at = (b) => toMillis(b.confirmedAt || b.createdAt);
+    const num = (v) => Number(v) || 0;
+
+    // ── Transaction volume: bookings + GMV ──────────────────
+    const volume = dailySeries({
+      from, to,
+      serieses: {
+        gmv: paid.map((b) => ({ at: at(b), amount: num(b.transactionAmount) })),
+        bookings: paid.map((b) => ({ at: at(b), amount: 1 })),
+      },
+    });
+
+    // ── Net revenue: the 5% client fee vs the 15% provider commission ──
+    // platformRevenue is the sum of both; the commission is the remainder.
+    const revenue = dailySeries({
+      from, to,
+      serieses: {
+        fee: paid.map((b) => ({ at: at(b), amount: num(b.clientServiceFee) })),
+        commission: paid.map((b) => ({
+          at: at(b),
+          amount: num(b.platformRevenue) - num(b.clientServiceFee),
+        })),
+      },
+    });
+
+    // ── Funding mix: wallet credit applied vs card charged ──
+    const funding = dailySeries({
+      from, to,
+      serieses: {
+        wallet: paid.map((b) => ({ at: at(b), amount: num(b.creditAmount) })),
+        card: paid.map((b) => ({
+          at: at(b),
+          amount: num(b.totalChargedToClient) - num(b.creditAmount),
+        })),
+      },
+    });
+
+    // ── Refund split: money that left vs money retained as credit ──
+    const approved = (r) => String(r.status || "").toLowerCase() === "approved";
+    const refunds = dailySeries({
+      from, to,
+      serieses: {
+        toCard: withdrawals.filter(approved).map((w) => ({
+          at: toMillis(w.resolvedAt),
+          amount: num(w.refundedAmount ?? w.amount),
+        })),
+        toWallet: creditRequests.filter(approved).map((r) => ({
+          at: toMillis(r.resolvedAt || r.createdAt),
+          amount: num(r.amount),
+        })),
+      },
+    });
+
+    const sum = (key) => (list) =>
+      Math.round(list.reduce((a, r) => a + (r[key] || 0), 0) * 100) / 100;
+
+    return {
+      volume, revenue, funding, refunds,
+      totals: {
+        bookings: paid.length,
+        gmv: sum("gmv")(volume),
+        fees: sum("fee")(revenue),
+        commission: sum("commission")(revenue),
+        netRevenue: sum("fee")(revenue) + sum("commission")(revenue),
+        walletFunded: sum("wallet")(funding),
+        cardFunded: sum("card")(funding),
+        refundedToCard: sum("toCard")(refunds),
+        retainedAsCredit: sum("toWallet")(refunds),
+      },
+    };
+  } catch (error) {
+    console.error("Firestore fetchFinanceReports error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 22. Monthly accounting — a transaction list plus a per-month roll-up.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.searchTerm - Free-text filter.
+ * @param {number} params.year - Calendar year to roll up.
+ * @param {number} params.page - 1-based page.
+ * @param {number} params.limit - Page size.
+ * @return {Promise<object>} Paginated rows plus the 12-month series.
+ */
+export async function fetchMonthlyAccountingFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    year = new Date().getFullYear(),
+    page = 1,
+    limit = 10,
+  } = params;
+
+  try {
+    const [bookings, clients, providers] = await Promise.all([
+      safeCollection("bookings"),
+      loadUsersByType("client"),
+      loadUsersByType("provider"),
+    ]);
+
+    const nameOf = new Map();
+    [...clients, ...providers].forEach(({ uid, data }) =>
+      nameOf.set(uid, displayName(data, "Account")),
+    );
+
+    const paid = bookings.filter(isPaidBooking);
+    const num = (v) => Number(v) || 0;
+
+    const items = paid
+        .map((b) => {
+          const ts = b.confirmedAt || b.createdAt;
+          return {
+            id: b.stripePaymentIntentId || b.id,
+            bookingId: b.id,
+            date: formatFirestoreDate(ts),
+            time: formatFirestoreDateTime(ts).split(", ").pop() || "",
+            createdAtRaw: ts || null,
+            client: nameOf.get(b.clientId) || "—",
+            provider: nameOf.get(b.providerId || b.professionalId) || "—",
+            category: b.serviceTitle || b.categoryName || "—",
+            gross: num(b.totalChargedToClient),
+            net: num(b.transactionAmount),
+            fee: num(b.clientServiceFee),
+            commission: num(b.platformRevenue) - num(b.clientServiceFee),
+            providerPayout: num(b.providerPayout),
+            status: titleCase(b.status, "—"),
+          };
+        })
+        .sort((a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0));
+
+    // ── 12-month roll-up for the chart ──────────────────────
+    const months = Array.from({ length: 12 }, (_, m) => ({
+      month: new Date(year, m, 1).toLocaleDateString("en-US", { month: "short" }),
+      volume: 0, amount: 0, fees: 0, commission: 0, payout: 0,
+    }));
+    items.forEach((it) => {
+      const d = toDate(it.createdAtRaw);
+      if (!d || d.getFullYear() !== Number(year)) return;
+      const m = months[d.getMonth()];
+      m.volume += 1;
+      m.amount += it.gross;
+      m.fees += it.fee;
+      m.commission += it.commission;
+      m.payout += it.providerPayout;
+    });
+    months.forEach((m) => {
+      ["amount", "fees", "commission", "payout"].forEach((k) => {
+        m[k] = Math.round(m[k] * 100) / 100;
+      });
+    });
+
+    return {
+      ...filterAndPaginate(items, {
+        searchTerm,
+        searchFields: ["id", "client", "provider", "category"],
+        filterStatus: "All",
+        page,
+        limit,
+      }),
+      months,
+      year: Number(year),
+    };
+  } catch (error) {
+    console.error("Firestore fetchMonthlyAccounting error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 23. Fee report — what Netly charged, split by side.
+ *
+ * @param {object} params - Options.
+ * @param {Date} params.startDate - Range start.
+ * @param {Date} params.endDate - Range end.
+ * @return {Promise<object>} Daily series plus totals.
+ */
+export async function fetchFeeReportFromFirestore({ startDate, endDate } = {}) {
+  const { from, to, inRange } = rangeTest(startDate, endDate);
+
+  try {
+    const bookings = await safeCollection("bookings");
+    const paid = bookings.filter(
+        (b) => isPaidBooking(b) && inRange(b.confirmedAt || b.createdAt),
+    );
+    const at = (b) => toMillis(b.confirmedAt || b.createdAt);
+    const num = (v) => Number(v) || 0;
+
+    const series = dailySeries({
+      from, to,
+      serieses: {
+        clientFee: paid.map((b) => ({ at: at(b), amount: num(b.clientServiceFee) })),
+        providerCommission: paid.map((b) => ({
+          at: at(b),
+          amount: num(b.platformRevenue) - num(b.clientServiceFee),
+        })),
+        total: paid.map((b) => ({ at: at(b), amount: num(b.platformRevenue) })),
+      },
+    });
+
+    const total = (k) =>
+      Math.round(series.reduce((a, r) => a + (r[k] || 0), 0) * 100) / 100;
+
+    return {
+      series,
+      totals: {
+        clientFee: total("clientFee"),
+        providerCommission: total("providerCommission"),
+        total: total("total"),
+        bookings: paid.length,
+        // The effective take rate can drift from 20% when a booking predates a
+        // fee change, so it is measured rather than assumed.
+        effectiveRate: (() => {
+          const gmv = paid.reduce((a, b) => a + num(b.transactionAmount), 0);
+          return gmv > 0 ? Math.round((total("total") / gmv) * 1000) / 10 : 0;
+        })(),
+      },
+    };
+  } catch (error) {
+    console.error("Firestore fetchFeeReport error:", error);
     throw error;
   }
 }

@@ -6,6 +6,13 @@ import { toast } from "react-toastify";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useFinanceReports } from "@/hooks/useFinance";
+
+/** Formats a number as currency, or an em dash while loading. */
+const currency = (n) =>
+  n === null || n === undefined ?
+    "—" :
+    `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function TransactionVolumeTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
@@ -14,26 +21,16 @@ export default function TransactionVolumeTab() {
   const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
   const [hoveredValue, setHoveredValue] = useState(null);
 
-  const getChartData = () => {
-    const data = [];
-    const baseVal = category === "All" ? 1 : 0.4;
-    const mockPatterns = [3500, 4200, 2800, 5100, 6200, 3900, 3100];
-    const mockBookings = [38, 48, 32, 55, 68, 45, 35];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-      const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-      data.push({
-        dayName,
-        fullDate,
-        bookings: Math.round(mockBookings[i] * baseVal),
-        gmv: Math.round(mockPatterns[i] * baseVal)
-      });
-    }
-    return data;
-  };
-  const chartData = getChartData();
+  const { volume, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
+
+  // The chart reads dayName/fullDate; the read layer returns day/label.
+  const chartData = volume.map((r) => ({
+    ...r,
+    dayName: r.day,
+    fullDate: new Date(r.date).toLocaleDateString("en-US", {
+      month: "short", day: "numeric", year: "numeric",
+    }),
+  }));
 
   const handleExportCSV = () => {
     const headers = ["Day", "Bookings", "GMV ($)"];
@@ -47,11 +44,17 @@ export default function TransactionVolumeTab() {
     exportPDF("Transaction Volume Report", headers, rows, `transaction_volume_${Date.now()}.pdf`);
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main animate-scale-up space-y-2">
+        <h3 className="text-sm font-semibold text-text-primary">Could not load report data</h3>
+        <p className="text-xs text-text-muted font-light">
+          Check your connection and refresh. Figures are read directly from Firestore.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -112,17 +115,17 @@ export default function TransactionVolumeTab() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <CardWrapper
           name="Total bookings"
-          value="365"
-          subtext="Jun 18-24"
+          value={totals ? totals.bookings.toLocaleString() : "—"}
+          subtext="Paid bookings in range"
         />
         <CardWrapper
           name="GMV (period)"
-          value="$44,900.00"
+          value={currency(totals?.gmv)}
           subtext="Gross merchandise value"
         />
         <CardWrapper
           name="Average booking value"
-          value="$126.12"
+          value={currency(totals && totals.bookings ? totals.gmv / totals.bookings : 0)}
           subtext="Per transaction"
         />
       </div>
@@ -132,7 +135,7 @@ export default function TransactionVolumeTab() {
         <div className="flex justify-between items-center pb-3 border-b border-page-bg">
           <h3 className="text-xs font-semibold text-text-primary">Daily Bookings & GMV</h3>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-text-muted block">This week · USD</span>
+            <span className="text-[9px] text-text-muted block">Selected range · CAD</span>
             <div className="flex bg-primary-bg-muted/20 rounded-lg p-0.5 text-[10px]">
               <button
                 onClick={() => setChartType("Bar")}

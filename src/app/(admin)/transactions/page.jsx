@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Copy
 } from "lucide-react";
+import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
 // Helper to copy text to clipboard
 const copyToClipboard = (text) => {
@@ -77,7 +78,7 @@ export default function TransactionsPage() {
   ];
 
   // 16 Mock Transactions matching exact layout from mockup (Screenshot 4)
-  const { transactions, isLoading, isError, error } = useTransactions();
+  const { transactions, isLoading, isFetching, isError, error } = useTransactions();
 
   // Read filters out of the URL so dashboard cards can deep-link in.
   useEffect(() => {
@@ -266,6 +267,7 @@ export default function TransactionsPage() {
   return (
     // Main Transactions List Table Card
     <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+      <RefreshingBar active={isFetching && !isLoading} />
       {/* Filter and Search controls bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 p-4 bg-white rounded-t-3xl">
         {/* Single search bar input */}
@@ -401,13 +403,7 @@ export default function TransactionsPage() {
                 );
               })
             ) : isLoading ? (
-              <tr>
-                <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">
-                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
-                    <span className="text-xs text-text-muted animate-pulse">Loading Transactions Data...</span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton columns={11} rows={6} />
             ) : (
               <tr>
                 <td colSpan="11" className="px-4 py-12 text-center text-text-muted font-light">

@@ -5,6 +5,17 @@ import { Download, FileText } from "lucide-react";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useFinanceReports } from "@/hooks/useFinance";
+
+/** Formats a number as currency, or an em dash while loading. */
+const currency = (n) =>
+  n === null || n === undefined ?
+    "—" :
+    `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** Share of a total as a percentage, guarding a zero denominator. */
+const pct = (part, whole) =>
+  !whole ? "—" : `${Math.round((Number(part) / Number(whole)) * 1000) / 10}%`;
 
 export default function WalletRefundsTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
@@ -12,25 +23,16 @@ export default function WalletRefundsTab() {
   const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
   const [hoveredValue, setHoveredValue] = useState(null);
 
-  const getChartData = () => {
-    const data = [];
-    const mockWallet = [4800, 5800, 4400, 7100, 8500, 5100, 4200];
-    const mockCard = [3000, 3800, 2500, 5200, 6800, 3900, 2800];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startDate);
-      d.setDate(startDate.getDate() + i);
-      const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-      const fullDate = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-      data.push({
-        dayName,
-        fullDate,
-        wallet: mockWallet[i],
-        card: mockCard[i]
-      });
-    }
-    return data;
-  };
-  const chartData = getChartData();
+  const { funding, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
+
+  // wallet = credit applied at checkout, card = the rest charged to the card.
+  const chartData = funding.map((r) => ({
+    ...r,
+    dayName: r.day,
+    fullDate: new Date(r.date).toLocaleDateString("en-US", {
+      month: "short", day: "numeric", year: "numeric",
+    }),
+  }));
 
   const handleExportCSV = () => {
     const headers = ["Day", "Wallet Funding ($)", "Card Payments ($)"];
@@ -44,11 +46,17 @@ export default function WalletRefundsTab() {
     exportPDF("Wallet & Refunds Report", headers, rows, `wallet_refunds_${Date.now()}.pdf`);
   };
 
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main animate-scale-up space-y-2">
+        <h3 className="text-sm font-semibold text-text-primary">Could not load report data</h3>
+        <p className="text-xs text-text-muted font-light">
+          Check your connection and refresh. Figures are read directly from Firestore.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -93,23 +101,23 @@ export default function WalletRefundsTab() {
       {/* Grid cards row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <CardWrapper
-          name="Total wallet credits"
-          value="$9,800.00"
+          name="Retained as wallet credit"
+          value={currency(totals?.retainedAsCredit)}
           subtext="Jun 18-24"
         />
         <CardWrapper
-          name="Total card refunds"
-          value="$7,120.00"
+          name="Refunded to card"
+          value={currency(totals?.refundedToCard)}
           subtext="Jun 18-24"
         />
         <CardWrapper
-          name="Refund rate"
-          value="42.1%"
+          name="Left the platform"
+          value={pct(totals?.refundedToCard, totals?.refundedToCard + totals?.retainedAsCredit)}
           subtext="Jun 18-24"
         />
         <CardWrapper
           name="Retention rate"
-          value="57.9%"
+          value={pct(totals?.retainedAsCredit, totals?.refundedToCard + totals?.retainedAsCredit)}
           subtext="Jun 18-24"
         />
       </div>
