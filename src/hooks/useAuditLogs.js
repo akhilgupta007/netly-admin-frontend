@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { fetchAuditLogsFromFirestore } from "@/services/firestoreServices";
+import { useAuthStore } from "@/store/useAuthStore";
 
 /**
  * Audit log entries, newest first.
@@ -12,19 +13,25 @@ import { fetchAuditLogsFromFirestore } from "@/services/firestoreServices";
  * @return {object} Log rows and query state.
  */
 export function useAuditLogs(params = {}) {
+  const role = useAuthStore((state) => state.role);
+  const isAdmin = !!role;
+
   const query = useQuery({
     queryKey: ["auditLogs", params],
     queryFn: () => fetchAuditLogsFromFirestore(params),
     // Short window: a reviewer often refreshes right after acting.
     staleTime: 1000 * 30,
+    enabled: isAdmin,
   });
 
   return {
     logs: query.data || [],
-    isLoading: query.isLoading,
+    isLoading: query.isLoading && isAdmin,
     isFetching: query.isFetching,
-    isError: query.isError,
-    error: query.error,
+    isError: query.isError || !isAdmin,
+    error: !isAdmin
+      ? new Error("Admin access required to view audit logs.")
+      : query.error,
     refetch: query.refetch,
   };
 }

@@ -104,12 +104,14 @@ function UpdatePasswordForm() {
             onChange={(e) => setNewPassword(e.target.value)}
             required
             disabled={updatePasswordMutation.isPending}
+            suppressHydrationWarning
             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition disabled:opacity-60"
           />
           <button
             type="button"
             onClick={() => setShowNew(!showNew)}
             disabled={updatePasswordMutation.isPending}
+            suppressHydrationWarning
             className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition"
           >
             {showNew ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -134,12 +136,14 @@ function UpdatePasswordForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={updatePasswordMutation.isPending}
+            suppressHydrationWarning
             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition disabled:opacity-60"
           />
           <button
             type="button"
             onClick={() => setShowConfirm(!showConfirm)}
             disabled={updatePasswordMutation.isPending}
+            suppressHydrationWarning
             className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition"
           >
             {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -188,6 +192,7 @@ function UpdatePasswordForm() {
       <button
         type="submit"
         disabled={updatePasswordMutation.isPending || !isPasswordValid}
+        suppressHydrationWarning
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-bg py-2.5 text-sm font-medium text-white hover:opacity-90 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {updatePasswordMutation.isPending && <Loader2 size={16} className="animate-spin" />}

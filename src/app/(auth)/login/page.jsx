@@ -97,6 +97,7 @@ export default function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={loginMutation.isPending}
+          suppressHydrationWarning
           className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition disabled:opacity-60"
         />
       </div>
@@ -118,12 +119,14 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={loginMutation.isPending}
+            suppressHydrationWarning
             className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition disabled:opacity-60"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             disabled={loginMutation.isPending}
+            suppressHydrationWarning
             className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -143,6 +146,7 @@ export default function LoginPage() {
       <button
         type="submit"
         disabled={loginMutation.isPending}
+        suppressHydrationWarning
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-bg py-2.5 mt-4 text-sm font-medium text-white hover:opacity-90 transition cursor-pointer disabled:opacity-60"
       >
         {loginMutation.isPending && <Loader2 size={16} className="animate-spin" />}

@@ -56,6 +56,7 @@ export default function ForgotPasswordPage() {
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={forgotPasswordMutation.isPending}
+          suppressHydrationWarning
           className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-bg/40 focus:border-primary-bg transition disabled:opacity-60"
         />
       </div>
@@ -65,6 +66,7 @@ export default function ForgotPasswordPage() {
         <button
           type="submit"
           disabled={forgotPasswordMutation.isPending}
+          suppressHydrationWarning
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-bg py-2.5 text-sm font-medium text-white hover:opacity-90 transition cursor-pointer disabled:opacity-60"
         >
           {forgotPasswordMutation.isPending && <Loader2 size={16} className="animate-spin" />}

@@ -783,7 +783,7 @@ export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
       };
     });
   } catch (error) {
-    console.error("Firestore fetchAuditLogs error:", error);
+    console.warn("Firestore fetchAuditLogs warning:", error.message || error);
     throw error;
   }
 }
