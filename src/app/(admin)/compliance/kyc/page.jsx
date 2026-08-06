@@ -15,6 +15,7 @@ import CardWrapper from "@/components/ui/CardWrapper";
 
 // Import custom Firestore React Query hook
 import { useKyc } from "@/hooks/useKyc";
+import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
 const defaultKycSubmissions = [
   { id: "KYC-01", name: "Leonard Thomas", docType: "ID", docFile: "ID_Leonard_Thomas.jpg", submittedDate: "October 29, 2027", status: "Pending", email: "leonard@thomas.com", phone: "+233 24 123 4567", joined: "Oct 12, 2027" },
@@ -57,7 +58,7 @@ export default function KYCVerificationPage() {
   }), [searchTerm, filterStatus, filterDocType, startDate, endDate, currentPage]);
 
   // Firestore React Query hook with backend params
-  const { kycList, total: totalKyc, isLoading } = useKyc(kycParams);
+  const { kycList, total: totalKyc, isLoading, isFetching } = useKyc(kycParams);
   const queryClient = useQueryClient();
 
   // Map query items to submission row format
@@ -244,6 +245,7 @@ export default function KYCVerificationPage() {
 
       {/* Main Container Section */}
       <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+        <RefreshingBar active={isFetching && !isLoading} />
 
         {/* Table Filters controls row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
@@ -329,13 +331,7 @@ export default function KYCVerificationPage() {
             </thead>
             <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">
-                    <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
-                      <span className="text-xs text-text-muted animate-pulse font-light">Loading KYC Data...</span>
-                    </div>
-                  </td>
-                </tr>
+              <TableSkeleton columns={6} rows={6} firstColAvatar />
               ) : submissions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-text-muted font-light">

@@ -23,6 +23,7 @@ export function useDashboardMetrics(range) {
   return {
     metrics: query.data || null,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };

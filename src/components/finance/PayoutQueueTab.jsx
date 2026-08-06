@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
+import { usePayoutQueue } from "@/hooks/useFinance";
 import { Search, ChevronDown, Calendar, Users, AlertCircle, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
@@ -8,26 +9,25 @@ import Pagination from "@/components/ui/Pagination";
 import HoldPayoutModal from "./HoldPayoutModal";
 import ViewPayoutDetailsModal from "./ViewPayoutDetailsModal";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
-const initialPayouts = [
-  { id: "1", provider: "Oliver Jones", email: "oliver.jones@email.com", initials: "LT", walletBalance: 500.50, walletStatus: "Ready for payout", completedBookings: 22, lastPayoutDate: "Jul 13, 2027", status: "Pending", statusDesc: "Waiting for Friday payout", transferredAmount: null },
-  { id: "2", provider: "Benjamin White", email: "benjamin.white@email.com", initials: "LT", walletBalance: 375.40, walletStatus: "Ready for payout", completedBookings: 14, lastPayoutDate: "Jul 11, 2027", status: "Processing", statusDesc: "Transfer in progress", transferredAmount: null },
-  { id: "3", provider: "James Wilson", email: "james.wilson@email.com", initials: "LT", walletBalance: 450.00, walletStatus: "Ready for payout", completedBookings: 20, lastPayoutDate: "Jul 9, 2027", status: "Completed", statusDesc: "Paid successfully", transferredAmount: 205.05 },
-  { id: "4", provider: "Anna Kim", email: "anna.kim@email.com", initials: "LT", walletBalance: 300.25, walletStatus: "Ready for payout", completedBookings: 12, lastPayoutDate: "Jul 10, 2027", status: "Pending", statusDesc: "Waiting for Friday payout", transferredAmount: null },
-  { id: "5", provider: "Jessica Taylor", email: "jessica.taylor@email.com", initials: "LT", walletBalance: 310.00, walletStatus: "Ready for payout", completedBookings: 10, lastPayoutDate: "Jul 8, 2027", status: "Failed", statusDesc: "Bank account requires verification.", transferredAmount: null },
-  { id: "6", provider: "Sarah Johnson", email: "sarah.johnson@email.com", initials: "MT", walletBalance: 300.00, walletStatus: "Pending verification", completedBookings: 15, lastPayoutDate: "Jul 10, 2027", status: "Completed", statusDesc: "Paid successfully", transferredAmount: 150.00 },
-  { id: "7", provider: "Michael Brown", email: "michael.brown@email.com", initials: "NT", walletBalance: 600.00, walletStatus: "Ready for payout", completedBookings: 25, lastPayoutDate: "Jul 11, 2027", status: "Completed", statusDesc: "Paid successfully", transferredAmount: 250.00 },
-  { id: "8", provider: "Oliver Jones", email: "oliver.jones@email.com", initials: "LT", walletBalance: 500.50, walletStatus: "Ready for payout", completedBookings: 22, lastPayoutDate: "Jul 13, 2027", status: "Pending", statusDesc: "Waiting for Friday payout", transferredAmount: null },
-  { id: "9", provider: "Jessica Taylor", email: "jessica.taylor@email.com", initials: "LT", walletBalance: 310.00, walletStatus: "Ready for payout", completedBookings: 10, lastPayoutDate: "Jul 8, 2027", status: "Failed", statusDesc: "Bank account requires verification.", transferredAmount: null },
-  { id: "10", provider: "Sarah Johnson", email: "sarah.johnson@email.com", initials: "MT", walletBalance: 300.00, walletStatus: "Pending verification", completedBookings: 15, lastPayoutDate: "Jul 10, 2027", status: "Completed", statusDesc: "Paid successfully", transferredAmount: 150.00 },
-  { id: "11", provider: "James Wilson", email: "james.wilson@email.com", initials: "LT", walletBalance: 450.00, walletStatus: "Ready for payout", completedBookings: 20, lastPayoutDate: "Jul 9, 2027", status: "Completed", statusDesc: "Paid successfully", transferredAmount: 205.05 },
-  { id: "12", provider: "Benjamin White", email: "benjamin.white@email.com", initials: "LT", walletBalance: 375.40, walletStatus: "Ready for payout", completedBookings: 14, lastPayoutDate: "Jul 11, 2027", status: "Processing", statusDesc: "Transfer in progress", transferredAmount: null },
-  { id: "13", provider: "Anna Kim", email: "anna.kim@email.com", initials: "LT", walletBalance: 300.25, walletStatus: "Ready for payout", completedBookings: 12, lastPayoutDate: "Jul 10, 2027", status: "Pending", statusDesc: "Waiting for Friday payout", transferredAmount: null },
-  { id: "14", provider: "Michael Brown", email: "michael.brown@email.com", initials: "NT", walletBalance: 600.00, walletStatus: "Ready for payout", completedBookings: 25, lastPayoutDate: "Jul 11, 2027", status: "Completed", statusDesc: "Paid successfully", transferredAmount: 250.00 }
-];
+
+/** Formats a number as CAD, or an em dash while the figure is still loading. */
+const currency = (n) =>
+  n === null || n === undefined ?
+    "—" :
+    `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** The date of the coming Friday payout run. */
+function nextFriday() {
+  const d = new Date();
+  // 5 = Friday. Today counts if the 09:00 run has not happened yet.
+  const delta = (5 - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + delta);
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
 
 export default function PayoutQueueTab() {
-  const [payouts, setPayouts] = useState(initialPayouts);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [startDate, setStartDate] = useState(null);
@@ -37,89 +37,52 @@ export default function PayoutQueueTab() {
   const [selectedPayout, setSelectedPayout] = useState(null);
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [holdReason, setHoldReason] = useState("");
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
+  const {
+    payouts,
+    totalCount,
+    totals,
+    isLoading,
+    isFetching,
+    isError,
+  } = usePayoutQueue({
+    searchTerm,
+    status: filterStatus,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+
+  // Holding and retrying a payout have no Cloud Function behind them yet, and
+  // every write has to go through one. Rather than mutate local state and imply
+  // the transfer changed, both paths say plainly that they are unavailable.
   const handleActionClick = (item) => {
     setSelectedPayout(item);
-    if (item.status === "Pending") {
-      setHoldReason("");
-      setIsHoldModalOpen(true);
-    } else if (item.status === "Failed") {
-      toast.info("Retrying failed payout transfer...");
-      setTimeout(() => {
-        const updated = payouts.map(p => {
-          if (p.id === item.id) {
-            return {
-              ...p,
-              status: "Completed",
-              statusDesc: "Paid successfully",
-              transferredAmount: p.walletBalance
-            };
-          }
-          return p;
-        });
-        setPayouts(updated);
-        toast.success(`Payout successfully completed for ${item.provider}!`);
-      }, 800);
-    } else {
-      setIsViewModalOpen(true);
+    if (item.status === "Failed") {
+      toast.info(
+          "Retry is not available yet. The balance stays in ACTIVE and the next " +
+        "Friday run will attempt it again automatically.",
+      );
+      return;
     }
+    setIsViewModalOpen(true);
   };
 
   const handleConfirmHold = () => {
-    if (holdReason.length < 10) return;
-    toast.success(`Payout held for ${selectedPayout.provider}.`);
-    const updated = payouts.map(p => {
-      if (p.id === selectedPayout.id) {
-        return {
-          ...p,
-          statusDesc: "Waiting for Friday payout (On Hold)"
-        };
-      }
-      return p;
-    });
-    setPayouts(updated);
+    toast.info("Holding a payout is not implemented yet.");
     setIsHoldModalOpen(false);
     setSelectedPayout(null);
   };
 
-  const filteredPayouts = useMemo(() => {
-    return payouts.filter((item) => {
-      const matchSearch = item.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filterStatus === "All" || item.status === filterStatus;
+  // The date filter applied to lastPayoutDate, which is not what this view is
+  // about — the queue answers "who is owed money now". Filtering is done in the
+  // read layer over provider/wallet state instead.
+  const filteredPayouts = payouts;
+  const paginated = payouts;
 
-      if (startDate && endDate) {
-        const itemDate = new Date(item.lastPayoutDate);
-        if (!isNaN(itemDate.getTime())) {
-          const s = new Date(startDate);
-          const e = new Date(endDate);
-          s.setHours(0, 0, 0, 0);
-          e.setHours(23, 59, 59, 999);
-          return matchSearch && matchStatus && itemDate >= s && itemDate <= e;
-        }
-      }
-
-      return matchSearch && matchStatus;
-    });
-  }, [payouts, searchTerm, filterStatus, startDate, endDate]);
-
-  const paginated = useMemo(() => {
-    return filteredPayouts.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  }, [filteredPayouts, currentPage]);
-
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
 
 
@@ -127,36 +90,37 @@ export default function PayoutQueueTab() {
     <div className="space-y-4 animate-scale-up">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
         <CardWrapper
-          name="Expected Friday Payout"
-          value="$18,540.25"
-          subtext="Based on current provider wallet balances."
+          name="Payable This Friday"
+          value={currency(totals?.payableFriday)}
+          subtext="ACTIVE balances — last completed Mon–Sun week."
           icon={Calendar}
           className="h-32"
         />
         <CardWrapper
-          name="Providers Ready"
-          value="128"
-          subtext="Providers with earnings available for payout."
-          icon={Users}
+          name="Reserved (This Week)"
+          value={currency(totals?.reserved)}
+          subtext="Locked until the Sunday close. Not payable Friday."
+          icon={Clock}
           className="h-32"
         />
         <CardWrapper
-          name="Failed Last Run"
-          value="3"
-          subtext="Awaiting manual review."
+          name="Blocked"
+          value={totals ? String(totals.blocked) : "—"}
+          subtext="No Stripe Connect account or payouts disabled."
           icon={AlertCircle}
           className="h-32"
         />
         <CardWrapper
-          name="Next Payout"
-          value="Friday, Jul 11, 2027"
-          subtext="Weekly payout schedule."
-          icon={Clock}
+          name="Next Payout Run"
+          value={nextFriday()}
+          subtext="processFridayPayouts · Fridays 09:00 Toronto."
+          icon={Users}
           className="h-32"
         />
       </div>
 
       <div className="border border-border-main rounded-3xl overflow-visible bg-white shadow-2xs relative z-20">
+        <RefreshingBar active={isFetching && !isLoading} />
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -202,8 +166,13 @@ export default function PayoutQueueTab() {
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
-            <span className="text-xs text-text-muted animate-pulse font-light">Loading Payout Queue Data...</span>
+          <ListSkeleton rows={6} columns={6} firstColAvatar />
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white rounded-b-3xl min-h-80">
+            <h3 className="text-sm font-semibold text-text-primary">Could not load the payout queue</h3>
+            <p className="text-xs text-text-muted font-light">
+              Check your connection and refresh. Provider wallet data is read directly from Firestore.
+            </p>
           </div>
         ) : filteredPayouts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
@@ -279,11 +248,11 @@ export default function PayoutQueueTab() {
           </div>
         )}
 
-        {filteredPayouts.length > 0 && (
+        {totalCount > 0 && (
           <Pagination
             currentPage={currentPage}
             itemsPerPage={itemsPerPage}
-            totalItems={filteredPayouts.length}
+            totalItems={totalCount}
             onPageChange={setCurrentPage}
           />
         )}

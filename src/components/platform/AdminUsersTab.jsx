@@ -15,6 +15,7 @@ import { useAdmins } from "@/hooks/useAdmins";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ADMIN_ROLES, roleLabel, canManageAdmins } from "@/lib/adminRoles";
 import { toMillis } from "@/services/firestoreReads";
+import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 export default function AdminUsersTab() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,7 +35,7 @@ export default function AdminUsersTab() {
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 
-  const { admins, isLoading, isError, error } = useAdmins();
+  const { admins, isLoading, isFetching, isError, error } = useAdmins();
   const queryClient = useQueryClient();
   const currentRole = useAuthStore((state) => state.role);
   const currentUid = useAuthStore((state) => state.uid);
@@ -154,6 +155,7 @@ export default function AdminUsersTab() {
 
       {/* Main Table Container Box */}
       <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+        <RefreshingBar active={isFetching && !isLoading} />
 
         {/* Filters control bar */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
@@ -209,9 +211,7 @@ export default function AdminUsersTab() {
 
         {/* Table data list */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
-            <span className="text-xs text-text-muted animate-pulse font-light">Loading Admin Users Data...</span>
-          </div>
+          <ListSkeleton rows={6} columns={5} firstColAvatar />
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white min-h-80">
             <h3 className="text-sm font-semibold text-red-600">Could not load admin users</h3>

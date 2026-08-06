@@ -1,37 +1,44 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Search, ChevronDown, Download, FileText } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useMonthlyAccounting } from "@/hooks/useFinance";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
 
-const mockTransactions = [
-  { id: "TXN00192123500007", date: "June 9, 2027", time: "1:15 PM", client: "Logan Walker", provider: "Zoe Robinson", category: "Post-Construction Cleaning", amount: 500.00, fee: 25.00, commission: 30.00, tip: 20.00, status: "Completed" },
-  { id: "TXN00192123500004", date: "June 6, 2027", time: "3:10 PM", client: "Isabella Thomas", provider: "Lucas Garcia", category: "Window Cleaning", amount: 250.00, fee: 12.50, commission: 15.00, tip: 10.00, status: "Completed" },
-  { id: "TXN00192123500011", date: "June 13, 2027", time: "10:30 AM", client: "Chloe Torres", provider: "Daniel Baker", category: "Sanitization Services", amount: 300.00, fee: 15.00, commission: 20.00, tip: 15.00, status: "In Progress" },
-  { id: "TXN00192123500009", date: "June 11, 2027", time: "5:30 PM", client: "Avery King", provider: "Jacob Wright", category: "Commercial Cleaning", amount: 700.00, fee: 35.00, commission: 45.00, tip: 30.00, status: "Refund Requested" },
-  { id: "TXN00192123500006", date: "June 8, 2027", time: "4:00 PM", client: "Amelia Clark", provider: "Alexander Lewis", category: "Deep Cleaning", amount: 400.00, fee: 20.00, commission: 25.00, tip: 15.00, status: "Dispute" },
-  { id: "TXN00192123500003", date: "June 5, 2027", time: "10:00 AM", client: "Ethan Martinez", provider: "Ava Anderson", category: "Pressure Washing", amount: 300.00, fee: 15.00, commission: 20.00, tip: 12.00, status: "Completed" },
-  { id: "TXN00192123500005", date: "June 7, 2027", time: "9:30 AM", client: "Charlotte Lee", provider: "James Harris", category: "Floor Waxing", amount: 300.00, fee: 15.00, commission: 20.00, tip: 11.00, status: "In Progress" }
-];
 
-// Monthly grouped bar chart data
-const chartMonths = [
-  { month: "Jan", volume: 50, amount: 82, fees: 78, commission: 50, tips: 48 },
-  { month: "Feb", volume: 65, amount: 12, fees: 46, commission: 32, tips: 22 },
-  { month: "Mar", volume: 18, amount: 92, fees: 93, commission: 67, tips: 38 },
-  { month: "Apr", volume: 33, amount: 24, fees: 52, commission: 40, tips: 42 },
-  { month: "May", volume: 70, amount: 48, fees: 96, commission: 58, tips: 21 },
-  { month: "Jun", volume: 67, amount: 64, fees: 25, commission: 86, tips: 60 },
-  { month: "Jul", volume: 70, amount: 80, fees: 56, commission: 17, tips: 84 },
-  { month: "Aug", volume: 50, amount: 69, fees: 30, commission: 92, tips: 95 },
-  { month: "Sep", volume: 64, amount: 68, fees: 8, commission: 75, tips: 42 },
-  { month: "Oct", volume: 86, amount: 37, fees: 7, commission: 49, tips: 31 },
-  { month: "Nov", volume: 18, amount: 84, fees: 93, commission: 52, tips: 52 },
-  { month: "Dec", volume: 10, amount: 85, fees: 6, commission: 46, tips: 49 }
-];
+/** Formats a number as CAD, or an em dash while loading. */
+const currency = (n) =>
+  n === null || n === undefined ?
+    "—" :
+    `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+/**
+ * Scales each series to a 0–100 bar height against its own maximum.
+ *
+ * The bars previously carried literal percentages with a made-up multiplier in
+ * the tooltip, so the number shown had no relation to the height. Heights are
+ * now derived from the real figures and the tooltip shows the actual amount.
+ *
+ * @param {Array<object>} months - Rows from the read layer.
+ * @return {Array<object>} Rows with h* height fields added.
+ */
+function scaleBars(months) {
+  const keys = ["volume", "amount", "fees", "commission", "payout"];
+  const max = {};
+  keys.forEach((k) => {
+    max[k] = Math.max(1, ...months.map((m) => Number(m[k]) || 0));
+  });
+  return months.map((m) => {
+    const row = { ...m };
+    keys.forEach((k) => {
+      row["h_" + k] = Math.round(((Number(m[k]) || 0) / max[k]) * 100);
+    });
+    return row;
+  });
+}
 
 export default function MonthlyAccountingTab() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,62 +50,60 @@ export default function MonthlyAccountingTab() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
+  const [year] = useState(new Date().getFullYear());
   const itemsPerPage = 8;
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
 
+  const {
+    transactions,
+    months,
+    totalCount,
+    isLoading,
+    isError,
+  } = useMonthlyAccounting({
+    searchTerm,
+    year,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+
+  const chartRows = scaleBars(months);
+  const yearTotals = months.reduce(
+      (a, m) => ({
+        volume: a.volume + m.volume,
+        amount: a.amount + m.amount,
+        revenue: a.revenue + m.fees + m.commission,
+        payout: a.payout + m.payout,
+      }),
+      { volume: 0, amount: 0, revenue: 0, payout: 0 },
+  );
   const handleExportCSV = () => {
-    const headers = ["Transaction ID", "Date", "Time", "Client", "Provider", "Category", "Amount ($)", "Client Fee ($)", "Commission ($)", "Tip ($)", "Status"];
-    const rows = mockTransactions.map(item => `"${item.id}","${item.date}","${item.time}","${item.client}","${item.provider}","${item.category}",${item.amount},${item.fee},${item.commission},${item.tip},"${item.status}"`);
+    const headers = ["Transaction ID", "Date", "Time", "Client", "Provider", "Category", "Amount ($)", "Client Fee ($)", "Commission ($)", "Provider Payout ($)", "Status"];
+    const rows = transactions.map(item => `"${item.id}","${item.date}","${item.time}","${item.client}","${item.provider}","${item.category}",${item.gross},${item.fee},${item.commission},${item.providerPayout},"${item.status}"`);
     exportCSV(headers, rows, `monthly_accounting_${Date.now()}.csv`);
   };
 
   const handleExportPDF = () => {
-    const headers = ["TXN ID", "Date", "Time", "Client", "Provider", "Category", "Amount", "Client Fee", "Commission", "Tip", "Status"];
-    const rows = mockTransactions.map(item => [
+    const headers = ["TXN ID", "Date", "Time", "Client", "Provider", "Category", "Amount", "Client Fee", "Commission", "Provider Payout", "Status"];
+    const rows = transactions.map(item => [
       item.id,
       item.date,
       item.time,
       item.client,
       item.provider,
       item.category,
-      `$${item.amount.toFixed(2)}`,
+      `$${item.gross.toFixed(2)}`,
       `$${item.fee.toFixed(2)}`,
       `$${item.commission.toFixed(2)}`,
-      `$${item.tip.toFixed(2)}`,
+      `$${item.providerPayout.toFixed(2)}`,
       item.status
     ]);
     exportPDF("Monthly Accounting Report", headers, rows, `monthly_accounting_${Date.now()}.pdf`);
   };
 
-  const filteredData = useMemo(() => {
-    return mockTransactions.filter((t) => {
-      const matchSearch = t.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchStatus = filterStatus === "All" || t.status === filterStatus;
-      const matchCategory = filterCategory === "All" || t.category === filterCategory;
-
-      let matchDate = true;
-      if (startDate || endDate) {
-        const itemDate = new Date(t.date);
-        if (startDate && itemDate < new Date(startDate)) matchDate = false;
-        if (endDate && itemDate > new Date(endDate)) matchDate = false;
-      }
-
-      return matchSearch && matchStatus && matchCategory && matchDate;
-    });
-  }, [searchTerm, filterStatus, filterCategory, startDate, endDate]);
-
-  const paginated = useMemo(() => {
-    return filteredData.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-  }, [filteredData, currentPage]);
+  // Search and pagination are applied in the read layer, so the rows returned
+  // are already the current page.
+  const filteredData = transactions;
+  const paginated = transactions;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -114,6 +119,17 @@ export default function MonthlyAccountingTab() {
         return "text-text-muted bg-page-bg";
     }
   };
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-100 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main animate-scale-up space-y-2">
+        <h3 className="text-sm font-semibold text-text-primary">Could not load accounting data</h3>
+        <p className="text-xs text-text-muted font-light">
+          Check your connection and refresh. Figures are read directly from Firestore.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -148,23 +164,23 @@ export default function MonthlyAccountingTab() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <CardWrapper
           name="TOTAL TRANSACTIONS"
-          value="14,283"
-          subtext="8.2% vs last month"
+          value={yearTotals.volume.toLocaleString()}
+          subtext={`Paid bookings in ${year}`}
         />
         <CardWrapper
           name="TRANSACTION VOLUME"
-          value="$482,540"
-          subtext="Total processed this month"
+          value={currency(yearTotals.amount)}
+          subtext="Gross charged to clients"
         />
         <CardWrapper
           name="PLATFORM REVENUE"
-          value="$48,254"
+          value={currency(yearTotals.revenue)}
           subtext="Fees + commissions collected"
         />
         <CardWrapper
-          name="TOTAL TIPS"
-          value="$12,860"
-          subtext="Paid directly to providers"
+          name="PROVIDER PAYOUTS"
+          value={currency(yearTotals.payout)}
+          subtext="85% earned by providers"
         />
       </div>
 
@@ -184,18 +200,18 @@ export default function MonthlyAccountingTab() {
 
               {/* Bars Group per Month */}
               <div className="absolute inset-0 flex justify-between items-end px-2">
-                {chartMonths.map((item, idx) => {
+                {chartRows.map((item, idx) => {
                   const xPos = `${(idx + 0.5) * (100 / 12)}%`;
                   return (
                     <div key={idx} className="flex items-end gap-0.5 h-full group relative">
                       {/* Bar 1 - Volume */}
                       <div
-                        style={{ height: `${item.volume}%` }}
+                        style={{ height: `${item.h_volume}%` }}
                         className="w-1.5 md:w-3 bg-[#E57373] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
-                          y: `${100 - item.volume}%`,
-                          isHigh: item.volume >= 50,
+                          y: `${100 - item.h_volume}%`,
+                          isHigh: item.h_volume >= 50,
                           monthIndex: idx,
                           value: `${Math.round(item.volume * 25).toLocaleString()} txns`,
                           label: `Transaction Volume (${item.month})`
@@ -204,57 +220,57 @@ export default function MonthlyAccountingTab() {
                       />
                       {/* Bar 2 - Amount */}
                       <div
-                        style={{ height: `${item.amount}%` }}
+                        style={{ height: `${item.h_amount}%` }}
                         className="w-1.5 md:w-3 bg-[#81C784] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
-                          y: `${100 - item.amount}%`,
-                          isHigh: item.amount >= 50,
+                          y: `${100 - item.h_amount}%`,
+                          isHigh: item.h_amount >= 50,
                           monthIndex: idx,
-                          value: `$${(item.amount * 500).toLocaleString()}`,
+                          value: currency(item.amount),
                           label: `Amount (${item.month})`
                         })}
                         onMouseLeave={() => setHoveredValue(null)}
                       />
                       {/* Bar 3 - Fees */}
                       <div
-                        style={{ height: `${item.fees}%` }}
+                        style={{ height: `${item.h_fees}%` }}
                         className="w-1.5 md:w-3 bg-[#4DD0E1] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
-                          y: `${100 - item.fees}%`,
-                          isHigh: item.fees >= 50,
+                          y: `${100 - item.h_fees}%`,
+                          isHigh: item.h_fees >= 50,
                           monthIndex: idx,
-                          value: `$${(item.fees * 50).toLocaleString()}`,
+                          value: currency(item.fees),
                           label: `Fees (${item.month})`
                         })}
                         onMouseLeave={() => setHoveredValue(null)}
                       />
                       {/* Bar 4 - Commission */}
                       <div
-                        style={{ height: `${item.commission}%` }}
+                        style={{ height: `${item.h_commission}%` }}
                         className="w-1.5 md:w-3 bg-[#D7CCC8] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
-                          y: `${100 - item.commission}%`,
-                          isHigh: item.commission >= 50,
+                          y: `${100 - item.h_commission}%`,
+                          isHigh: item.h_commission >= 50,
                           monthIndex: idx,
-                          value: `$${(item.commission * 50).toLocaleString()}`,
+                          value: currency(item.commission),
                           label: `Commission (${item.month})`
                         })}
                         onMouseLeave={() => setHoveredValue(null)}
                       />
-                      {/* Bar 5 - Tips */}
+                      {/* Bar 5 - Provider payout */}
                       <div
-                        style={{ height: `${item.tips}%` }}
+                        style={{ height: `${item.h_payout}%` }}
                         className="w-1.5 md:w-3 bg-[#B39DDB] rounded-t-xs transition-all duration-200 cursor-pointer hover:opacity-80"
                         onMouseEnter={() => setHoveredValue({
                           x: xPos,
-                          y: `${100 - item.tips}%`,
-                          isHigh: item.tips >= 50,
+                          y: `${100 - item.h_payout}%`,
+                          isHigh: item.h_payout >= 50,
                           monthIndex: idx,
-                          value: `$${(item.tips * 25).toLocaleString()}`,
-                          label: `Tips (${item.month})`
+                          value: currency(item.payout),
+                          label: `Provider payout (${item.month})`
                         })}
                         onMouseLeave={() => setHoveredValue(null)}
                       />
@@ -286,7 +302,7 @@ export default function MonthlyAccountingTab() {
 
             {/* X-Axis Month Labels */}
             <div className="flex justify-between items-center px-5">
-              {chartMonths.map((item, idx) => (
+              {chartRows.map((item, idx) => (
                 <span key={idx} className="text-[10px] text-text-muted font-medium text-center md:w-10">
                   {item.month}
                 </span>
@@ -316,7 +332,7 @@ export default function MonthlyAccountingTab() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-xs bg-[#B39DDB]" />
-            <span>Tips</span>
+            <span>Provider payout</span>
           </div>
         </div>
       </div>
@@ -443,7 +459,7 @@ export default function MonthlyAccountingTab() {
                   <th className="px-4 py-3 font-semibold">Amount</th>
                   <th className="px-4 py-3 font-semibold">Client Fee</th>
                   <th className="px-4 py-3 font-semibold">Commission</th>
-                  <th className="px-4 py-3 font-semibold">Tip</th>
+                  <th className="px-4 py-3 font-semibold">Provider Payout</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
@@ -460,10 +476,10 @@ export default function MonthlyAccountingTab() {
                     <td className="px-4 py-3">{item.client}</td>
                     <td className="px-4 py-3">{item.provider}</td>
                     <td className="px-4 py-3">{item.category}</td>
-                    <td className="px-4 py-3">${item.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3">${item.gross.toFixed(2)}</td>
                     <td className="px-4 py-3">${item.fee.toFixed(2)}</td>
                     <td className="px-4 py-3">${item.commission.toFixed(2)}</td>
-                    <td className="px-4 py-3">${item.tip.toFixed(2)}</td>
+                    <td className="px-4 py-3">${item.providerPayout.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium ${getStatusBadge(item.status)}`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -482,7 +498,7 @@ export default function MonthlyAccountingTab() {
           <Pagination
             currentPage={currentPage}
             itemsPerPage={itemsPerPage}
-            totalItems={filteredData.length}
+            totalItems={totalCount}
             onPageChange={setCurrentPage}
           />
         )}

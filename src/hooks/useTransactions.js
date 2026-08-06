@@ -25,6 +25,7 @@ export function useTransactions(params = {}) {
     total: result.total,
     totalPages: result.totalPages,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };
@@ -45,6 +46,7 @@ export function useTransaction(id) {
   return {
     transaction: query.data || null,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
     notFound: query.isSuccess && query.data === null,

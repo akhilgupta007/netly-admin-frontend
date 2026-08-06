@@ -4,10 +4,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { Search, ChevronDown, Copy, MoreVertical, ShieldCheck, X } from "lucide-react";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
+import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
 export default function WalletCreditQueueTab({
   creditQueue,
   isLoading,
+  isFetching,
   isError,
   error,
   startDate,
@@ -44,6 +46,7 @@ export default function WalletCreditQueueTab({
 
   return (
     <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
+      <RefreshingBar active={isFetching && !isLoading} />
       {/* Filters controls bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
         <div className="relative flex-1">
@@ -101,13 +104,7 @@ export default function WalletCreditQueueTab({
           </thead>
           <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs">
             {isLoading ? (
-              <tr>
-                <td colSpan="7" className="px-6 py-12 text-center text-text-muted font-light">
-                  <div className="flex flex-col items-center justify-center space-y-3 min-h-80">
-                    <span className="text-xs text-text-muted animate-pulse font-light">Loading Credit Queue Data...</span>
-                  </div>
-                </td>
-              </tr>
+              <TableSkeleton columns={8} rows={6} firstColAvatar />
             ) : paginated.length > 0 ? (
               paginated.map((item, idx) => {
                 const statusColors = {

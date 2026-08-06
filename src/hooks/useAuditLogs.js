@@ -27,8 +27,11 @@ export function useAuditLogs(params = {}) {
   return {
     logs: query.data || [],
     isLoading: query.isLoading && isAdmin,
+    isFetching: query.isFetching,
     isError: query.isError || !isAdmin,
-    error: !isAdmin ? new Error("Admin access required to view audit logs.") : query.error,
+    error: !isAdmin
+      ? new Error("Admin access required to view audit logs.")
+      : query.error,
     refetch: query.refetch,
   };
 }

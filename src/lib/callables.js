@@ -39,6 +39,14 @@ export const updateAdminRole = ({ uid, role }) =>
 export const revokeAdminAccess = ({ uid, reason }) =>
   callFunction("revokeAdminAccess", { uid, reason });
 
+/** Updates the calling admin's own profile. Fields are all optional. */
+export const updateAdminProfile = ({ firstName, lastName, phoneNumber }) =>
+  callFunction("updateAdminProfile", { firstName, lastName, phoneNumber });
+
+/** Changes the calling admin's password; requires the current one. */
+export const adminChangePassword = ({ currentPassword, newPassword }) =>
+  callFunction("adminChangePassword", { currentPassword, newPassword });
+
 /** accountType must be "client" or "provider" — the backend rejects anything else. */
 export const inviteUser = ({ email, name, accountType, foundingPartnerBadge }) =>
   callFunction("inviteUser", { email, name, accountType, foundingPartnerBadge });

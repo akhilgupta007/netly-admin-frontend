@@ -19,6 +19,7 @@ export function useDataAccessLogs() {
   return {
     logs: query.data || [],
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };
@@ -37,6 +38,7 @@ export function useConsentRecords() {
   return {
     records: query.data || [],
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
   };

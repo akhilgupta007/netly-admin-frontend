@@ -1,16 +1,23 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Edit2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Edit2, AlertCircle } from "lucide-react";
 import { toast } from "react-toastify";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ChangePasswordModal from "@/components/platform/ChangePasswordModal";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { updateAdminProfile, adminChangePassword } from "@/lib/callables";
+import { ADMIN_ROLE_LABELS } from "@/lib/adminRoles";
 
 export default function ProfileSettingsTab() {
-  // Profile settings state
-  const [firstName, setFirstName] = useState("Sophia");
-  const [lastName, setLastName] = useState("Patel");
-  const [email, setEmail] = useState("sophia@netly.com");
-  const [phone, setPhone] = useState("+44 7700 000000");
+  const queryClient = useQueryClient();
+  const { profile, isLoading } = useAdminProfile();
+
+  // Profile settings state — seeded from Firestore once the profile arrives.
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   // Security config state
   const [sessionTimeout, setSessionTimeout] = useState(30);
@@ -19,19 +26,22 @@ export default function ProfileSettingsTab() {
   // Modal states
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
-  // Load configs from localStorage
-  useEffect(() => {
-    const storedProfile = localStorage.getItem("netly_admin_profile");
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile);
-        setFirstName(parsed.firstName || "Sophia");
-        setLastName(parsed.lastName || "Patel");
-        setEmail(parsed.email || "sophia@netly.com");
-        setPhone(parsed.phone || "+44 7700 000000");
-      } catch (e) { }
-    }
+  // Seed the form from Firestore once the profile lands. Adjusting state during
+  // render rather than in an effect avoids a cascading second render, and the
+  // uid guard means a later refetch will not clobber in-progress edits.
+  const [seededFor, setSeededFor] = useState(null);
+  if (profile && seededFor !== profile.uid) {
+    setSeededFor(profile.uid);
+    setFirstName(profile.firstName || "");
+    setLastName(profile.lastName || "");
+    setEmail(profile.email || "");
+    setPhone(profile.phoneNumber || "");
+  }
 
+  // Session timeout and 2FA are client-side platform preferences with no
+  // backend behind them yet, so they stay in localStorage rather than
+  // pretending to be persisted server-side.
+  useEffect(() => {
     const storedSecurity = localStorage.getItem("netly_platform_security");
     if (storedSecurity) {
       try {
@@ -42,15 +52,37 @@ export default function ProfileSettingsTab() {
     }
   }, []);
 
+  const saveProfile = useMutation({
+    mutationFn: updateAdminProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminProfile"] });
+      // The admin list shows the same name, so refresh it too.
+      queryClient.invalidateQueries({ queryKey: ["admins"] });
+      toast.success("Profile changes saved successfully!");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const changePassword = useMutation({
+    mutationFn: adminChangePassword,
+    onSuccess: () => {
+      setPasswordModalOpen(false);
+      toast.success("Password updated successfully!");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleSaveProfile = (e) => {
     e.preventDefault();
     if (!firstName.trim() || !lastName.trim()) {
       toast.error("First name and Last name are required.");
       return;
     }
-    const profile = { firstName, lastName, email, phone };
-    localStorage.setItem("netly_admin_profile", JSON.stringify(profile));
-    toast.success("Profile changes saved successfully!");
+    saveProfile.mutate({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phoneNumber: phone.trim(),
+    });
   };
 
   const handleSaveSecurity = (e) => {
@@ -66,9 +98,8 @@ export default function ProfileSettingsTab() {
     toast.success("Security configuration updated successfully!");
   };
 
-  const handleUpdatePassword = (current, newPass) => {
-    setPasswordModalOpen(false);
-    toast.success("Password updated successfully!");
+  const handleUpdatePassword = (currentPassword, newPassword) => {
+    changePassword.mutate({ currentPassword, newPassword });
   };
 
   return (
@@ -80,7 +111,7 @@ export default function ProfileSettingsTab() {
 
         {/* Avatar block */}
         <div className="relative w-14 h-14 text-white rounded-full flex items-center justify-center font-medium text-lg bg-primary-bg-muted select-none hover:opacity-95 cursor-pointer">
-          {firstName.charAt(0)}{lastName.charAt(0)}
+          {(firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "—"}
           <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-border-main rounded-full flex items-center justify-center text-text-muted hover:text-text-primary transition shadow-2xs">
             <Edit2 size={9} />
           </div>
@@ -116,7 +147,7 @@ export default function ProfileSettingsTab() {
             <input
               type="text"
               disabled
-              value="Super Admin"
+              value={ADMIN_ROLE_LABELS[profile?.role] || profile?.role || "—"}
               className="w-full bg-page-bg border border-border-main text-xs rounded-xl p-3 focus:outline-none text-text-muted cursor-not-allowed font-light"
             />
           </div>
@@ -126,10 +157,10 @@ export default function ProfileSettingsTab() {
               <label className="text-xs text-text-muted block">Email Address</label>
               <input
                 type="email"
-                required
+                disabled
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
+                title="Email is your sign-in identity and cannot be changed here."
+                className="w-full bg-page-bg border border-border-main text-xs rounded-xl p-3 focus:outline-none text-text-muted cursor-not-allowed font-light"
               />
             </div>
             <div className="space-y-1">
@@ -166,9 +197,10 @@ export default function ProfileSettingsTab() {
         <div className="flex justify-end pt-2">
           <button
             type="submit"
-            className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-3 px-5 rounded-lg transition cursor-pointer"
+            disabled={saveProfile.isPending || isLoading}
+            className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-3 px-5 rounded-lg transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Changes
+            {saveProfile.isPending ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </form>
