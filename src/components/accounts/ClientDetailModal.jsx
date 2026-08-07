@@ -5,8 +5,15 @@ import { X, ShieldAlert, Key, GitMerge } from "lucide-react";
 import { toast } from "react-toastify";
 import { logDataAccess } from "@/lib/callables";
 import { getInitials } from "@/lib/utils";
+import Link from "next/link";
+import { useAccountActivity } from "@/hooks/useUsers";
 
 export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBanTrigger, onReactivateTrigger, onResetPassword, isResettingPassword, onMergeTrigger }) {
+  const { activity, isLoading: activityLoading } = useAccountActivity({
+    uid: client?.uid,
+    accountType: "client",
+  });
+
   // Record that this personal data was viewed. Fire-and-forget: a
   // logging failure must never block the reviewer.
   useEffect(() => {
@@ -21,12 +28,8 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
 
   if (!isOpen || !client) return null;
 
-  // Mock static booking history list for clients matching layout (Slide 5 & 6)
-  const recentBookings = [
-    { category: "Post-Construction", date: "Jun 22, 2027", amount: 95.00, status: "Refund Requested", statusClass: "bg-blue-50 text-blue-600" },
-    { category: "Move-Out", date: "Jun 22, 2027", amount: 95.00, status: "Completed", statusClass: "bg-emerald-50 text-emerald-600" },
-    { category: "Office Daily", date: "Jun 22, 2027", amount: 95.00, status: "In Progress", statusClass: "bg-orange-50 text-orange-600" }
-  ];
+  const recentBookings = activity?.recentBookings || [];
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center font-onest">
@@ -76,7 +79,7 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
               </div>
               <div className="px-4">
                 <span className="text-[10px] text-text-muted block font-light">Phone</span>
-                <strong className="text-text-primary font-normal block mt-0.5">+233 24 123 4567</strong>
+                <strong className="text-text-primary font-normal block mt-0.5">{client.phoneNumber || client.phone || "—"}</strong>
               </div>
               <div className="pl-4">
                 <span className="text-[10px] text-text-muted block font-light">Joined</span>
@@ -105,16 +108,26 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
           {/* Recent Bookings section */}
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-text-muted text-[10px]">Recent Bookings (21)</span>
-              <button
-                onClick={() => toast.info("Viewing all client bookings...")}
+              <span className="text-text-muted text-[10px]">
+                Recent Bookings{activity ? ` (${activity.totalBookings})` : ""}
+              </span>
+              <Link
+                href={`/transactions?client=${client.uid}`}
                 className="text-primary-bg hover:underline font-light text-[10px]"
               >
                 View All
-              </button>
+              </Link>
             </div>
             <div className="divide-y divide-secondary-bg">
-              {recentBookings.map((b, idx) => (
+              {activityLoading ? (
+                <span className="text-[10px] text-text-muted font-light animate-pulse block py-2">
+                  Loading bookings…
+                </span>
+              ) : recentBookings.length === 0 ? (
+                <span className="text-[10px] text-text-muted font-light block py-2">
+                  No bookings yet.
+                </span>
+              ) : recentBookings.map((b, idx) => (
                 <div key={idx} className="flex justify-between items-center py-2 text-xs">
                   <div>
                     <span className="font-medium text-text-primary block">{b.category}</span>

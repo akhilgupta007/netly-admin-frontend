@@ -4,7 +4,7 @@ import "./globals.css";
 const onest = Onest({
   variable: "--font-onest-var",
   subsets: ["latin"],
-  fallback: ["system-ui", "sans-serif"]
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export const metadata = {
@@ -16,11 +16,13 @@ import QueryProvider from "@/providers/QueryProvider";
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${onest.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+    <html
+      lang="en"
+      className={`${onest.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <QueryProvider>{children}</QueryProvider>
       </body>
     </html>
   );
