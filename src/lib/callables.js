@@ -130,3 +130,47 @@ export const resolveDispute = ({
 
 export const postDisputeMessage = ({ bookingId, message, disputeId }) =>
   callFunction("postDisputeMessage", { bookingId, message, disputeId });
+
+/* ── Service catalogue ─────────────────────────────────────────── */
+
+/** French name is required — the apps are bilingual. */
+export const createCategory = ({ name, frenchName, image, isActive }) =>
+  callFunction("createCategory", { name, frenchName, image, isActive });
+
+/** Renaming also rewrites categoryName on every affected listing. */
+export const updateCategory = ({ categoryId, name, frenchName, image, isActive }) =>
+  callFunction("updateCategory", { categoryId, name, frenchName, image, isActive });
+
+/** Refused while any provider listing still references the category. */
+export const deleteCategory = ({ categoryId, reason }) =>
+  callFunction("deleteCategory", { categoryId, reason });
+
+export const createSubCategory = ({
+  categoryId, name, frenchName, message, frenchMessage, image, isActive,
+}) =>
+  callFunction("createSubCategory", {
+    categoryId, name, frenchName, message, frenchMessage, image, isActive,
+  });
+
+/** subCategoryName selects which one; name renames it. */
+export const updateSubCategory = ({
+  categoryId, subCategoryName, name, frenchName, message, frenchMessage, image, isActive,
+}) =>
+  callFunction("updateSubCategory", {
+    categoryId, subCategoryName, name, frenchName, message, frenchMessage, image, isActive,
+  });
+
+export const deleteSubCategory = ({ categoryId, subCategoryName, reason }) =>
+  callFunction("deleteSubCategory", { categoryId, subCategoryName, reason });
+
+/* ── Finance ───────────────────────────────────────────────────── */
+
+/** Rates are fractions: 0.05 means 5%. Affects new offers only. */
+export const updateCommissionSettings = ({ clientFeePercent, providerFeePercent, reason }) =>
+  callFunction("updateCommissionSettings", {
+    clientFeePercent, providerFeePercent, reason,
+  });
+
+/** Aggregates provider earnings into CRA box 048 for a tax year. */
+export const generateT4AReport = ({ year, minimumAmount }) =>
+  callFunction("generateT4AReport", { year, minimumAmount });

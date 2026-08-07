@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 
 export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
   const [categoryName, setCategoryName] = useState("");
+  const [frenchName, setFrenchName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
@@ -57,15 +58,23 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
       toast.error("Category name cannot exceed 60 characters.");
       return;
     }
+    // The apps are bilingual, so the backend refuses a category with no
+    // French name — it would render blank for French users.
+    if (!frenchName.trim()) {
+      toast.error("A French name is required.");
+      return;
+    }
 
     onAdd({
       name: categoryName.trim(),
+      frenchName: frenchName.trim(),
       description: description.trim(),
       hasPhoto: !!selectedFile,
       fileName: selectedFile ? selectedFile.name : null
     });
 
     setCategoryName("");
+    setFrenchName("");
     setDescription("");
     setSelectedFile(null);
   };
@@ -104,6 +113,23 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
               className="w-full bg-white border border-border-main text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
             <span className="text-[10px] text-text-muted block mt-0.5">Max 60 characters</span>
+          </div>
+
+          {/* French name — required: the client and provider apps are bilingual */}
+          <div className="space-y-1">
+            <label className="text-xs text-text-primary block">
+              French name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              maxLength={60}
+              placeholder="e.g., meubles..."
+              value={frenchName}
+              onChange={(e) => setFrenchName(e.target.value)}
+              className="w-full bg-white border border-border-main text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+            />
+            <span className="text-[10px] text-text-muted block mt-0.5">Shown to French users in the apps</span>
           </div>
 
           {/* Description */}

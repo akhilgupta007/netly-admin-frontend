@@ -17,20 +17,6 @@ import CardWrapper from "@/components/ui/CardWrapper";
 import { useKyc } from "@/hooks/useKyc";
 import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
-const defaultKycSubmissions = [
-  { id: "KYC-01", name: "Leonard Thomas", docType: "ID", docFile: "ID_Leonard_Thomas.jpg", submittedDate: "October 29, 2027", status: "Pending", email: "leonard@thomas.com", phone: "+233 24 123 4567", joined: "Oct 12, 2027" },
-  { id: "KYC-02", name: "Amara Osei", docType: "Proof of Address", docFile: "Proof_of_Address_Amara_Osei.pdf", submittedDate: "May 22, 2027", status: "In Review", email: "amara@gmail.com", phone: "+233 24 123 4567", joined: "Jan 12, 2027" },
-  { id: "KYC-03", name: "Kylie Smith", docType: "Business Registration", docFile: "Business_Registration_Kylie_Smith.pdf", submittedDate: "August 18, 2027", status: "Expired", email: "kylie@smith.com", phone: "+233 24 123 4567", joined: "Aug 10, 2027" },
-  { id: "KYC-04", name: "Evelyn Smith", docType: "ID", docFile: "ID_Evelyn_Smith.jpg", submittedDate: "February 20, 2027", status: "Approved", email: "evelyn@smith.com", phone: "+233 24 123 4567", joined: "Feb 1, 2027" },
-  { id: "KYC-05", name: "Isabella Quinn", docType: "Business Registration", docFile: "Business_Registration_Isabella_Quinn.pdf", submittedDate: "September 14, 2027", status: "Rejected", email: "isabella@quinn.com", phone: "+233 24 123 4567", joined: "Sep 1, 2027" },
-  { id: "KYC-06", name: "James Robinson", docType: "Proof of Address", docFile: "Proof_of_Address_James_Robinson.pdf", submittedDate: "December 22, 2027", status: "In Review", email: "james@robinson.com", phone: "+233 24 123 4567", joined: "Dec 10, 2027" },
-  { id: "KYC-07", name: "Derek Ryan", docType: "ID", docFile: "ID_Derek_Ryan.jpg", submittedDate: "March 5, 2027", status: "Rejected", email: "derek@ryan.com", phone: "+233 24 123 4567", joined: "Mar 1, 2027" },
-  { id: "KYC-08", name: "Clara Quinn", docType: "Proof of Address", docFile: "Proof_of_Address_Clara_Quinn.pdf", submittedDate: "June 10, 2027", status: "Pending", email: "clara@quinn.com", phone: "+233 24 123 4567", joined: "Jun 1, 2027" },
-  { id: "KYC-09", name: "Benny Patel", docType: "Business Registration", docFile: "Business_Registration_Benny_Patel.pdf", submittedDate: "April 15, 2027", status: "Approved", email: "benny@patel.com", phone: "+233 24 123 4567", joined: "Apr 1, 2027" },
-  { id: "KYC-10", name: "Mason Green", docType: "ID", docFile: "-", submittedDate: "-", status: "Not Submitted", email: "mason@green.com", phone: "+233 24 123 4567", joined: "Dec 18, 2027" },
-  { id: "KYC-11", name: "Lila Carter", docType: "Proof of Address", docFile: "-", submittedDate: "-", status: "Not Submitted", email: "lila@carter.com", phone: "+233 24 123 4567", joined: "Jul 1, 2027" },
-  { id: "KYC-12", name: "Fatima Diallo", docType: "ID", docFile: "ID_Fatima_Diallo.jpg", submittedDate: "Jun 19, 2027", status: "In Review", email: "fatima@diallo.com", phone: "+233 24 123 4567", joined: "Jun 12, 2027" }
-];
 
 export default function KYCVerificationPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,11 +56,13 @@ export default function KYCVerificationPage() {
       name: item.providerName || "Provider",
       docType: item.documents?.[0] || "ID",
       docFile: item.verificationDocuments?.[0]?.name || `${item.documents?.[0] || "ID"}_Document.pdf`,
-      submittedDate: item.date || item.submittedAt || "N/A",
+      submittedDate: item.submittedAt,
       status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "In Review",
       email: item.email || "",
-      phone: item.phoneNumber || "+233 24 123 4567",
-      joined: item.date || "N/A",
+      phone: item.phoneNumber || "—",
+      // Account creation date, not the KYC submission date.
+      joined: item.joinedAt,
+      reviewedAt: item.reviewedAt,
       verificationDocuments: item.verificationDocuments,
       // Raw slug (notSubmitted/pending/verified/rejected) — sent as
       // expectedStatus so a concurrent decision is detected server-side.

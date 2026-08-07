@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fetchDashboardMetricsFromFirestore } from "@/services/firestoreServices";
+import {
+  fetchDashboardMetricsFromFirestore,
+  fetchUnmetDemandFromFirestore,
+} from "@/services/firestoreServices";
 
 /**
  * Aggregated dashboard metrics for a date range.
@@ -26,5 +29,28 @@ export function useDashboardMetrics(range) {
     isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
+  };
+}
+
+/**
+ * Unmet demand signals — cities, searches and services the marketplace could
+ * not serve.
+ *
+ * @param {object} options - Extra react-query options.
+ * @return {object} Query state plus the ranked lists.
+ */
+export function useUnmetDemand(options = {}) {
+  const query = useQuery({
+    queryKey: ["unmetDemand"],
+    queryFn: () => fetchUnmetDemandFromFirestore(),
+    ...options,
+  });
+
+  return {
+    ...query,
+    cities: query.data?.cities ?? [],
+    searches: query.data?.searches ?? [],
+    services: query.data?.services ?? [],
+    total: query.data?.total ?? 0,
   };
 }
