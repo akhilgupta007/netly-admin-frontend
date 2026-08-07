@@ -117,6 +117,9 @@ export async function fetchClientsFromFirestore(params = {}) {
 
   try {
     const users = await loadUsersByType("client");
+    // One read for the whole page rather than a query per row — the counts are
+    // tallied in memory below.
+    const bookingCounts = await countBookingsBy("clientId");
     if (users.length === 0) return { items: [], total: 0, totalPages: 1 };
 
     const uids = users.map((u) => u.uid);
@@ -134,7 +137,7 @@ export async function fetchClientsFromFirestore(params = {}) {
         joinDate: formatFirestoreDate(data.createdAt || profile.createdAt),
         createdAtRaw: data.createdAt || profile.createdAt || null,
         otp: data.otpVerified ? "Verified" : "Pending",
-        bookings: 0,
+        bookings: bookingCounts.get(uid) || 0,
         wallet: profile.walletBalance || 0.0,
         creditUsed: profile.creditUsed || 0.0,
         profileCompleted: Boolean(profile.profileCompleted),
@@ -168,6 +171,36 @@ export async function fetchClientsFromFirestore(params = {}) {
  * @param {object} params - Search / filter / pagination options.
  * @return {Promise<{items: Array<object>, total: number, totalPages: number}>} Page.
  */
+/**
+ * Tallies bookings per account, in one read.
+ *
+ * A per-row query would be one read per user on every list render; a single
+ * pass over bookings is cheaper and the collection is small enough to hold.
+ *
+ * @param {string} field - "clientId" or "providerId".
+ * @return {Promise<Map<string, number>>} uid → booking count.
+ */
+async function countBookingsBy(field) {
+  const counts = new Map();
+  try {
+    const snap = await getDocs(collection(db, "bookings"));
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      // Providers are stored under either key depending on when the booking
+      // was written.
+      const uid =
+        field === "providerId" ?
+          data.providerId || data.professionalId :
+          data[field];
+      if (uid) counts.set(uid, (counts.get(uid) || 0) + 1);
+    });
+  } catch (error) {
+    // A count is supporting detail — the list must still render without it.
+    console.warn("countBookingsBy failed:", error?.code || error?.message);
+  }
+  return counts;
+}
+
 export async function fetchProvidersFromFirestore(params = {}) {
   const {
     searchTerm = "",
@@ -184,9 +217,10 @@ export async function fetchProvidersFromFirestore(params = {}) {
     if (users.length === 0) return { items: [], total: 0, totalPages: 1 };
 
     const uids = users.map((u) => u.uid);
-    const [profiles, addresses] = await Promise.all([
+    const [profiles, addresses, bookingCounts] = await Promise.all([
       loadProfileMap("provider", uids),
       loadAddressMap(uids),
+      countBookingsBy("providerId"),
     ]);
 
     let items = users.map(({ uid, data }) => {
@@ -213,6 +247,7 @@ export async function fetchProvidersFromFirestore(params = {}) {
         yearsOfExperience: profile.yearsOfExperience || "",
         serviceRadiusKm: profile.serviceRadiusKm ?? null,
         rating: null,
+        bookings: bookingCounts.get(uid) || 0,
         joinDate: formatFirestoreDate(data.createdAt || profile.createdAt),
         createdAtRaw: data.createdAt || profile.createdAt || null,
         kyc: KYC_DISPLAY[kycStatus] || "Not Submitted",
@@ -2465,6 +2500,241 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
     };
   } catch (error) {
     console.error("Firestore fetchUnmetDemand error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 28. Client withdrawal requests — the transfer queue an admin acts on.
+ *
+ * Distinct from payout_logs, which records provider payouts the Friday cron
+ * already sent and which nobody authorises. These are client cash-outs sitting
+ * pending: the funds are already held (debited at request time), so approving
+ * settles the hold and rejecting returns it.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.searchTerm - Free-text filter.
+ * @param {string} params.filterStatus - "All" or a status label.
+ * @param {Date} params.startDate - Range start.
+ * @param {Date} params.endDate - Range end.
+ * @param {number} params.page - 1-based page.
+ * @param {number} params.limit - Page size.
+ * @return {Promise<object>} Paginated rows plus queue totals.
+ */
+export async function fetchWithdrawalRequestsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const requests = await safeCollection("withdrawal_requests");
+    if (requests.length === 0) {
+      return { items: [], total: 0, totalPages: 1, totals: null };
+    }
+
+    // Join to users for the display name; the request stores only a uid.
+    const uids = [...new Set(requests.map((r) => r.userId).filter(Boolean))];
+    const users = new Map();
+    await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            if (snap.exists()) users.set(uid, snap.data());
+          } catch (_) {
+            // A missing user must not drop the request from the queue.
+          }
+        }),
+    );
+
+    const STATUS = {
+      pending: "Pending",
+      approved: "Transferred",
+      rejected: "Rejected",
+      failed: "Error",
+    };
+
+    const items = requests
+        .map((r) => {
+          const raw = String(r.status || "pending").toLowerCase();
+          const user = users.get(r.userId);
+          return {
+            id: r.id,
+            requestId: r.id,
+            uid: r.userId || null,
+            client: {
+              name: user ? displayName(user, "Client") : "Unknown client",
+              email: user?.email || r.email || "",
+            },
+            name: user ? displayName(user, "Client") : "Unknown client",
+            email: user?.email || r.email || "",
+            amount: Number(r.amount) || 0,
+            currency: (r.currency || "CAD").toUpperCase(),
+            status: STATUS[raw] || titleCase(raw, "Pending"),
+            rawStatus: raw,
+            isPending: raw === "pending",
+            // How much of this can go back to a card, priced when requested.
+            refundable: Number(r.refundableAtRequest) || 0,
+            nonRefundable: Number(r.nonRefundableAtRequest) || 0,
+            requestedDate: formatFirestoreDate(r.createdAt),
+            requestedTime: formatFirestoreDateTime(r.createdAt),
+            createdAtRaw: r.createdAt || null,
+            resolvedDate: formatFirestoreDate(r.resolvedAt),
+            resolvedByEmail: r.resolvedByEmail || null,
+            rejectionReason: r.rejectionReason || "",
+            refundedAmount: Number(r.refundedAmount) || 0,
+            transferredAmount: Number(r.transferredAmount) || 0,
+            errorMessage: (r.failures || [])[0]?.error || "",
+            txn: (r.stripeRefundIds || [])[0] || r.stripeTransferId || "-",
+          };
+        })
+        // Pending first — they are the only rows that need a decision.
+        .sort((a, b) => {
+          if (a.isPending !== b.isPending) return a.isPending ? -1 : 1;
+          return (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0);
+        });
+
+    const result = filterAndPaginate(items, {
+      searchTerm,
+      searchFields: ["name", "email", "id"],
+      filterStatus,
+      statusField: "status",
+      startDate,
+      endDate,
+      dateField: "createdAtRaw",
+      page,
+      limit,
+    });
+
+    return {
+      ...result,
+      totals: {
+        pending: items.filter((i) => i.isPending).length,
+        pendingAmount:
+          Math.round(
+              items
+                  .filter((i) => i.isPending)
+                  .reduce((a, i) => a + i.amount, 0) * 100,
+          ) / 100,
+        failed: items.filter((i) => i.rawStatus === "failed").length,
+      },
+    };
+  } catch (error) {
+    console.error("Firestore fetchWithdrawalRequests error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 29. Activity for one account, for the detail modals.
+ *
+ * Fetched per account when a modal opens rather than joined into the list
+ * query — the list shows dozens of rows and only one is ever expanded, so
+ * loading every account's bookings up front would be wasted reads.
+ *
+ * A client's activity is the bookings they placed; a provider's also includes
+ * what they offer and the questions they ask, which live on their listings.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.uid - Account id.
+ * @param {string} params.accountType - "client" or "provider".
+ * @param {number} params.max - Cap on recent bookings (default 5).
+ * @return {Promise<object>} Bookings, counts, and provider listing detail.
+ */
+export async function fetchAccountActivityFromFirestore({
+  uid,
+  accountType = "client",
+  max = 5,
+} = {}) {
+  if (!uid) return null;
+  const isClient = accountType === "client";
+
+  try {
+    const field = isClient ? "clientId" : "providerId";
+
+    const [bookingSnap, disputeSnap, serviceSnap] = await Promise.all([
+      getDocs(query(collection(db, "bookings"), where(field, "==", uid))).catch(
+          () => ({ docs: [] }),
+      ),
+      getDocs(query(collection(db, "disputes"), where(field, "==", uid))).catch(
+          () => ({ docs: [] }),
+      ),
+      isClient ?
+        Promise.resolve({ docs: [] }) :
+        getDocs(
+            query(collection(db, "services"), where("providerId", "==", uid)),
+        ).catch(() => ({ docs: [] })),
+    ]);
+
+    const bookings = bookingSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    // Status colouring mirrors the transactions list so the same booking does
+    // not appear in two different colours in two places.
+    const CLASSES = {
+      Completed: "bg-emerald-50 text-emerald-600",
+      Finalised: "bg-emerald-50 text-emerald-600",
+      "In Progress": "bg-orange-50 text-orange-600",
+      Confirmed: "bg-blue-50 text-blue-600",
+      Refunded: "bg-blue-50 text-blue-600",
+      Dispute: "bg-red-50 text-red-600",
+    };
+
+    const recent = bookings
+        .map((b) => {
+          const label = transactionStatus(b);
+          return {
+            id: b.id,
+            category: b.serviceTitle || b.categoryId || "Service",
+            date: formatFirestoreDate(b.serviceDateAndTime || b.createdAt),
+            createdAtRaw: b.createdAt || b.serviceDateAndTime || null,
+            amount: Number(b.totalChargedToClient) || Number(b.transactionAmount) || 0,
+            status: label,
+            statusClass: CLASSES[label] || "bg-secondary-bg text-text-muted",
+          };
+        })
+        .sort((a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0))
+        .slice(0, max);
+
+    const norm = (v) => String(v || "").toLowerCase();
+    const cancelled = bookings.filter((b) => norm(b.status).startsWith("cancel")).length;
+    const completed = bookings.filter((b) => norm(b.status) === "completed").length;
+
+    // ── Provider listings: what they offer and what they ask ──
+    const services = serviceSnap.docs.map((d) => d.data());
+    const offered = [
+      ...new Set(
+          services
+              .filter((s) => norm(s.status) === "active")
+              .map((s) => s.subcategoryName || s.serviceName)
+              .filter(Boolean),
+      ),
+    ];
+    const questions = [];
+    services.forEach((s) => {
+      (s.ServiceQuestions || []).forEach((q) => {
+        const text = typeof q === "string" ? q : q?.question;
+        if (text && !questions.includes(text)) questions.push(text);
+      });
+    });
+
+    return {
+      uid,
+      accountType,
+      recentBookings: recent,
+      totalBookings: bookings.length,
+      completedBookings: completed,
+      cancelledReservations: cancelled,
+      disputes: disputeSnap.docs.length,
+      servicesOffered: offered,
+      serviceQuestions: questions.map((text, i) => ({ num: i + 1, text })),
+      listings: services.length,
+    };
+  } catch (error) {
+    console.error("Firestore fetchAccountActivity error:", error);
     throw error;
   }
 }

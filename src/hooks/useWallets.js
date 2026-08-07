@@ -2,10 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  fetchWalletsFromFirestore,
-  fetchWalletCreditRequestsFromFirestore,
   fetchPayoutLogsFromFirestore,
+  fetchWalletCreditRequestsFromFirestore,
   fetchWalletHistoryFromFirestore,
+  fetchWalletsFromFirestore,
+  fetchWithdrawalRequestsFromFirestore,
 } from "@/services/firestoreServices";
 
 const EMPTY = { items: [], total: 0, totalPages: 1 };
@@ -110,5 +111,28 @@ export function useWalletHistory(wallet) {
     isFetching: query.isFetching,
     isError: query.isError,
     error: query.error,
+  };
+}
+
+/**
+ * Client withdrawal requests awaiting an admin decision.
+ *
+ * @param {object} params - Filter/pagination options.
+ * @param {object} options - Extra react-query options.
+ * @return {object} Query state plus rows and queue totals.
+ */
+export function useWithdrawalRequests(params = {}, options = {}) {
+  const query = useQuery({
+    queryKey: ["withdrawalRequests", params],
+    queryFn: () => fetchWithdrawalRequestsFromFirestore(params),
+    ...options,
+  });
+
+  return {
+    ...query,
+    requests: query.data?.items ?? [],
+    totalCount: query.data?.total ?? 0,
+    totalPages: query.data?.totalPages ?? 1,
+    totals: query.data?.totals ?? null,
   };
 }

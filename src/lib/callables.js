@@ -86,6 +86,14 @@ export const adjustWalletBalance = ({ uid, amount, type, reason }) =>
   callFunction("adjustWalletBalance", { uid, amount, type, reason });
 
 /** action is "approve" | "reject" — one function handles both. */
+/**
+ * Approves or rejects a client withdrawal. Funds were held at request time, so
+ * approve settles the hold and reject returns it to the wallet.
+ * action is "approve" | "reject"; reason is required on reject.
+ */
+export const approveWalletWithdrawal = ({ requestId, action, reason }) =>
+  callFunction("approveWalletWithdrawal", { requestId, action, reason });
+
 export const approveWalletCreditRequest = ({ requestId, action }) =>
   callFunction("approveWalletCreditRequest", { requestId, action });
 

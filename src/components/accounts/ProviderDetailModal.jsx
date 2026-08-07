@@ -13,6 +13,7 @@ import {
 import { toast } from "react-toastify";
 import { logDataAccess } from "@/lib/callables";
 import { getInitials } from "@/lib/utils";
+import { useAccountActivity } from "@/hooks/useUsers";
 
 export default function ProviderDetailModal({
   provider,
@@ -23,6 +24,11 @@ export default function ProviderDetailModal({
   onResetPassword,
   isResettingPassword,
 }) {
+  const { activity, isLoading: activityLoading } = useAccountActivity({
+    uid: provider?.uid,
+    accountType: "provider",
+  });
+
   // Record that this personal data was viewed. Fire-and-forget: a
   // logging failure must never block the reviewer.
   useEffect(() => {
@@ -37,13 +43,10 @@ export default function ProviderDetailModal({
 
   if (!isOpen || !provider) return null;
 
-  // Mock static questions list matching layout (Slide 7)
-  const providerQuestions = [
-    { num: 1, text: "How many bedrooms need cleaning?" },
-    { num: 2, text: "How many bathrooms?" },
-    { num: 3, text: "Property Type?" },
-    { num: 4, text: "Approximate Area?" },
-  ];
+  // Questions a provider asks on their own listings, and what they offer.
+  const providerQuestions = activity?.serviceQuestions || [];
+  const servicesOffered = activity?.servicesOffered || [];
+
   const getKycClass = (kyc) => {
     switch (kyc) {
       case "Verified":
@@ -106,7 +109,7 @@ export default function ProviderDetailModal({
                   Phone
                 </span>
                 <strong className="text-text-primary font-normal block mt-0.5">
-                  +233 24 123 4567
+                  {provider.phoneNumber || provider.phone || "—"}
                 </strong>
               </div>
               <div className="sm:pl-4">
@@ -157,7 +160,7 @@ export default function ProviderDetailModal({
                   Cancelled Reservations
                 </span>
                 <strong className="text-text-primary font-normal block mt-0.5">
-                  {provider.cancelledReservations || 10}
+                  {activity ? activity.cancelledReservations : "—"}
                 </strong>
               </div>
               <div className="sm:px-4">
@@ -165,7 +168,7 @@ export default function ProviderDetailModal({
                   Number of Disputes
                 </span>
                 <strong className="text-text-primary font-normal block mt-0.5">
-                  {provider.disputes || 5}
+                  {activity ? activity.disputes : "—"}
                 </strong>
               </div>
               <div className="sm:pl-4">
@@ -185,7 +188,13 @@ export default function ProviderDetailModal({
               Services Offered
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {["Deep Clean", "Move-Out", "Post-Construction"].map((s, idx) => (
+              {activityLoading ? (
+                <span className="text-[10px] text-text-muted font-light animate-pulse">Loading…</span>
+              ) : servicesOffered.length === 0 ? (
+                <span className="text-[10px] text-text-muted font-light">
+                  No active listings yet.
+                </span>
+              ) : servicesOffered.map((s, idx) => (
                 <span
                   key={idx}
                   className="bg-blue-50 text-blue-500 text-[10px] px-2.5 py-1 rounded-full"
@@ -202,7 +211,13 @@ export default function ProviderDetailModal({
               Questions by provider
             </span>
             <div className="space-y-3">
-              {providerQuestions.map((q, idx) => (
+              {activityLoading ? (
+                <span className="text-[10px] text-text-muted font-light animate-pulse">Loading…</span>
+              ) : providerQuestions.length === 0 ? (
+                <span className="text-[10px] text-text-muted font-light">
+                  This provider has not added any questions to their listings.
+                </span>
+              ) : providerQuestions.map((q, idx) => (
                 <div key={idx} className="text-xs space-y-0.5">
                   <span className="text-[9px] text-text-muted block">
                     Question {q.num}

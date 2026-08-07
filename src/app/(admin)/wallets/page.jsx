@@ -6,9 +6,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   useWallets,
   useWalletCreditRequests,
-  usePayoutLogs
+  usePayoutLogs,
+  useWithdrawalRequests
 } from "@/hooks/useWallets";
-import { adjustWalletBalance, approveWalletCreditRequest } from "@/lib/callables";
+import {
+  adjustWalletBalance,
+  approveWalletCreditRequest,
+  approveWalletWithdrawal,
+} from "@/lib/callables";
 
 import WalletHistoryModal from "@/components/wallets/WalletHistoryModal";
 import AdjustBalanceModal from "@/components/wallets/AdjustBalanceModal";
@@ -101,11 +106,15 @@ export default function WalletsRefundsPage() {
     isError: creditError
   } = useWalletCreditRequests({}, { enabled: activeTab === "credit" });
   const {
-    payouts: transferQueue,
+    requests: transferQueue,
+    totalCount: transferTotalCount,
     isLoading: transferLoading,
     isFetching: transferFetching,
     isError: transferError
-  } = usePayoutLogs({}, { enabled: activeTab === "transfer" });
+  } = useWithdrawalRequests(
+      { searchTerm, filterStatus, startDate, endDate, page: currentPage, limit: itemsPerPage },
+      { enabled: activeTab === "transfer" },
+  );
 
   // Calendar toggle helper
   const toggleCalendar = () => {
@@ -172,25 +181,9 @@ export default function WalletsRefundsPage() {
   }, [creditQueue, searchTerm, filterStatus, startDate, endDate]);
 
   // Filtering Transfer Queue
-  const filteredTransferQueue = useMemo(() => {
-    return transferQueue.filter(q => {
-      const search = searchTerm.toLowerCase();
-      const matchSearch = q.provider.name.toLowerCase().includes(search) || q.provider.email.toLowerCase().includes(search) || q.id.toLowerCase().includes(search);
-      const matchStatus = filterStatus === "All" || q.status === filterStatus;
-
-      let matchDate = true;
-      if (startDate || endDate) {
-        const cleanTxDate = parseTxDate(q.date);
-        if (startDate && cleanTxDate < startDate) matchDate = false;
-        if (endDate) {
-          const endOfDay = new Date(endDate);
-          endOfDay.setHours(23, 59, 59, 999);
-          if (cleanTxDate > endOfDay) matchDate = false;
-        }
-      }
-      return matchSearch && matchStatus && matchDate;
-    });
-  }, [transferQueue, searchTerm, filterStatus, startDate, endDate]);
+  // Filtering and pagination happen in the read layer for this tab, so the
+  // rows arriving here are already the current page.
+  const filteredTransferQueue = transferQueue;
 
   const adjustMutation = useMutation({
     mutationFn: adjustWalletBalance,
@@ -231,7 +224,34 @@ export default function WalletsRefundsPage() {
 
   // Only the credit queue has an approval workflow. Payout transfers are made
   // automatically by processFridayPayouts and are not authorised here.
+  const withdrawalDecisionMutation = useMutation({
+    mutationFn: approveWalletWithdrawal,
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["withdrawalRequests"] });
+      // The balance moved, so the wallet list and the dashboard queue counts
+      // are both stale now.
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardMetrics"] });
+      setActiveModal(null);
+      setSelectedQueueItem(null);
+
+      if (variables.action === "reject") {
+        toast.success("Withdrawal rejected — the held funds are back in the wallet.");
+        return;
+      }
+      const parts = [];
+      if (result?.refunded > 0) parts.push(`$${result.refunded.toFixed(2)} refunded to card`);
+      if (result?.transferred > 0) parts.push(`$${result.transferred.toFixed(2)} transferred`);
+      toast.success(parts.length ? `Approved — ${parts.join(" and ")}.` : "Withdrawal approved.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleAuthorizeSubmit = ({ itemId }) => {
+    if (activeTab === "transfer") {
+      withdrawalDecisionMutation.mutate({ requestId: itemId, action: "approve" });
+      return;
+    }
     if (activeTab !== "credit") {
       toast.info("Provider payouts run automatically every Friday.");
       return;
@@ -240,6 +260,10 @@ export default function WalletsRefundsPage() {
   };
 
   const handleRejectSubmit = ({ itemId, reason }) => {
+    if (activeTab === "transfer") {
+      withdrawalDecisionMutation.mutate({ requestId: itemId, action: "reject", reason });
+      return;
+    }
     if (activeTab !== "credit") {
       toast.info("Provider payouts run automatically every Friday.");
       return;
@@ -345,6 +369,7 @@ export default function WalletsRefundsPage() {
           isFetching={transferFetching}
           isError={transferError}
           transferQueue={filteredTransferQueue}
+          totalCount={transferTotalCount}
           startDate={startDate}
           endDate={endDate}
           searchTerm={searchTerm}

@@ -24,7 +24,8 @@ export default function TransferQueueTab({
   copyToClipboard,
   currentPage,
   setCurrentPage,
-  itemsPerPage
+  itemsPerPage,
+  totalCount
 }) {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -42,7 +43,9 @@ export default function TransferQueueTab({
   }, []);
 
   // Pagination config
-  const paginated = transferQueue.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Already the current page — the read layer paginates. Slicing again would
+  // empty every page after the first.
+  const paginated = transferQueue;
 
   return (
     <div className="bg-white rounded-3xl border border-border-main hover:shadow-xs relative overflow-visible">
@@ -69,7 +72,9 @@ export default function TransferQueueTab({
               className="border border-border-main md:text-xs text-[10px] rounded-full px-4 py-2.5 focus:outline-none appearance-none text-text-muted cursor-pointer"
             >
               <option value="All">Status</option>
+              <option value="Pending">Pending</option>
               <option value="Transferred">Transferred</option>
+              <option value="Rejected">Rejected</option>
               <option value="Error">Error</option>
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-5 w-5 text-text-muted pointer-events-none" />
@@ -107,6 +112,7 @@ export default function TransferQueueTab({
             ) : paginated.length > 0 ? (
               paginated.map((item, idx) => {
                 const statusColors = {
+                  Pending: "bg-amber-50 text-amber-600",
                   Requested: "bg-blue-50 text-blue-600",
                   Processing: "bg-orange-50 text-orange-600",
                   Transferred: "bg-emerald-50 text-emerald-600",
@@ -123,10 +129,15 @@ export default function TransferQueueTab({
                         <Copy size={14} />
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-text-primary">{item.provider.name}</td>
+                    <td className="px-4 py-3 text-text-primary">
+                      <span className="block">{item.client?.name || item.name}</span>
+                      <span className="block md:text-[10px] text-[8px] text-text-muted font-light">
+                        {item.client?.email || item.email}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-text-primary">${item.amount.toFixed(2)}</td>
                     <td className="px-4 py-3 text-text-primary">{item.txn}</td>
-                    <td className="px-4 py-3 text-text-primary">{item.date}</td>
+                    <td className="px-4 py-3 text-text-primary">{item.requestedDate || item.date}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-block px-2.5 py-1 rounded-full md:text-xs text-[10px] ${statusClass}`}>
                         {item.status}
@@ -156,14 +167,40 @@ export default function TransferQueueTab({
                               className="fixed w-36 bg-white border border-border-main rounded-xl shadow-lg z-50 py-1 animate-scale-up"
                               style={{ top: dropdownPos.top, left: dropdownPos.left }}
                             >
-                              {/* Payouts are sent automatically by the Friday
-                                  cron, so there is nothing to authorise here.
-                                  This tab is the record of what was sent. */}
-                              <div className="px-4 py-2 text-[10px] text-text-muted font-light leading-relaxed">
-                                {item.status === "Error"
-                                  ? item.errorMessage || "Transfer failed."
-                                  : "Sent automatically by the Friday payout run."}
-                              </div>
+                              {/* Pending requests are the only rows that need a
+                                  decision. The funds are already held, so
+                                  approving settles the hold and rejecting
+                                  returns it to the client's wallet. */}
+                              {item.isPending ? (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      onAuthorize(item);
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Zap size={13} /> Authorize
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      onReject(item);
+                                      setOpenDropdownId(null);
+                                    }}
+                                    className="w-full text-left px-4 py-2 hover:bg-red-50 text-xs text-red-500 font-medium flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Zap size={13} /> Reject
+                                  </button>
+                                </>
+                              ) : (
+                                <div className="px-4 py-2 text-[10px] text-text-muted font-light leading-relaxed">
+                                  {item.status === "Error" ?
+                                    item.errorMessage || "Transfer failed." :
+                                    item.status === "Rejected" ?
+                                      item.rejectionReason || "Rejected." :
+                                      `Settled${item.resolvedByEmail ? ` by ${item.resolvedByEmail}` : ""}.`}
+                                </div>
+                              )}
                               {item.txn && item.txn !== "-" && (
                                 <button
                                   onClick={() => {
@@ -201,7 +238,7 @@ export default function TransferQueueTab({
       <Pagination
         currentPage={currentPage}
         itemsPerPage={itemsPerPage}
-        totalItems={transferQueue.length}
+        totalItems={totalCount ?? transferQueue.length}
         onPageChange={setCurrentPage}
       />
     </div>
