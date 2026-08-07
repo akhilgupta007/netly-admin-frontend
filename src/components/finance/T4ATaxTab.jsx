@@ -1,23 +1,20 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { generateT4AReport } from "@/lib/callables";
 import { Search, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import T4APreviewModal from "./T4APreviewModal";
 
-const initialSlips = [
-  { id: "1", provider: "Ava Taylor", taxYear: 2024, generatedDate: "Jul 25, 2025", generatedBy: "admin@netly.io" },
-  { id: "2", provider: "Ethan Lee", taxYear: 2026, generatedDate: "Oct 18, 2027", generatedBy: "admin@netly.io" },
-  { id: "3", provider: "Jackson Davis", taxYear: 2023, generatedDate: "May 6, 2024", generatedBy: "admin@netly.io" },
-  { id: "4", provider: "Sophia Martinez", taxYear: 2025, generatedDate: "Mar 22, 2026", generatedBy: "finance@netly.io" },
-  { id: "5", provider: "Isabella Martinez", taxYear: 2022, generatedDate: "Dec 5, 2023", generatedBy: "admin@netly.io" }
-];
-
 export default function T4ATaxTab() {
-  const [slips, setSlips] = useState(initialSlips);
-  const [taxYearInput, setTaxYearInput] = useState("2026");
+  const [slips, setSlips] = useState([]);
+  const [report, setReport] = useState(null);
+  const [taxYearInput, setTaxYearInput] = useState(
+    String(new Date().getFullYear() - 1),
+  );
   const [providerInput, setProviderInput] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,45 +29,70 @@ export default function T4ATaxTab() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const generate = useMutation({
+    mutationFn: generateT4AReport,
+    onSuccess: (result) => {
+      setReport(result);
+      // One row per provider who cleared the reporting threshold.
+      setSlips(
+        (result.providers || []).map((p) => ({
+          id: p.uid,
+          provider: p.legalName || p.email || p.uid,
+          taxYear: result.year,
+          generatedDate: new Date(result.generatedAt).toLocaleDateString(
+            "en-US",
+            {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            },
+          ),
+          generatedBy: p.province || "—",
+          amount: p.box048FeesForServices,
+          jobs: p.jobs,
+          hasSin: p.hasSin,
+          warnings: p.warnings || [],
+        })),
+      );
+      setCurrentPage(1);
+
+      const t = result.totals;
+      if (t.providers === 0) {
+        toast.info(
+          `No provider earned above the reporting threshold in ${result.year}.`,
+        );
+      } else if (t.blocked > 0) {
+        // Filing without a SIN is impossible, so this is surfaced rather than
+        // buried in a per-row warning.
+        toast.warn(
+          `${t.providers} provider(s) found — ${t.blocked} cannot be filed yet ` +
+            "(missing SIN or legal name).",
+        );
+      } else {
+        toast.success(`${t.filable} slip(s) ready for ${result.year}.`);
+      }
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleGenerateT4A = (e) => {
     e.preventDefault();
-
-    // Simulate generation logs
-    const newSlips = [];
-    const generatedDateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
-    if (providerInput.trim()) {
-      newSlips.push({
-        id: String(slips.length + 1),
-        provider: providerInput.trim(),
-        taxYear: parseInt(taxYearInput),
-        generatedDate: generatedDateStr,
-        generatedBy: "admin@netly.io"
-      });
-    } else {
-      // Generate for typical default mock names
-      const sampleNames = ["Marcus Vance", "Clarissa Harlowe", "Donald Trump"];
-      sampleNames.forEach((name, idx) => {
-        newSlips.push({
-          id: String(slips.length + idx + 1),
-          provider: name,
-          taxYear: parseInt(taxYearInput),
-          generatedDate: generatedDateStr,
-          generatedBy: "admin@netly.io"
-        });
-      });
+    const year = parseInt(taxYearInput, 10);
+    if (!Number.isInteger(year)) {
+      toast.error("Pick a tax year.");
+      return;
     }
-
-    setSlips([...newSlips, ...slips]);
-    toast.success(`Successfully generated T4A tax slips for tax year ${taxYearInput}!`);
-    setProviderInput("");
+    generate.mutate({ year });
   };
 
   const filteredSlips = useMemo(() => {
     return slips.filter((s) => {
-      const matchSearch = s.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.generatedBy.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchYear = filterYear === "All" || String(s.taxYear) === filterYear;
+      const term = searchTerm.toLowerCase();
+      const matchSearch =
+        s.provider.toLowerCase().includes(term) ||
+        String(s.generatedBy).toLowerCase().includes(term);
+      const matchYear =
+        filterYear === "All" || String(s.taxYear) === filterYear;
 
       return matchSearch && matchYear;
     });
@@ -79,23 +101,24 @@ export default function T4ATaxTab() {
   const paginated = useMemo(() => {
     return filteredSlips.slice(
       (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
+      currentPage * itemsPerPage,
     );
   }, [filteredSlips, currentPage]);
 
-  const [isLoading, setIsLoading] = useState(true);
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Nothing loads until a year is generated, so the table starts empty.
+  const isLoading = generate.isPending;
 
   return (
     <div className="space-y-4 animate-scale-up">
-
       {/* Generate T4A Slips Form Panel (Slide 2) */}
-      <form onSubmit={handleGenerateT4A} className="bg-white border border-border-main rounded-3xl p-5 space-y-4 hover:shadow-xs">
+      <form
+        onSubmit={handleGenerateT4A}
+        className="bg-white border border-border-main rounded-3xl p-5 space-y-4 hover:shadow-xs"
+      >
         <div className="flex justify-between items-center pb-2 gap-4">
-          <span className="text-sm font-semibold text-text-primary">Generate T4A Slips</span>
+          <span className="text-sm font-semibold text-text-primary">
+            Generate T4A Slips
+          </span>
           <button
             type="submit"
             className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 md:px-10 px-6 rounded-lg transition cursor-pointer"
@@ -105,9 +128,10 @@ export default function T4ATaxTab() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-
           <div className="space-y-2">
-            <label className="text-xs text-text-primary block">Tax year <span className="text-red-500">*</span></label>
+            <label className="text-xs text-text-primary block">
+              Tax year <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <select
                 value={taxYearInput}
@@ -125,7 +149,9 @@ export default function T4ATaxTab() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs text-text-primary block">Provider (optional)</label>
+            <label className="text-xs text-text-primary block">
+              Provider (optional)
+            </label>
             <input
               type="text"
               value={providerInput}
@@ -133,15 +159,15 @@ export default function T4ATaxTab() {
               placeholder="Provider Name"
               className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary"
             />
-            <span className="text-[10px] text-text-muted block mt-0.5">Leave blank to generate for all providers</span>
+            <span className="text-[10px] text-text-muted block mt-0.5">
+              Leave blank to generate for all providers
+            </span>
           </div>
-
         </div>
       </form>
 
       {/* Slips table listing container box */}
       <div className="border border-border-main rounded-3xl overflow-visible bg-white hover:shadow-xs relative z-20">
-
         {/* Filters control row */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 bg-white rounded-t-3xl border-b border-border-main">
           <div className="relative flex-1">
@@ -192,14 +218,24 @@ export default function T4ATaxTab() {
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
-            <span className="text-xs text-text-muted animate-pulse font-light">Loading T4A Slips Data...</span>
+            <span className="text-xs text-text-muted animate-pulse font-light">
+              Loading T4A Slips Data...
+            </span>
           </div>
         ) : filteredSlips.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white rounded-b-3xl min-h-80">
-            <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
+            <img
+              src="/empty.png"
+              alt="No data"
+              className="w-16 h-16 object-contain opacity-75"
+            />
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-text-primary">No Slips Found</h3>
-              <p className="text-xs text-text-muted font-light">No tax slips match search filters.</p>
+              <h3 className="text-sm font-semibold text-text-primary">
+                No Slips Found
+              </h3>
+              <p className="text-xs text-text-muted font-light">
+                No tax slips match search filters.
+              </p>
             </div>
           </div>
         ) : (
@@ -210,8 +246,12 @@ export default function T4ATaxTab() {
                   <th className="px-4 py-3 font-semibold">Provider</th>
                   <th className="px-4 py-3 font-semibold">Tax Year</th>
                   <th className="px-4 py-3 font-semibold">Generated Date</th>
-                  <th className="px-4 py-3 font-semibold">Generated By</th>
-                  <th className="px-4 py-3 text-right pr-6 font-semibold w-32">Actions</th>
+                  <th className="px-4 py-3 font-semibold">Box 048 (Fees)</th>
+                  <th className="px-4 py-3 font-semibold">Jobs</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 text-right pr-6 font-semibold w-32">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
@@ -220,7 +260,28 @@ export default function T4ATaxTab() {
                     <td className="px-4 py-3">{row.provider}</td>
                     <td className="px-4 py-3">{row.taxYear}</td>
                     <td className="px-4 py-3">{row.generatedDate}</td>
-                    <td className="px-4 py-3">{row.generatedBy}</td>
+                    <td className="px-4 py-3 font-semibold">
+                      $
+                      {row.amount?.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                    <td className="px-4 py-3">{row.jobs}</td>
+                    <td className="px-4 py-3">
+                      {row.warnings.length === 0 ? (
+                        <span className="text-emerald-600 font-medium">
+                          Ready
+                        </span>
+                      ) : (
+                        <span
+                          className="text-amber-600 font-medium"
+                          title={row.warnings.join(" ")}
+                        >
+                          Blocked
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right pr-6">
                       <button
                         onClick={() => setSelectedSlip(row)}
@@ -245,7 +306,6 @@ export default function T4ATaxTab() {
             onPageChange={setCurrentPage}
           />
         )}
-
       </div>
 
       {/* Slip Preview Modal */}
@@ -255,7 +315,6 @@ export default function T4ATaxTab() {
           onClose={() => setSelectedSlip(null)}
         />
       )}
-
     </div>
   );
 }

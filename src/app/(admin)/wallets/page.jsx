@@ -60,6 +60,11 @@ export default function WalletsRefundsPage() {
   const [selectedQueueItem, setSelectedQueueItem] = useState(null); // Used for authorize / reject
   const [activeModal, setActiveModal] = useState(null); // 'adjust' | 'authorize' | 'reject'
   const [drawerOpen, setDrawerOpen] = useState(false); // History drawer
+  const [pendingHistoryUid, setPendingHistoryUid] = useState(() =>
+    typeof window === "undefined" ?
+      null :
+      new URLSearchParams(window.location.search).get("uid"),
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -132,6 +137,18 @@ export default function WalletsRefundsPage() {
       return matchSearch && matchDate;
     });
   }, [wallets, searchTerm, startDate, endDate]);
+
+  // Apply a ?uid= deep-link once the wallets have actually loaded. Adjusted
+  // during render rather than in an effect to avoid a cascading re-render, and
+  // cleared immediately so it only fires once.
+  if (pendingHistoryUid && wallets.length > 0) {
+    const match = wallets.find((w) => w.uid === pendingHistoryUid);
+    setPendingHistoryUid(null);
+    if (match) {
+      setSelectedWallet(match);
+      setDrawerOpen(true);
+    }
+  }
 
   // Filtering Wallet Credit Queue
   const filteredCreditQueue = useMemo(() => {

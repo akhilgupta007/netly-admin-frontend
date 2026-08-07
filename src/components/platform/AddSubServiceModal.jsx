@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 export default function AddSubServiceModal({ parentCategories, isOpen, onClose, onAdd }) {
   const [parentName, setParentName] = useState("");
   const [subServiceName, setSubServiceName] = useState("");
+  const [frenchName, setFrenchName] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
@@ -62,15 +63,23 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
       toast.error("Sub Service name is required.");
       return;
     }
+    // The backend refuses a sub-service with no French name — the apps are
+    // bilingual and it would render blank for French users.
+    if (!frenchName.trim()) {
+      toast.error("A French name is required.");
+      return;
+    }
 
     onAdd({
       parentName,
       name: subServiceName.trim(),
+      frenchName: frenchName.trim(),
       hasPhoto: !!selectedFile,
       fileName: selectedFile ? selectedFile.name : null
     });
 
     setSubServiceName("");
+    setFrenchName("");
     setSelectedFile(null);
   };
 
@@ -128,6 +137,22 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
               onChange={(e) => setSubServiceName(e.target.value)}
               className="w-full bg-white border border-border-main text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
             />
+          </div>
+
+          {/* French name — required: the apps are bilingual */}
+          <div className="space-y-1.5">
+            <label className="text-xs text-text-primary block">
+              French name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g., nettoyage de four..."
+              value={frenchName}
+              onChange={(e) => setFrenchName(e.target.value)}
+              className="w-full bg-white border border-border-main text-xs rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary placeholder:text-text-muted/60"
+            />
+            <span className="text-[10px] text-text-muted block mt-0.5">Shown to French users in the apps</span>
           </div>
 
           {/* Drag & drop upload box */}

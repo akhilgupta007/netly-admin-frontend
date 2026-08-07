@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import CardWrapper from "@/components/ui/CardWrapper";
-import { useDashboardMetrics } from "@/hooks/useDashboard";
+import { useDashboardMetrics, useUnmetDemand } from "@/hooks/useDashboard";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import {
   Calendar,
@@ -59,10 +59,47 @@ export default function DashboardPage() {
     return { startDate: monday, endDate: now, note: "This week" };
   }, [timeFilter, startDate, endDate]);
 
-  const { metrics, isLoading, isError, error } = useDashboardMetrics({
+  const { metrics, isLoading, isFetching, isError, error } = useDashboardMetrics({
     startDate: activeRange.startDate,
     endDate: activeRange.endDate,
   });
+
+  // Only queues with something waiting are shown — a banner listing four
+  // zeroes reads as "needs action" when nothing does.
+  const actionItems = [
+    {
+      count: Number(metrics?.walletCreditsPending) || 0,
+      label: "wallet credits pending",
+      href: "/wallets?tab=credit",
+      className: "text-blue-400 bg-blue-50",
+    },
+    {
+      count: Number(metrics?.refundRequests) || 0,
+      label: "in refund queue",
+      href: "/wallets?tab=transfer",
+      className: "text-orange-500 bg-orange-50",
+    },
+    {
+      count: Number(metrics?.kycDocsInQueue) || 0,
+      label: "in KYC queue",
+      href: "/compliance/kyc",
+      className: "text-amber-700 bg-amber-50",
+    },
+    {
+      count: Number(metrics?.openDisputes) || 0,
+      label: "open disputes",
+      href: "/compliance/disputes",
+      className: "text-rose-500 bg-red-50",
+    },
+  ].filter((i) => i.count > 0);
+
+  // availability_alerts records a client searching where no provider covers
+  // their area — a direct record of demand the marketplace could not serve.
+  const {
+    cities: demandCities,
+    searches: demandSearches,
+    isLoading: demandLoading,
+  } = useUnmetDemand();
 
 
   const formatDateStr = (dateObj) => {
@@ -268,7 +305,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {/* 1. Needs Action Alert Banner */}
-      {showBanner && (
+      {showBanner && actionItems.length > 0 && (
         <div className="flex items-center justify-between gap-4 py-3 px-4 bg-white/90 rounded-xl animate-fade-in transition-all">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1.5 text-xs text-text-primary py-1 rounded-full">
@@ -276,30 +313,15 @@ export default function DashboardPage() {
               Needs action
             </span>
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              <Link
-                href="/wallets"
-                className="text-blue-400 hover:underline bg-blue-50 px-2.5 py-1 rounded-xl transition"
-              >
-                3 wallet credits pending
-              </Link>
-              <Link
-                href="/wallets"
-                className="text-orange-500 hover:underline bg-orange-50 px-2.5 py-1 rounded-xl transition"
-              >
-                11 Refund queue
-              </Link>
-              <Link
-                href="/compliance/kyc"
-                className="text-amber-700 hover:underline bg-amber-50 px-2.5 py-1 rounded-xl transition"
-              >
-                23 KYC queue
-              </Link>
-              <Link
-                href="/compliance/disputes"
-                className="text-rose-500 hover:underline bg-red-50 px-2.5 py-1 rounded-xl transition"
-              >
-                7 Open disputes
-              </Link>
+              {actionItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={`hover:underline px-2.5 py-1 rounded-xl transition ${item.className}`}
+                >
+                  {item.count} {item.label}
+                </Link>
+              ))}
             </div>
           </div>
           <button
@@ -629,26 +651,38 @@ export default function DashboardPage() {
 
               {/* Progress Bars matching Figma */}
               <div className="space-y-4">
-                {[
-                  { city: "Lagos", gap: 87 },
-                  { city: "Nairobi", gap: 74 },
-                  { city: "Accra", gap: 61 },
-                  { city: "Abuja", gap: 55 },
-                  { city: "Kampala", gap: 48 },
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-medium">
-                      <span className="text-text-primary">{idx + 1}. {item.city}</span>
-                      <span className="text-red-500">{item.gap}% gap</span>
+                {demandLoading ? (
+                  <span className="text-[10px] text-text-muted font-light animate-pulse">
+                    Loading demand signals…
+                  </span>
+                ) : demandCities.length === 0 ? (
+                  <span className="text-[10px] text-text-muted font-light">
+                    No unmet demand recorded. Alerts appear here when a client
+                    searches somewhere no provider covers.
+                  </span>
+                ) : (
+                  demandCities.map((item, idx) => (
+                    <div key={item.city} className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-medium">
+                        <span className="text-text-primary">
+                          {idx + 1}. {item.city}
+                          {item.province ? (
+                            <span className="text-text-muted font-light">, {item.province}</span>
+                          ) : null}
+                        </span>
+                        <span className="text-red-500">
+                          {item.pending} unserved · {item.gap}% gap
+                        </span>
+                      </div>
+                      <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary-bg rounded-full transition-all duration-500"
+                          style={{ width: `${item.gap}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-1 w-full bg-secondary-bg rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary-bg rounded-full transition-all duration-500"
-                        style={{ width: `${item.gap}` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -673,13 +707,15 @@ export default function DashboardPage() {
 
               {/* Search listings with index */}
               <div>
-                {[
-                  { term: "Deep clean apartment", count: "1,840" },
-                  { term: "Move-out cleaning", count: "1,432" },
-                  { term: "Carpet steam clean", count: "987" },
-                  { term: "Post-construction clean", count: "841" },
-                  { term: "Office cleaning daily", count: "620" },
-                ].map((item, idx) => (
+                {demandLoading ? (
+                  <span className="text-[10px] text-text-muted font-light animate-pulse py-2.5 block">
+                    Loading…
+                  </span>
+                ) : demandSearches.length === 0 ? (
+                  <span className="text-[10px] text-text-muted font-light py-2.5 block">
+                    No searches recorded yet.
+                  </span>
+                ) : demandSearches.map((item, idx) => (
                   <div key={idx} className="flex justify-between items-center py-2.5 text-[10px] font-medium">
                     <span className="text-text-muted">{idx + 1} <span className="text-text-primary font-medium ml-2">{item.term}</span></span>
                     <span className="text-primary-bg">{item.count}</span>

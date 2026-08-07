@@ -44,6 +44,11 @@ export default function AccountsPage() {
 
   const queryClient = useQueryClient();
 
+  const [pendingDetailUid, setPendingDetailUid] = useState(() =>
+    typeof window === "undefined" ?
+      null :
+      new URLSearchParams(window.location.search).get("uid"),
+  );
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
@@ -96,6 +101,18 @@ export default function AccountsPage() {
       }
     }
   }, [setActiveTab, setFilterStatus]);
+
+  // Open the deep-linked account once its list has loaded. Adjusted during
+  // render rather than in an effect to avoid a cascading re-render, and
+  // cleared immediately so it fires only once.
+  if (pendingDetailUid) {
+    const pool = activeTab === "Clients" ? clients : providers;
+    if (pool && pool.length > 0) {
+      const match = pool.find((a) => a.uid === pendingDetailUid);
+      setPendingDetailUid(null);
+      if (match) setSelectedAccount(match);
+    }
+  }
 
   // Close row dropdown menu safely when clicking elsewhere
   useEffect(() => {

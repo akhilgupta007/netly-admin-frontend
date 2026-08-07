@@ -33,6 +33,34 @@ const parseTxDate = (dateStr) => {
     cleanStr = dateStr.replace("Jun ", "June ");
   }
   return new Date(cleanStr);
+}
+
+/**
+ * Monday of the current week, at 00:00 local time.
+ *
+ * Weeks run Monday–Sunday to match the provider payout cycle, so a default
+ * range here lines up with how the money is actually accounted for.
+ *
+ * @return {Date} The week's start.
+ */
+function startOfThisWeek() {
+  const d = new Date();
+  // getDay() is 0 for Sunday, which belongs to the week that began 6 days ago.
+  const offset = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - offset);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Sunday of the current week, at 23:59:59 local time.
+ * @return {Date} The week's end.
+ */
+function endOfThisWeek() {
+  const d = startOfThisWeek();
+  d.setDate(d.getDate() + 6);
+  d.setHours(23, 59, 59, 999);
+  return d;
 };
 
 export default function TransactionsPage() {
@@ -40,8 +68,10 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  // Default to the current Monday–Sunday week, matching the payout cycle the
+  // rest of the platform runs on. URL params still override this below.
+  const [startDate, setStartDate] = useState(() => startOfThisWeek());
+  const [endDate, setEndDate] = useState(() => endOfThisWeek());
   const [currentPage, setCurrentPage] = useState(1);
 
   const router = useRouter();

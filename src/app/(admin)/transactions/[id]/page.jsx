@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { raiseDispute } from "@/lib/callables";
 import { toast } from "react-toastify";
 import { getInitials } from "@/lib/utils";
+import { formatFirestoreDateTime } from "@/services/firestoreReads";
 import {
   ArrowLeft,
   Copy,
@@ -122,119 +123,144 @@ export default function TransactionDetailPage() {
   };
 
   // Timeline checkpoints helper based on Figma PDFs
-  const getTimelineSteps = (status) => {
-    const requestDate = "June 10, 2026 • 09:45 AM";
-    const providerAcceptDate = "June 10, 2026 • 09:45 AM";
-    const paymentConfirmDate = "June 10, 2026 • 10:15 AM";
+  /**
+   * Builds the lifecycle timeline from the booking's own timestamps.
+   *
+   * Previously every stage carried an invented date ("June 10, 2026"), so the
+   * timeline looked authoritative while showing nothing real. A stage now
+   * appears only once its timestamp exists; stages still ahead are rendered as
+   * pending, and a stage that happened without a recorded time says so rather
+   * than borrowing another stage's date.
+   *
+   * @param {object} t - The transaction's `timeline` map.
+   * @param {string} status - The display status.
+   * @return {Array<object>} Ordered steps.
+   */
+  /**
+   * Formats a stored amount. Figures come from the booking itself rather than
+   * being recomputed from percentages, because a fee-rate change must not
+   * retroactively restate what a past job was worth.
+   *
+   * @param {number} n - Amount.
+   * @return {string} Currency string.
+   */
+  const money = (n) =>
+    `$${(Number(n) || 0).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
-    switch (status) {
-      case "Pending Payment":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Awaiting Payment", date: "Pending", isPending: true, note: "The client is reviewing the custom offer. Payment is required to confirm the booking." }
-        ];
-      case "Completed":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Service Started", date: paymentConfirmDate },
-          { status: "Provider Marked Completed", date: paymentConfirmDate },
-          { status: "Client Approved Completion", date: paymentConfirmDate },
-          { status: "Provider Paid", date: paymentConfirmDate }
-        ];
-      case "In Progress":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Service Started", date: paymentConfirmDate, isProgress: true }
-        ];
-      case "Confirmed":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Service yet to start", date: "Awaiting", isPending: true }
-        ];
-      case "Cancelled Pending Admin Review":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Booking Cancelled", date: paymentConfirmDate, isDeclined: true },
-          { status: "Refund Requested", date: "June 10, 2026 • 11:15 AM", isPending: true }
-        ];
-      case "Wallet Credited — Client Fault":
-      case "Wallet Credited — Provider Fault":
-      case "Cancelled – Wallet Credited":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Booking Cancelled", date: paymentConfirmDate, isDeclined: true },
-          { status: "Refund Requested", date: "June 10, 2026 • 11:15 AM" },
-          { status: "Wallet Credited", date: "June 10, 2026 • 11:15 AM" }
-        ];
-      case "Refund Requested":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Booking Cancelled", date: paymentConfirmDate, isDeclined: true },
-          { status: "Refund Requested", date: "June 10, 2026 • 11:15 AM", isPending: true }
-        ];
-      case "Refunded":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Booking Cancelled", date: paymentConfirmDate, isDeclined: true },
-          { status: "Refund Requested", date: "June 10, 2026 • 11:15 AM" },
-          { status: "Refunded", date: "June 10, 2026 • 11:15 AM" }
-        ];
-      case "Dispute":
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Negotiation Started", date: "June 10, 2026 • 09:52 AM" },
-          { status: "Custom Offer Sent", date: "June 10, 2026 • 10:08 AM" },
-          { status: "Offer Accepted", date: "June 10, 2026 • 10:15 AM" },
-          { status: "Payment Completed", date: paymentConfirmDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate },
-          { status: "Service Started", date: paymentConfirmDate },
-          { status: "Provider Marked Completed", date: paymentConfirmDate },
-          { status: "Client Raised Dispute", date: "June 10, 2026 • 10:15 AM", isPending: true }
-        ];
-      default:
-        return [
-          { status: "Service Request Submitted", date: requestDate },
-          { status: "Booking Confirmed", date: paymentConfirmDate }
-        ];
+  /**
+   * The rate label for a fee box.
+   *
+   * appliedRates is stamped on the booking by sendOffer. Older bookings
+   * predate it, so the label falls back to deriving the rate from the amounts.
+   *
+   * @param {string} key - "clientFeePercent" or "providerFeePercent".
+   * @param {number} amount - The fee charged.
+   * @return {string} e.g. "(5%)", or "" when it cannot be determined.
+   */
+  const rateLabel = (key, amount) => {
+    const applied = tx?.appliedRates?.[key];
+    if (typeof applied === "number") {
+      return ` (${Math.round(applied * 10000) / 100}%)`;
     }
+    const base = Number(tx?.serviceAmount) || 0;
+    if (!base || !amount) return "";
+    return ` (${Math.round((amount / base) * 1000) / 10}%)`;
+  };
+
+  // Fee fields are written by sendOffer. A booking still in negotiation has
+  // none of them, and deriving figures from zeros produces numbers that look
+  // real and are badly wrong — so those boxes show an em dash instead.
+  const isPriced =
+    Boolean(tx?.timeline?.offerSentAt) ||
+    (Number(tx?.clientServiceFee) || 0) > 0 ||
+    (Number(tx?.providerPayout) || 0) > 0 ||
+    (Number(tx?.commission) || 0) > 0;
+
+  /**
+   * Formats a fee figure, or an em dash when the job has not been priced.
+   * @param {number} n - Amount.
+   * @return {string} Display value.
+   */
+  const fee = (n) => (isPriced ? money(n) : "—");
+
+  const buildTimeline = (t, status) => {
+    if (!t) return [];
+
+    const at = (v) => (v ? formatFirestoreDateTime(v) : null);
+    const steps = [];
+
+    /**
+     * Appends a step.
+     * @param {string} label - Stage name.
+     * @param {*} when - Timestamp, or null when not reached.
+     * @param {object} opts - {isPending, isDeclined, note}.
+     */
+    const step = (label, when, opts = {}) => {
+      const date = at(when);
+      steps.push({
+        status: label,
+        date: date || opts.fallback || "Awaiting",
+        isPending: !date && !opts.isDeclined,
+        ...opts,
+      });
+    };
+
+    step("Service Request Submitted", t.createdAt);
+
+    // The offer is the V2 negotiation step; it only exists once a provider
+    // has priced the job.
+    if (t.offerSentAt) step("Custom Offer Sent", t.offerSentAt);
+
+    if (t.confirmedAt) {
+      step("Payment Completed", t.confirmedAt);
+      step("Booking Confirmed", t.confirmedAt);
+    } else if (!/cancel/i.test(status)) {
+      step("Awaiting Payment", null);
+    }
+
+    const cancelled = /cancel/i.test(status);
+    if (cancelled) {
+      step("Booking Cancelled", t.cancelledAt, { isDeclined: true });
+      if (t.refundedToCardAt) {
+        step("Refunded to Card", t.refundedToCardAt);
+      } else if (t.refundedAt) {
+        step("Refund Requested", t.refundedAt, { isPending: true });
+      }
+      return steps;
+    }
+
+    if (t.reachedAt) step("Provider Arrived", t.reachedAt);
+    if (t.startedAt) step("Service Started", t.startedAt);
+
+    if (t.completedAt) {
+      step("Provider Marked Completed", t.completedAt);
+      if (t.completedByClient) {
+        step(
+            t.isAutoCompleted ? "Auto-Confirmed (24h)" : "Client Confirmed",
+            t.completedAt,
+        );
+      } else {
+        step("Awaiting Client Confirmation", null);
+      }
+    } else if (t.confirmedAt) {
+      step("Service Scheduled", t.serviceDateAndTime, { isPending: true });
+    }
+
+    // Earnings reach the provider's bank on the Friday after the week closes.
+    if (t.payoutReleasedAt) {
+      step("Payout Released", t.payoutReleasedAt);
+    } else if (t.completedByClient) {
+      step("Payout Pending (weekly cycle)", null);
+    }
+
+    if (/dispute/i.test(status)) {
+      step("Dispute Raised", null, { isPending: true });
+    }
+
+    return steps;
   };
 
   // Get status banner styles
@@ -504,7 +530,7 @@ export default function TransactionDetailPage() {
               {/* Timeline bar line */}
               <div className="absolute left-2.5 top-2.5 bottom-2.5 w-[1.5px] bg-primary-bg/25" />
 
-              {getTimelineSteps(currentStatus).map((step, idx) => (
+              {buildTimeline(tx?.timeline, currentStatus).map((step, idx) => (
                 <div key={idx} className="relative flex flex-col space-y-0.5 text-xs">
                   <div className="absolute -left-7.25 top-0.5">
                     {step.isDeclined ? (
@@ -541,7 +567,14 @@ export default function TransactionDetailPage() {
               {currentStatus === "Pending Payment" && (
                 <>
                   <button
-                    onClick={() => toast.success("Payment reminder resent to client successfully!")}
+                    onClick={() =>
+                      // No callable sends this. A success toast would claim an
+                      // email went out that never did.
+                      toast.info(
+                          "Resending a payment reminder is not implemented yet. " +
+                        "The 48h auto-reject still applies if the client does not pay.",
+                      )
+                    }
                     className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                   >
                     Resend Payment Reminder
@@ -564,7 +597,18 @@ export default function TransactionDetailPage() {
               {["Completed", "In Progress", "Confirmed", "Cancelled – Wallet Credited", "Refunded", "Refund Requested"].includes(currentStatus) && (
                 <>
                   <button
-                    onClick={() => toast.success("Opening booking chat thread...")}
+                    onClick={() => {
+                      // The only admin-facing chat view is the dispute thread,
+                      // so a booking with no dispute has nowhere to navigate.
+                      if (tx.disputeId) {
+                        router.push(`/compliance/disputes/${tx.disputeId}`);
+                      } else {
+                        toast.info(
+                            "This booking has no dispute thread. Admin chat is " +
+                          "available once a dispute is raised.",
+                        );
+                      }
+                    }}
                     className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <MessageSquare size={14} /> View Booking Chat
@@ -572,7 +616,13 @@ export default function TransactionDetailPage() {
 
                   {currentStatus === "Cancelled – Wallet Credited" && (
                     <button
-                      onClick={() => toast.info("Redirecting to Wallet Transaction logs...")}
+                      onClick={() => {
+                        if (tx.clientId) {
+                          router.push(`/wallets?uid=${tx.clientId}&type=client`);
+                        } else {
+                          toast.error("This booking has no client on record.");
+                        }
+                      }}
                       className="w-full bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                     >
                       View Wallet Transaction
@@ -590,7 +640,17 @@ export default function TransactionDetailPage() {
 
                   {currentStatus === "Refunded" && (
                     <button
-                      onClick={() => toast.info("Redirecting to Stripe payment gateway logs...")}
+                      onClick={() => {
+                        // The receipt URL is captured by onPaymentSucceeded.
+                        if (tx.stripeInvoicePdfUrl) {
+                          window.open(tx.stripeInvoicePdfUrl, "_blank", "noopener");
+                        } else {
+                          toast.info(
+                              "No Stripe receipt is stored for this booking — it " +
+                            "may have been paid entirely from wallet credit.",
+                          );
+                        }
+                      }}
                       className="w-full bg-secondary-bg hover:bg-secondary-bg/80 text-text-primary font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                     >
                       View Transaction
@@ -625,17 +685,24 @@ export default function TransactionDetailPage() {
             <div className="space-y-2 pb-3.5 border-b border-border-main">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[10px] font-semibold text-text-muted">Client</span>
-                <Link href="/accounts" className="text-[10px] text-primary-bg hover:underline flex items-center gap-0.5 font-light">
+                <Link
+                  href={tx.client?.uid ? `/accounts?tab=Clients&uid=${tx.client.uid}` : "/accounts"}
+                  className="text-[10px] text-primary-bg hover:underline flex items-center gap-0.5 font-light"
+                >
                   View account <ArrowUpRight size={10} />
                 </Link>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-primary-bg text-white flex items-center justify-center text-xs font-semibold">
-                  FD
+                  {getInitials(tx.client?.name || "?")}
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-text-primary">Fatima Diallo</h4>
-                  <p className="text-[10px] text-text-muted font-light">fatima.d@corp.com</p>
+                  <h4 className="text-xs font-semibold text-text-primary">
+                    {tx.client?.name || "Unknown client"}
+                  </h4>
+                  <p className="text-[10px] text-text-muted font-light">
+                    {tx.client?.email || "—"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -644,17 +711,24 @@ export default function TransactionDetailPage() {
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[10px] font-semibold text-text-muted">Provider</span>
-                <Link href="/accounts" className="text-[10px] text-primary-bg hover:underline flex items-center gap-0.5 font-light">
+                <Link
+                  href={tx.provider?.uid ? `/accounts?tab=Providers&uid=${tx.provider.uid}` : "/accounts"}
+                  className="text-[10px] text-primary-bg hover:underline flex items-center gap-0.5 font-light"
+                >
                   View account <ArrowUpRight size={10} />
                 </Link>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-primary-bg text-white flex items-center justify-center text-xs font-semibold">
-                  MN
+                  {getInitials(tx.provider?.name || "?")}
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-text-primary">Meek Nowise</h4>
-                  <p className="text-[10px] text-text-muted font-light font-mono">emeka@cleanpro.ng</p>
+                  <h4 className="text-xs font-semibold text-text-primary">
+                    {tx.provider?.name || "Unassigned"}
+                  </h4>
+                  <p className="text-[10px] text-text-muted font-light font-mono">
+                    {tx.provider?.email || "—"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -663,40 +737,52 @@ export default function TransactionDetailPage() {
           {/* Financial Summary */}
           <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Financial Summary</span>
+            {!isPriced && (
+              <p className="text-[10px] text-amber-600 font-light">
+                Fees are set when the provider sends an offer. This booking has
+                not been priced yet.
+              </p>
+            )}
             <div className="grid grid-cols-3 gap-3">
 
               {/* Box 1 */}
               <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
                 <span className="text-[10px] text-text-muted block">Service Price</span>
-                <strong className="text-sm text-text-primary font-bold block mt-1">$85.00</strong>
+                <strong className="text-sm text-text-primary font-bold block mt-1">{money(tx.serviceAmount)}</strong>
               </div>
 
               {/* Box 2 */}
               <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
-                <span className="text-[10px] text-text-muted block">Client Platform Fee (5%)</span>
-                <strong className="text-sm text-text-primary font-bold block mt-1">$4.25</strong>
+                <span className="text-[10px] text-text-muted block">
+                  Client Platform Fee{rateLabel("clientFeePercent", tx.clientServiceFee)}
+                </span>
+                <strong className="text-sm text-text-primary font-bold block mt-1">{fee(tx.clientServiceFee)}</strong>
               </div>
 
               {/* Box 3 - Total Amount Due */}
               <div className={`rounded-2xl p-3 text-xs flex flex-col justify-between min-h-16 border ${currentStatus === "Pending Payment" ? "border-amber-300 bg-amber-50/40" : "border-border-main bg-page-bg/10"
                 }`}>
                 <span className={`text-[10px] block ${currentStatus === "Pending Payment" ? "text-amber-600" : "text-text-muted"}`}>Total Amount Due</span>
-                <strong className={`text-sm font-bold block mt-1 ${currentStatus === "Pending Payment" ? "text-amber-700" : "text-text-primary"}`}>$89.25</strong>
+                <strong className={`text-sm font-bold block mt-1 ${currentStatus === "Pending Payment" ? "text-amber-700" : "text-text-primary"}`}>{money(tx.totalPaid)}</strong>
               </div>
 
               {/* Box 4 - Commission or Wallet Credit */}
               {showRefundInfo ? (
                 <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
                   <span className="text-[10px] text-text-muted block">Wallet Credit Issued</span>
-                  <strong className="text-sm text-text-primary font-bold block mt-0.5">$85.00</strong>
+                  <strong className="text-sm text-text-primary font-bold block mt-0.5">{money(tx.refundAmount)}</strong>
                   <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
                     (Service amount credited to the client's Netly Wallet.)
                   </span>
                 </div>
               ) : (
                 <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-16">
-                  <span className="text-[10px] text-text-muted block">Provider Commission (15%)</span>
-                  <strong className="text-sm text-text-primary font-bold block mt-1">$12.75</strong>
+                  <span className="text-[10px] text-text-muted block">
+                    Provider Commission{rateLabel("providerFeePercent", tx.serviceAmount - tx.providerPayout)}
+                  </span>
+                  <strong className="text-sm text-text-primary font-bold block mt-1">
+                    {fee((Number(tx.serviceAmount) || 0) - (Number(tx.providerPayout) || 0))}
+                  </strong>
                 </div>
               )}
 
@@ -704,7 +790,9 @@ export default function TransactionDetailPage() {
               {showRefundInfo ? (
                 <div className="border border-border-main rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 col-span-1">
                   <span className="text-[10px] text-text-muted block">Provider Payout</span>
-                  <strong className="text-sm text-text-primary font-bold block mt-0.5">$0.00</strong>
+                  <strong className="text-sm text-text-primary font-bold block mt-0.5">
+                    {money(tx.payoutReleased ? tx.providerPayout : 0)}
+                  </strong>
                   <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
                     (No payout released.)
                   </span>
@@ -712,8 +800,10 @@ export default function TransactionDetailPage() {
               ) : (
                 <div className={`rounded-2xl p-3 text-xs bg-page-bg/10 flex flex-col justify-between min-h-21.25 border ${["In Progress", "Confirmed", "Dispute"].includes(currentStatus) ? "border-amber-200" : "border-border-main"
                   }`}>
-                  <span className="text-[10px] text-text-muted block">Expected Provider Payout</span>
-                  <strong className="text-sm text-text-primary font-bold block mt-0.5">$72.25</strong>
+                  <span className="text-[10px] text-text-muted block">
+                    {tx.payoutReleased ? "Provider Payout" : "Expected Provider Payout"}
+                  </span>
+                  <strong className="text-sm text-text-primary font-bold block mt-0.5">{fee(tx.providerPayout)}</strong>
                   {["In Progress", "Confirmed", "Dispute"].includes(currentStatus) && (
                     <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
                       Will be released after the client approves completion.
@@ -726,7 +816,7 @@ export default function TransactionDetailPage() {
               {showRefundInfo ? (
                 <div className="border border-emerald-300 rounded-2xl p-3 text-xs bg-emerald-50/40 flex flex-col justify-between min-h-21.25 col-span-1">
                   <span className="text-[10px] text-emerald-600 block">Netly Revenue</span>
-                  <strong className="text-sm text-emerald-700 font-bold block mt-0.5">$4.25</strong>
+                  <strong className="text-sm text-emerald-700 font-bold block mt-0.5">{fee(tx.clientServiceFee)}</strong>
                   <span className="text-[8px] text-emerald-500 font-light leading-tight mt-0.5">
                     (Client platform fee retained.)
                   </span>
@@ -734,7 +824,7 @@ export default function TransactionDetailPage() {
               ) : (
                 <div className="border border-emerald-300 rounded-2xl p-3 text-xs bg-emerald-50/40 flex flex-col justify-between min-h-16">
                   <span className="text-[10px] text-emerald-600 block">Netly Revenue</span>
-                  <strong className="text-sm text-emerald-700 font-bold block mt-1">$17.00</strong>
+                  <strong className="text-sm text-emerald-700 font-bold block mt-1">{fee(tx.commission)}</strong>
                 </div>
               )}
 

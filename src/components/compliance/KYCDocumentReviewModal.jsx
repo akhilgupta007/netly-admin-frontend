@@ -123,11 +123,11 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
               </div>
               <div className="px-6">
                 <span className="text-[10px] text-text-muted block font-light">Phone</span>
-                <strong className="text-text-primary font-normal block mt-1">{item.phone || "+233 24 123 4567"}</strong>
+                <strong className="text-text-primary font-normal block mt-1">{item.phone || "—"}</strong>
               </div>
               <div className="pl-6">
                 <span className="text-[10px] text-text-muted block font-light">Joined</span>
-                <strong className="text-text-primary font-normal block mt-1">{item.joined || "Jan 12, 2027"}</strong>
+                <strong className="text-text-primary font-normal block mt-1">{item.joined || "—"}</strong>
               </div>
             </div>
           )}
@@ -147,7 +147,16 @@ export default function KYCDocumentReviewModal({ item, isOpen, onClose, onApprov
                 <span className="inline-block bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full text-[10px] font-semibold">
                   • {item.docType}
                 </span>
-                <span className="text-text-primary">Submitted {item.submittedDate}</span>
+                <span className="text-text-primary">
+                  {item.submittedDate && item.submittedDate !== "N/A" ?
+                    `Submitted ${item.submittedDate}` :
+                    "Not yet submitted"}
+                </span>
+                {item.reviewedAt && item.reviewedAt !== "N/A" && (
+                  <span className="text-text-muted font-light">
+                    · Reviewed {item.reviewedAt}
+                  </span>
+                )}
               </div>
               <span className="text-text-muted font-light">
                 {docs.length > 0
