@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Search, ChevronDown, MoreHorizontal, Eye, Slash } from "lucide-react";
+import { Search, ChevronDown, MoreHorizontal, Eye, Slash, Star } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
@@ -13,7 +13,7 @@ import CardWrapper from "@/components/ui/CardWrapper";
 import { useProviders } from "@/hooks/useProviders";
 import { toMillis } from "@/services/firestoreReads";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateAccountStatus, resetUserPassword } from "@/lib/callables";
+import { updateAccountStatus, resetUserPassword, setFoundingPartnerBadge } from "@/lib/callables";
 import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 // Initial Mock Partners list matching Screenshot 1 values
@@ -82,6 +82,16 @@ export default function FoundingPartnersPage() {
 
   // Modal handlers. Founding partners are ordinary provider accounts, so these
   // go through the same callables as the Accounts page.
+  const badgeMutation = useMutation({
+    mutationFn: setFoundingPartnerBadge,
+    onSuccess: () => {
+      // The list is filtered on isFoundingPartner, so a revoked row leaves it.
+      queryClient.invalidateQueries({ queryKey: ["providers"] });
+      toast.success("Founding partner badge revoked.");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
   const statusMutation = useMutation({
     mutationFn: updateAccountStatus,
     onSuccess: (_result, variables) => {
@@ -295,6 +305,22 @@ export default function FoundingPartnersPage() {
                               className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-page-bg transition cursor-pointer font-medium"
                             >
                               <Eye size={13} className="text-text-muted" /> View
+                            </button>
+                            <button
+                              disabled={badgeMutation.isPending}
+                              onClick={() => {
+                                // Every row on this page holds the badge, so
+                                // the only useful change here is revoking it.
+                                badgeMutation.mutate({
+                                  providerId: item.uid,
+                                  granted: false,
+                                  reason: "Revoked from the founding partners list",
+                                });
+                                setActiveMenuRowId(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-page-bg transition cursor-pointer font-medium disabled:opacity-45 disabled:cursor-not-allowed"
+                            >
+                              <Star size={13} className="text-text-muted" /> Revoke badge
                             </button>
                             <button
                               disabled={item.status === "Banned" || item.status === "Declined"}

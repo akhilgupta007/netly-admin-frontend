@@ -182,3 +182,53 @@ export const updateCommissionSettings = ({ clientFeePercent, providerFeePercent,
 /** Aggregates provider earnings into CRA box 048 for a tax year. */
 export const generateT4AReport = ({ year, minimumAmount }) =>
   callFunction("generateT4AReport", { year, minimumAmount });
+
+/* ── Content moderation ────────────────────────────────────────── */
+
+/**
+ * Moderates a provider listing. Removal is a soft delete — bookings reference
+ * the listing, so the document is kept.
+ * action is "deactivate" | "reactivate" | "remove"; reason required except on
+ * reactivate.
+ */
+export const moderateListing = ({ listingId, action, reason }) =>
+  callFunction("moderateListing", { listingId, action, reason });
+
+/**
+ * Moderates a review. Reviews are hidden, never deleted.
+ * action is "hide" | "restore" | "dismiss"; reason required on hide.
+ */
+export const moderateReview = ({ reviewId, action, reason }) =>
+  callFunction("moderateReview", { reviewId, action, reason });
+
+/** Closes a user-submitted report. action is "resolve" | "dismiss". */
+export const resolveReport = ({ reportId, action, resolution, reason }) =>
+  callFunction("resolveReport", { reportId, action, resolution, reason });
+
+/* ── Admin actions ─────────────────────────────────────────────── */
+
+/**
+ * Claims a dispute for review, or releases the claim. Status-only — it moves
+ * no money and reaches no verdict. action is "claim" | "release".
+ */
+export const claimDispute = ({ disputeId, action = "claim" }) =>
+  callFunction("claimDispute", { disputeId, action });
+
+/**
+ * Holds or releases a provider's weekly payout. Held balances stay in ACTIVE
+ * and roll to the following week — nothing is lost.
+ * action is "hold" | "release"; reason required on hold.
+ */
+export const holdProviderPayout = ({ providerId, action, reason }) =>
+  callFunction("holdProviderPayout", { providerId, action, reason });
+
+/** Grants or revokes a provider's founding-partner badge. Display-only. */
+export const setFoundingPartnerBadge = ({ providerId, granted, reason }) =>
+  callFunction("setFoundingPartnerBadge", { providerId, granted, reason });
+
+/**
+ * Nudges a client to pay for a priced booking. Rate-limited to one reminder
+ * every 6 hours, and does not extend the 48h auto-reject clock.
+ */
+export const resendPaymentReminder = ({ bookingId }) =>
+  callFunction("resendPaymentReminder", { bookingId });

@@ -6,89 +6,28 @@ import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import RemoveReviewModal from "@/components/platform/RemoveReviewModal";
+import { useReviews } from "@/hooks/usePlatform";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { moderateReview } from "@/lib/callables";
+import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 // Initial Mock Reviews list
-const initialReviews = [
-  {
-    id: "REV-001",
-    client: "Ella Young",
-    provider: "Daniel King",
-    rating: 4.6,
-    date: "Feb 18, 2027",
-    dateTime: new Date(2027, 1, 18),
-    reviewText: "Quality service, very friendly staff, would hire them again!"
-  },
-  {
-    id: "REV-002",
-    client: "Evelyn Clark",
-    provider: "Alexander Hall",
-    rating: 4.3,
-    date: "Jan 25, 2027",
-    dateTime: new Date(2027, 0, 25),
-    reviewText: "Good cleaning service, but a little slow. Would recommend for the price."
-  },
-  {
-    id: "REV-003",
-    client: "Amelia Harris",
-    provider: "Elijah Thompson",
-    rating: 4.9,
-    date: "Nov 15, 2026",
-    dateTime: new Date(2026, 10, 15),
-    reviewText: "Top-notch services! They went above and beyond to make my home shine!"
-  },
-  {
-    id: "REV-004",
-    client: "Harper Martin",
-    provider: "Benjamin White",
-    rating: 4.8,
-    date: "Dec 8, 2026",
-    dateTime: new Date(2026, 11, 8),
-    reviewText: "Consistent quality and dependable service. Highly satisfied!"
-  },
-  {
-    id: "REV-005",
-    client: "Charlotte Lee",
-    provider: "Oliver Anderson",
-    rating: 4.4,
-    date: "Oct 20, 2026",
-    dateTime: new Date(2026, 9, 20),
-    reviewText: "Good service but room for improvement in timing. Overall a good experience."
-  },
-  {
-    id: "REV-006",
-    client: "Sophia Davis",
-    provider: "Mason Wilson",
-    rating: 4.6,
-    date: "Sep 5, 2026",
-    dateTime: new Date(2026, 8, 5),
-    reviewText: "Very reliable and thorough service. I trust them with my home!"
-  },
-  {
-    id: "REV-007",
-    client: "Isabella Garcia",
-    provider: "Lucas Taylor",
-    rating: 5.0,
-    date: "Aug 12, 2026",
-    dateTime: new Date(2026, 7, 12),
-    reviewText: "Absolutely flawless! They exceeded my expectations in every way!"
-  },
-  {
-    id: "REV-008",
-    client: "Ava Patel",
-    provider: "Ethan Brown",
-    rating: 4.8,
-    date: "Jun 10, 2026",
-    dateTime: new Date(2026, 5, 10),
-    reviewText: "Impressive service! My house has never looked better. Thank you!"
-  }
-];
 
 export default function ReviewsTab() {
-  const [reviews, setReviews] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const queryClient = useQueryClient();
+
+  const {
+    reviews,
+    totalCount,
+    counts,
+    isLoading,
+    isFetching,
+    isError,
+  } = useReviews({ searchTerm, page: currentPage, limit: 8 });
   const itemsPerPage = 8;
 
   // Selected entities for modals
@@ -96,35 +35,24 @@ export default function ReviewsTab() {
   const [removeOpen, setRemoveOpen] = useState(false);
 
   // Load from LocalStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("netly_reviews");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored).map(item => ({
-          ...item,
-          dateTime: item.dateTime ? new Date(item.dateTime) : new Date()
-        }));
-        setReviews(parsed);
-      } catch (e) {
-        setReviews(initialReviews);
-      }
-    } else {
-      setReviews(initialReviews);
-      localStorage.setItem("netly_reviews", JSON.stringify(initialReviews));
-    }
-  }, []);
 
-  const saveReviews = (updatedList) => {
-    setReviews(updatedList);
-    localStorage.setItem("netly_reviews", JSON.stringify(updatedList));
-  };
+
+  const moderate = useMutation({
+    mutationFn: moderateReview,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["flaggedContent"] });
+      setRemoveOpen(false);
+      setSelectedReview(null);
+      // Hidden, not deleted — the review belongs to the client who wrote it
+      // and is tied to a booking.
+      toast.success("Review hidden from the marketplace.");
+    },
+    onError: (err) => toast.error(err.message),
+  });
 
   const confirmRemoveReview = (review, reason) => {
-    const updated = reviews.filter((r) => r.id !== review.id);
-    saveReviews(updated);
-    setRemoveOpen(false);
-    setSelectedReview(null);
-    toast.success(`Review removed successfully. Reason logged: "${reason}"`);
+    moderate.mutate({ reviewId: review?.id, action: "hide", reason });
   };
 
   // Filtering
@@ -156,7 +84,8 @@ export default function ReviewsTab() {
     <div className="space-y-4 animate-scale-up">
 
       {/* Inline Filters bar inside the white container card */}
-      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs">
+      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs relative">
+        <RefreshingBar active={isFetching && !isLoading} />
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -186,7 +115,16 @@ export default function ReviewsTab() {
         </div>
 
         {/* Reviews Data List */}
-        {filteredReviews.length === 0 ? (
+        {isLoading ? (
+          <ListSkeleton rows={6} columns={6} firstColAvatar={false} />
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white">
+            <h3 className="text-sm font-semibold text-text-primary">Could not load reviews</h3>
+            <p className="text-xs text-text-muted font-light">
+              Check your connection and refresh.
+            </p>
+          </div>
+        ) : filteredReviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
             <div className="space-y-1">

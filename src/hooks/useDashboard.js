@@ -51,6 +51,8 @@ export function useUnmetDemand(options = {}) {
     cities: query.data?.cities ?? [],
     searches: query.data?.searches ?? [],
     services: query.data?.services ?? [],
+    rows: query.data?.rows ?? [],
     total: query.data?.total ?? 0,
+    pending: query.data?.pending ?? 0,
   };
 }

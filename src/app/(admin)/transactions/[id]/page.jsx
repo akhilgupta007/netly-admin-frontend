@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useTransaction } from "@/hooks/useTransactions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { raiseDispute } from "@/lib/callables";
+import { raiseDispute, resendPaymentReminder } from "@/lib/callables";
 import { toast } from "react-toastify";
 import { getInitials } from "@/lib/utils";
 import { formatFirestoreDateTime } from "@/services/firestoreReads";
@@ -34,6 +34,17 @@ export default function TransactionDetailPage() {
   const { transaction: tx, isLoading, isError, error, notFound } = useTransaction(id);
 
   const queryClient = useQueryClient();
+
+  const reminderMutation = useMutation({
+    mutationFn: resendPaymentReminder,
+    onSuccess: (r) =>
+      toast.success(
+          `Reminder sent${r.remindersSent > 1 ? ` (${r.remindersSent} total)` : ""}.`,
+      ),
+    // The backend rate-limits to one every 6h and refuses once paid, so its
+    // message is more useful than a generic failure.
+    onError: (err) => toast.error(err.message),
+  });
 
   const disputeMutation = useMutation({
     mutationFn: raiseDispute,
@@ -567,14 +578,8 @@ export default function TransactionDetailPage() {
               {currentStatus === "Pending Payment" && (
                 <>
                   <button
-                    onClick={() =>
-                      // No callable sends this. A success toast would claim an
-                      // email went out that never did.
-                      toast.info(
-                          "Resending a payment reminder is not implemented yet. " +
-                        "The 48h auto-reject still applies if the client does not pay.",
-                      )
-                    }
+                    onClick={() => reminderMutation.mutate({ bookingId: id })}
+                    disabled={reminderMutation.isPending}
                     className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-3 rounded-xl transition cursor-pointer text-center"
                   >
                     Resend Payment Reminder

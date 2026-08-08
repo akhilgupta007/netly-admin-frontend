@@ -8,88 +8,56 @@ import Pagination from "@/components/ui/Pagination";
 import ReviewContentModal from "@/components/platform/ReviewContentModal";
 import RemoveListingModal from "@/components/platform/RemoveListingModal";
 import RemoveReviewModal from "@/components/platform/RemoveReviewModal";
+import { useFlaggedContent } from "@/hooks/usePlatform";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { moderateListing, moderateReview, resolveReport } from "@/lib/callables";
+import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 // Initial Mock Flags list
-const initialFlags = [
-  {
-    id: "FLG-001",
-    type: "Listing",
-    reportedBy: "Noah Johnson",
-    email: "noah@clean.io",
-    date: "Apr 25, 2026",
-    dateTime: new Date(2026, 3, 25),
-    content: "Listing titled 'Cheap cleaning -- cash only' with no service description.",
-    subjectEmail: "kwame@clean.io"
-  },
-  {
-    id: "FLG-002",
-    type: "Review",
-    reportedBy: "Emma Thompson",
-    email: "emma@clean.io",
-    date: "Apr 25, 2026",
-    dateTime: new Date(2026, 3, 25),
-    content: "'This provider is a scammer and stole my wallet.' -- unsubstantiated claim.",
-    subjectEmail: "noah@clean.io"
-  },
-  {
-    id: "FLG-003",
-    type: "Photo",
-    reportedBy: "Michael Johnson",
-    email: "michael@clean.io",
-    date: "May 1, 2026",
-    dateTime: new Date(2026, 4, 1),
-    content: "Profile photo appears to show a different person than the ID on file.",
-    subjectEmail: "samantha@clean.io"
-  },
-  {
-    id: "FLG-004",
-    type: "Profile",
-    reportedBy: "Samantha Lee",
-    email: "samantha@clean.io",
-    date: "May 3, 2026",
-    dateTime: new Date(2026, 4, 3),
-    content: "Provider profile contains WhatsApp number asking clients to pay offline.",
-    subjectEmail: "emma@clean.io"
-  },
-  {
-    id: "FLG-005",
-    type: "Listing",
-    reportedBy: "David Kim",
-    email: "david@clean.io",
-    date: "May 5, 2026",
-    dateTime: new Date(2026, 4, 5),
-    content: "Listing description includes competitor platform links.",
-    subjectEmail: "kwame@clean.io"
-  },
-  {
-    id: "FLG-006",
-    type: "Profile",
-    reportedBy: "Ava Martinez",
-    email: "ava@clean.io",
-    date: "May 10, 2026",
-    dateTime: new Date(2026, 4, 10),
-    content: "Client profile has offensive language in bio field.",
-    subjectEmail: "david@clean.io"
-  },
-  {
-    id: "FLG-007",
-    type: "Review",
-    reportedBy: "Ava Martinez",
-    email: "ava@clean.io",
-    date: "May 10, 2026",
-    dateTime: new Date(2026, 4, 10),
-    content: "Listing titled 'Personal Training - Customized Plans' 'One star -- provider was 2 minutes late. TERRIBLE SERVICE!!!' with client success stories shared.",
-    subjectEmail: "michael@clean.io"
-  }
-];
 
 export default function FlaggedContentTab() {
-  const [flags, setFlags] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("All");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const queryClient = useQueryClient();
+  const {
+    flagged: flags,
+    counts,
+    isLoading,
+    isFetching,
+    isError,
+  } = useFlaggedContent({ searchTerm, filterType });
+
+  /** Refetches the queue and closes whichever modal was open. */
+  const afterModeration = (message) => ({
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["flaggedContent"] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["serviceListings"] });
+      setReviewModalOpen(false);
+      setRemoveListingOpen(false);
+      setRemoveReviewOpen(false);
+      setSelectedFlag(null);
+      toast.success(message);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const reportMutation = useMutation({
+    mutationFn: resolveReport,
+    ...afterModeration("Report closed."),
+  });
+  const reviewMutation = useMutation({
+    mutationFn: moderateReview,
+    ...afterModeration("Review updated."),
+  });
+  const listingMutation = useMutation({
+    mutationFn: moderateListing,
+    ...afterModeration("Listing removed from the marketplace."),
+  });
   const itemsPerPage = 8;
 
   // Selected entities for modals
@@ -99,80 +67,77 @@ export default function FlaggedContentTab() {
   const [removeReviewOpen, setRemoveReviewOpen] = useState(false);
 
   // Load from LocalStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("netly_flagged_content");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored).map(item => ({
-          ...item,
-          dateTime: item.dateTime ? new Date(item.dateTime) : new Date()
-        }));
-        setFlags(parsed);
-      } catch (e) {
-        setFlags(initialFlags);
-      }
-    } else {
-      setFlags(initialFlags);
-      localStorage.setItem("netly_flagged_content", JSON.stringify(initialFlags));
-    }
-  }, []);
 
-  const saveFlags = (updatedList) => {
-    setFlags(updatedList);
-    localStorage.setItem("netly_flagged_content", JSON.stringify(updatedList));
-  };
 
   // Moderation action dispatcher
+  /**
+   * Applies a moderation decision.
+   *
+   * A flag is either a user-submitted report or a review flagged in-app, and
+   * they close differently — a report is resolved, a review is dismissed or
+   * hidden. `flag.source` says which.
+   *
+   * @param {string} actionType - "approve" | "warn" | "suspend" | "remove".
+   * @param {object} flag - The queue row.
+   */
   const handleAction = (actionType, flag) => {
+    const reason = `Moderation decision: ${actionType}`;
+
     if (actionType === "approve") {
-      const updated = flags.filter(f => f.id !== flag.id);
-      saveFlags(updated);
-      setReviewModalOpen(false);
-      setSelectedFlag(null);
-      toast.success(`Content has been approved and flagged queue updated!`);
-    } else if (actionType === "warn") {
-      const updated = flags.filter(f => f.id !== flag.id);
-      saveFlags(updated);
-      setReviewModalOpen(false);
-      setSelectedFlag(null);
-      toast.success(`Warning issued to user ${flag.subjectEmail} successfully.`);
-    } else if (actionType === "suspend") {
-      const updated = flags.filter(f => f.id !== flag.id);
-      saveFlags(updated);
-      setReviewModalOpen(false);
-      setSelectedFlag(null);
-      toast.success(`User ${flag.subjectEmail} has been suspended.`);
-    } else if (actionType === "remove") {
-      // Open respective removal prompts
+      // The complaint was unfounded; the content stays up.
+      if (flag.source === "review") {
+        reviewMutation.mutate({ reviewId: flag.reviewId, action: "dismiss", reason });
+      } else {
+        reportMutation.mutate({
+          reportId: flag.reportId,
+          action: "dismiss",
+          resolution: "no_action",
+          reason: "Reviewed and found no policy breach.",
+        });
+      }
+      return;
+    }
+
+    if (actionType === "remove") {
+      // Removal needs a typed reason, so hand off to the confirm modal.
       setReviewModalOpen(false);
       if (flag.type === "Listing") {
         setRemoveListingOpen(true);
       } else if (flag.type === "Review") {
         setRemoveReviewOpen(true);
       } else {
-        // Generic content deletion
-        const updated = flags.filter(f => f.id !== flag.id);
-        saveFlags(updated);
-        setSelectedFlag(null);
-        toast.success(`Photo/Profile content successfully removed.`);
+        toast.info(
+            "Removing this content type is not implemented yet — only listings " +
+          "and reviews can be actioned.",
+        );
       }
+      return;
     }
+
+    // Warning and suspension act on the *user*, which is the Accounts page's
+    // job — updateAccountStatus lives there and carries its own audit trail.
+    toast.info(
+        actionType === "suspend" ?
+          "Suspend the account from Accounts → the user's row, so the action is " +
+        "recorded against the account." :
+          "Issuing a warning is not implemented yet.",
+    );
   };
 
   const confirmRemoveListing = (listing, reason) => {
-    const updated = flags.filter(f => f.id !== selectedFlag.id);
-    saveFlags(updated);
-    setRemoveListingOpen(false);
-    setSelectedFlag(null);
-    toast.success(`Listing successfully removed. Reason logged: "${reason}"`);
+    listingMutation.mutate({
+      listingId: selectedFlag?.targetId,
+      action: "remove",
+      reason,
+    });
   };
 
   const confirmRemoveReview = (review, reason) => {
-    const updated = flags.filter(f => f.id !== selectedFlag.id);
-    saveFlags(updated);
-    setRemoveReviewOpen(false);
-    setSelectedFlag(null);
-    toast.success(`Review successfully removed. Reason logged: "${reason}"`);
+    reviewMutation.mutate({
+      reviewId: selectedFlag?.reviewId || selectedFlag?.targetId,
+      action: "hide",
+      reason,
+    });
   };
 
   // Filtering
@@ -205,7 +170,8 @@ export default function FlaggedContentTab() {
     <div className="space-y-4 animate-scale-up">
 
       {/* Search & filters inside the table card */}
-      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs">
+      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs relative">
+        <RefreshingBar active={isFetching && !isLoading} />
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -253,7 +219,16 @@ export default function FlaggedContentTab() {
         </div>
 
         {/* Table / Empty state content */}
-        {filteredFlags.length === 0 ? (
+        {isLoading ? (
+          <ListSkeleton rows={6} columns={6} firstColAvatar={false} />
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white">
+            <h3 className="text-sm font-semibold text-text-primary">Could not load flagged content</h3>
+            <p className="text-xs text-text-muted font-light">
+              Check your connection and refresh.
+            </p>
+          </div>
+        ) : filteredFlags.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
             <img src="/empty.png" alt="No flagged queue" className="w-16 h-16 object-contain opacity-75" />
 
