@@ -63,6 +63,8 @@ export function useDisputeChat(dispute) {
       fetchDisputeChatFromFirestore({
         bookingId: dispute.bookingId,
         clientId: dispute.clientId,
+        // Needed to resolve the direct_{client}_{provider} thread id.
+        providerId: dispute.providerId,
       }),
     enabled: Boolean(dispute?.bookingId),
     refetchInterval: 15000,

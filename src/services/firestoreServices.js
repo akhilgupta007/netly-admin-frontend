@@ -1202,6 +1202,10 @@ function transactionStatus(booking) {
     case "ontheway":
     case "inprogress":
       return "In Progress";
+    case "completedbyprovider":
+      // The provider says the job is done; the client has 24h to confirm.
+      // Distinct from "completed", which is what credits the provider.
+      return "Awaiting Client Confirmation";
     case "completed":
       // Payout released means the money is settled, not just the service.
       return booking.payoutReleased ? "Finalised" : "Completed";
@@ -1413,6 +1417,10 @@ export async function fetchTransactionByIdFromFirestore(id) {
 const DISPUTE_STATUS_LABELS = {
   open: "Open",
   underreview: "Under Review",
+  // resolveDispute writes a plain "resolved"; the specific outcome lives in
+  // the separate `resolution` field. Without this the label fell through to
+  // the raw value and the Resolve button stayed on screen after resolving.
+  resolved: "Resolved",
   resolvedinclientfavor: "Resolved",
   resolvedinproviderfavor: "Resolved",
   resolvedsplit: "Resolved",
@@ -1425,18 +1433,25 @@ const DISPUTE_STATUS_LABELS = {
  * @param {string} raw - Stored status.
  * @return {{label: string, outcome: string|null}} Display status.
  */
-function disputeStatus(raw) {
+function disputeStatus(raw, resolution) {
   const key = String(raw || "")
     .toLowerCase()
     .replace(/[\s_-]/g, "");
+  const byResolution = {
+    client_favour: "Favoured client",
+    provider_favour: "Favoured provider",
+    split: "Split decision",
+  }[resolution];
+
   const outcome =
-    key === "resolvedinclientfavor"
+    byResolution ||
+    (key === "resolvedinclientfavor"
       ? "Favoured client"
       : key === "resolvedinproviderfavor"
         ? "Favoured provider"
         : key === "resolvedsplit"
           ? "Split decision"
-          : null;
+          : null);
   return { label: DISPUTE_STATUS_LABELS[key] || raw || "Open", outcome };
 }
 
@@ -1450,7 +1465,7 @@ function disputeStatus(raw) {
 function toDispute(id, d, users) {
   const client = users.get(d.clientId) || null;
   const provider = users.get(d.providerId) || null;
-  const { label, outcome } = disputeStatus(d.status);
+  const { label, outcome } = disputeStatus(d.status, d.resolution);
 
   return {
     id,
@@ -1576,18 +1591,54 @@ export async function fetchDisputeByIdFromFirestore(id) {
 export async function fetchDisputeChatFromFirestore({
   bookingId,
   clientId,
+  providerId,
 } = {}) {
   if (!bookingId) return { chatId: null, messages: [] };
 
   try {
-    // Conventional id first, then a query for older threads.
-    let chatDoc = await getDoc(doc(db, "chat", `booking_${bookingId}`));
-    if (!chatDoc.exists()) {
-      const found = await getDocs(
-        query(collection(db, "chat"), where("bookingId", "==", bookingId)),
-      );
-      if (found.empty) return { chatId: null, messages: [] };
-      chatDoc = found.docs[0];
+    // Threads are per client-provider pair, not per booking: one thread
+    // carries every booking those two have discussed, listed in bookingIds.
+    // The top-level bookingId field is only the most recent one, so matching
+    // on it finds nothing for any earlier booking — which is why an older
+    // booking's dispute showed an empty conversation.
+    let chatDoc = null;
+
+    const byBookingIds = await getDocs(
+      query(
+        collection(db, "chat"),
+        where("bookingIds", "array-contains", bookingId),
+      ),
+    ).catch(() => ({ empty: true, docs: [] }));
+
+    if (!byBookingIds.empty) {
+      chatDoc = byBookingIds.docs[0];
+    } else if (clientId && providerId) {
+      // Direct id, for threads written before bookingIds existed. Both
+      // orderings are tried because the id depends on who opened it.
+      for (const id of [
+        `direct_${clientId}_${providerId}`,
+        `direct_${providerId}_${clientId}`,
+      ]) {
+        const snap = await getDoc(doc(db, "chat", id));
+        if (snap.exists()) {
+          chatDoc = snap;
+          break;
+        }
+      }
+    }
+
+    if (!chatDoc) {
+      // Last resorts: the per-booking convention and the single-booking field.
+      const legacy = await getDoc(doc(db, "chat", `booking_${bookingId}`));
+      if (legacy.exists()) {
+        chatDoc = legacy;
+      } else {
+        const byBookingId = await getDocs(
+          query(collection(db, "chat"), where("bookingId", "==", bookingId)),
+        ).catch(() => ({ empty: true, docs: [] }));
+        if (byBookingId.empty) return { chatId: null, messages: [] };
+        chatDoc = byBookingId.docs[0];
+      }
     }
 
     const chat = chatDoc.data();
@@ -1721,7 +1772,7 @@ function isPaidBooking(b) {
   const st = String(b.status || "")
     .toLowerCase()
     .replace(/[\s_-]/g, "");
-  return ["confirmed", "ontheway", "inprogress", "completed"].includes(st);
+  return ["confirmed", "inprogress", "completedbyprovider", "completed"].includes(st);
 }
 
 /** Inclusive day-boundary range test built from a start/end pair. */

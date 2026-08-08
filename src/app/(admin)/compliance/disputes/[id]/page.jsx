@@ -20,6 +20,45 @@ import {
   ArrowLeftRight,
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
+import ImagePreviewModal from "@/components/platform/ImagePreviewModal";
+
+/**
+ * Badge colours for a dispute status.
+ *
+ * Mirrors the list page so the same dispute is not one colour in the queue and
+ * another on its detail screen.
+ *
+ * @param {string} status - Display status.
+ * @return {string} Tailwind classes.
+ */
+/**
+ * Human-readable file size.
+ * @param {number} bytes - Size in bytes.
+ * @return {string} e.g. "2.1 MB", or "" when unknown.
+ */
+function formatBytes(bytes) {
+  const n = Number(bytes) || 0;
+  if (!n) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${Math.round((n / 1024 / 1024) * 10) / 10} MB`;
+}
+
+function getStatusClass(status) {
+  switch (status) {
+    case "Resolved":
+      return "text-emerald-500 bg-emerald-50";
+    case "Under Review":
+      return "text-amber-500 bg-amber-50";
+    case "Open":
+      return "text-red-500 bg-red-50";
+    case "Rejected":
+    case "Withdrawn":
+      return "text-neutral-500 bg-neutral-50";
+    default:
+      return "text-text-muted bg-page-bg";
+  }
+}
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDispute, useDisputeChat } from "@/hooks/useDisputes";
 import { resolveDispute, postDisputeMessage, claimDispute } from "@/lib/callables";
@@ -30,6 +69,7 @@ export default function DisputeDetailPage() {
   const id = params.id;
 
   const { dispute, isLoading, isError, error, notFound } = useDispute(id);
+  const [evidence, setEvidence] = useState(null);
   const { messages, chatId } = useDisputeChat(dispute);
   const queryClient = useQueryClient();
 
@@ -66,10 +106,24 @@ export default function DisputeDetailPage() {
 
   const resolveMutation = useMutation({
     mutationFn: resolveDispute,
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
       invalidate();
       setIsResolveModalOpen(false);
       toast.success("Dispute resolved.");
+
+      // The checkbox promises to open the suspension page for the party at
+      // fault. Suspension lives on Accounts, where updateAccountStatus carries
+      // its own audit trail — duplicating it here would give two code paths
+      // for the same action.
+      if (suspendAccount) {
+        const atFault =
+          variables.resolution === "client_favour" ?
+            { uid: dispute.providerId, tab: "Providers" } :
+            { uid: dispute.clientId, tab: "Clients" };
+        if (atFault.uid) {
+          router.push(`/accounts?tab=${atFault.tab}&uid=${atFault.uid}`);
+        }
+      }
     },
     onError: (err) => toast.error(err.message),
   });
@@ -134,14 +188,41 @@ export default function DisputeDetailPage() {
           : "provider_favour";
 
     const amount = Number(adjustmentAmount) || 0;
+    const serviceAmount = Number(dispute.serviceAmount) || 0;
+
+    // A split has to give both sides something. Sending 0 to the provider made
+    // it behave identically to Favor Client. The entered amount is the client's
+    // refund; the provider keeps the remainder of the disputed value.
+    let clientRefundAmount = 0;
+    let providerCreditAmount = 0;
+
+    if (resolution === "provider_favour") {
+      providerCreditAmount = amount;
+    } else if (resolution === "split") {
+      clientRefundAmount = amount;
+      providerCreditAmount = Math.max(
+          0,
+          Math.round((serviceAmount - amount) * 100) / 100,
+      );
+    } else {
+      // Favour client: a blank amount refunds the full service value.
+      clientRefundAmount = amount || serviceAmount;
+    }
+
+    if (resolution === "split" && amount >= serviceAmount) {
+      toast.error(
+          `A split must leave something for the provider — enter less than $${serviceAmount.toFixed(2)}.`,
+      );
+      return;
+    }
 
     resolveMutation.mutate({
       disputeId: dispute.id,
       resolution,
-      clientRefundAmount:
-        resolution === "provider_favour" ? 0 : amount || dispute.serviceAmount,
-      providerCreditAmount: resolution === "provider_favour" ? amount : 0,
-      refundToCard: refundOriginalCard,
+      clientRefundAmount,
+      providerCreditAmount,
+      // Only meaningful when money goes back to the client.
+      refundToCard: resolution === "provider_favour" ? false : refundOriginalCard,
       adminNotes: resolutionNotes.trim(),
     });
   };
@@ -439,59 +520,61 @@ export default function DisputeDetailPage() {
             {/* Evidence Tab Panel */}
             {activeTab === "Evidence" && (
               <div className="space-y-2">
-                {[
-                  {
-                    name: "window_photos_before.jpg",
-                    uploader: `${dispute.client} - Jul 5`,
-                    isImg: true,
-                  },
-                  {
-                    name: "window_photos_after.jpg",
-                    uploader: `${dispute.client} - Jul 5`,
-                    isImg: true,
-                  },
-                  {
-                    name: "listing_description.pdf",
-                    uploader: "System - Jul 5",
-                    isImg: false,
-                  },
-                  {
-                    name: "provider_completion_photo.jpg",
-                    uploader: `${dispute.provider} - Jul 5`,
-                    isImg: true,
-                  },
-                ].map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="bg-page-bg/60 rounded-xl p-3 flex items-center justify-between text-xs hover:bg-page-bg transition border border-border-main/30"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-white border border-border-main flex items-center justify-center shrink-0">
-                        <FileText
-                          size={14}
-                          className={
-                            file.isImg ? "text-blue-500" : "text-amber-500"
-                          }
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="font-medium text-text-primary block truncate text-[11px]">
-                          {file.name}
-                        </span>
-                        <span className="text-[9px] text-text-muted block mt-0.5">
-                          {file.uploader}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => toast.info(`Viewing file ${file.name}...`)}
-                      className="text-text-muted hover:text-text-primary p-1 shrink-0 cursor-pointer"
+                {(dispute.attachments || []).length === 0 ? (
+                  <p className="text-[11px] text-text-muted font-light py-4 text-center">
+                    No evidence was attached to this dispute.
+                  </p>
+                ) : (dispute.attachments || []).map((file, idx) => {
+                  const isImg = String(file.contentType || "").startsWith("image/");
+                  return (
+                    <div
+                      key={file.storagePath || idx}
+                      className="bg-page-bg/60 rounded-xl p-3 flex items-center justify-between text-xs hover:bg-page-bg transition border border-border-main/30"
                     >
-                      <Eye size={13} />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-white border border-border-main flex items-center justify-center shrink-0 overflow-hidden">
+                          {isImg && file.url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={file.url}
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <FileText
+                              size={14}
+                              className={isImg ? "text-blue-500" : "text-amber-500"}
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-medium text-text-primary block truncate text-[11px]">
+                            {file.name || "Attachment"}
+                          </span>
+                          <span className="text-[9px] text-text-muted block mt-0.5">
+                            {[
+                              dispute.raisedBy === "provider" ?
+                                dispute.provider :
+                                dispute.client,
+                              formatBytes(file.size),
+                            ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEvidence(file)}
+                        disabled={!file.url}
+                        title={file.url ? "View attachment" : "No file URL stored"}
+                        className="text-text-muted hover:text-text-primary p-1 shrink-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Eye size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1020,6 +1103,15 @@ export default function DisputeDetailPage() {
           </form>
         </div>
       )}
+
+      <ImagePreviewModal
+        isOpen={Boolean(evidence)}
+        onClose={() => setEvidence(null)}
+        src={evidence?.url}
+        title={evidence?.name}
+        subtitle={evidence?.contentType}
+        contentType={evidence?.contentType}
+      />
     </div>
   );
 }

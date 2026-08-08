@@ -3,6 +3,26 @@
 import React, { useState, useEffect } from "react";
 import { Calendar } from "lucide-react";
 
+/**
+ * The Monday and Sunday bounding the week a date falls in.
+ *
+ * Weeks run Monday–Sunday to match the provider payout cycle.
+ *
+ * @param {Date} date - Any date inside the week.
+ * @return {{monday: Date, sunday: Date}} The week's bounds.
+ */
+function getMondayAndSunday(date) {
+  // getDay() is 0 for Sunday, which belongs to the week that began 6 days ago.
+  const diffToMonday = date.getDay() === 0 ? -6 : 1 - date.getDay();
+  const monday = new Date(date);
+  monday.setDate(date.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { monday, sunday };
+}
+
 export default function DateRangePicker({ startDate, endDate, onChange, isWeekView }) {
   const [tempStartDate, setTempStartDate] = useState(startDate);
   const [tempEndDate, setTempEndDate] = useState(endDate);
@@ -36,12 +56,7 @@ export default function DateRangePicker({ startDate, endDate, onChange, isWeekVi
   const handleApply = () => {
     if (tempStartDate) {
       if (isWeekView) {
-        const day = tempStartDate.getDay();
-        const diffToMonday = day === 0 ? -6 : 1 - day;
-        const monday = new Date(tempStartDate);
-        monday.setDate(tempStartDate.getDate() + diffToMonday);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
+        const { monday, sunday } = getMondayAndSunday(tempStartDate);
         onChange(monday, sunday);
       } else {
         const end = tempEndDate || tempStartDate;

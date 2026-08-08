@@ -11,6 +11,7 @@ import {
   updateSubCategory,
 } from "@/lib/callables";
 import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
+import ImagePreviewModal from "@/components/platform/ImagePreviewModal";
 import {
   Image as ImageIcon,
   ChevronRight,
@@ -61,6 +62,19 @@ export default function ServiceCategoriesPage() {
     mutationFn: updateSubCategory,
     ...afterWrite("Sub-service updated."),
   });
+
+  const [preview, setPreview] = useState(null);
+
+  /**
+   * Opens the image preview.
+   * @param {string} src - Image URL.
+   * @param {string} name - Category or sub-service name.
+   * @param {string} parent - Owning category, for sub-services.
+   */
+  const openPreview = (src, name, parent) => {
+    if (!src) return;
+    setPreview({ src, title: name, subtitle: parent ? `in ${parent}` : "" });
+  };
 
   const busy =
     addCategory.isPending ||
@@ -151,7 +165,11 @@ export default function ServiceCategoriesPage() {
     }
   };
 
-  const confirmDeactivation = ({ item, isParent, parentId }) => {
+  const confirmDeactivation = () => {
+    // The modal calls onConfirm(item) with the row only, so the parent context
+    // comes from pendingDeactivation, which handleToggleClick already stored.
+    if (!pendingDeactivation) return;
+    const { item, isParent, parentId } = pendingDeactivation;
     setActive(item, isParent, parentId, false);
     setDeactivateModalOpen(false);
     setPendingDeactivation(null);
@@ -314,9 +332,24 @@ export default function ServiceCategoriesPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <div className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center">
-                            <ImageIcon size={18} className="text-text-muted" />
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openPreview(cat.image, cat.name)}
+                            disabled={!cat.image}
+                            title={cat.image ? "View image" : "No image uploaded"}
+                            className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center hover:border-primary-bg transition disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                          >
+                            {cat.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={cat.image}
+                                alt={cat.name}
+                                className="w-6 h-6 object-cover rounded"
+                              />
+                            ) : (
+                              <ImageIcon size={18} className="text-text-muted" />
+                            )}
+                          </button>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {/* Switch toggle slider */}
@@ -414,12 +447,24 @@ export default function ServiceCategoriesPage() {
                                 )}
                               </td>
                               <td className="px-4 py-3 text-center">
-                                <div className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center">
-                                  <ImageIcon
-                                    size={18}
-                                    className="text-text-muted"
-                                  />
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => openPreview(sub.image, sub.name, cat.name)}
+                                  disabled={!sub.image}
+                                  title={sub.image ? "View image" : "No image uploaded"}
+                                  className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center hover:border-primary-bg transition disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                                >
+                                  {sub.image ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={sub.image}
+                                      alt={sub.name}
+                                      className="w-6 h-6 object-cover rounded"
+                                    />
+                                  ) : (
+                                    <ImageIcon size={18} className="text-text-muted" />
+                                  )}
+                                </button>
                               </td>
                               <td className="px-4 py-3 text-center">
                                 {/* Switch toggle slider */}
@@ -489,6 +534,14 @@ export default function ServiceCategoriesPage() {
         isOpen={subServiceModalOpen}
         onClose={() => setSubServiceModalOpen(false)}
         onAdd={handleAddSubService}
+      />
+
+      <ImagePreviewModal
+        isOpen={Boolean(preview)}
+        onClose={() => setPreview(null)}
+        src={preview?.src}
+        title={preview?.title}
+        subtitle={preview?.subtitle}
       />
 
       {pendingDeactivation && (
