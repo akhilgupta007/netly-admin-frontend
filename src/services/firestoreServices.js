@@ -2436,7 +2436,7 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
   try {
     const alerts = await safeCollection("availability_alerts");
     if (alerts.length === 0) {
-      return { cities: [], searches: [], services: [], total: 0 };
+      return { cities: [], searches: [], services: [], rows: [], total: 0 };
     }
 
     const unresolved = (a) =>
@@ -2491,10 +2491,43 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
         .sort((a, b) => b.count - a.count)
         .slice(0, max);
 
+    // ── one row per city+category, for the market-intelligence table ──
+    const byPair = new Map();
+    alerts.forEach((a) => {
+      const city = (a.city || "").trim();
+      const category = (a.subcategoryName || a.serviceTitle || a.categoryName || "").trim();
+      if (!city && !category) return;
+      const key = `${city}||${category}`;
+      const at = toMillis(a.createdAt);
+      const row = byPair.get(key) || {
+        id: key,
+        city: city || "—",
+        category: category || "—",
+        province: a.province || "",
+        count: 0,
+        pending: 0,
+        lastAt: null,
+      };
+      row.count += 1;
+      if (unresolved(a)) row.pending += 1;
+      // "Last search" is the most recent alert in this city/category pair.
+      if (at !== null && (row.lastAt === null || at > row.lastAt)) row.lastAt = at;
+      byPair.set(key, row);
+    });
+
+    const rows = [...byPair.values()]
+        .map((r) => ({
+          ...r,
+          date: r.lastAt ? formatFirestoreDate(new Date(r.lastAt)) : "N/A",
+          dateTime: r.lastAt ? new Date(r.lastAt) : null,
+        }))
+        .sort((a, b) => b.count - a.count);
+
     return {
       cities,
       searches,
       services,
+      rows,
       total: alerts.length,
       pending: alerts.filter(unresolved).length,
     };
@@ -2735,6 +2768,560 @@ export async function fetchAccountActivityFromFirestore({
     };
   } catch (error) {
     console.error("Firestore fetchAccountActivity error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 30. Provider service listings, for content moderation.
+ *
+ * `services` is provider-created — not the admin catalogue in `category`.
+ * Each listing names its category and sub-category, so this is where an
+ * admin sees what providers are actually advertising.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.searchTerm - Free-text filter.
+ * @param {string} params.filterStatus - "All" or a status label.
+ * @param {string} params.filterCategory - "All" or a category name.
+ * @param {number} params.page - 1-based page.
+ * @param {number} params.limit - Page size.
+ * @return {Promise<object>} Paginated rows plus the category list.
+ */
+export async function fetchServiceListingsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    filterCategory = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const services = await safeCollection("services");
+    if (services.length === 0) {
+      return { items: [], total: 0, totalPages: 1, categories: [] };
+    }
+
+    // The listing denormalises providerName, but it can be stale or missing,
+    // so the user document wins where one exists.
+    const uids = [...new Set(services.map((s) => s.providerId).filter(Boolean))];
+    const users = new Map();
+    await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            if (snap.exists()) users.set(uid, snap.data());
+          } catch (_) {
+            // A missing user must not drop the listing.
+          }
+        }),
+    );
+
+    /**
+     * Formats a listing's price.
+     *
+     * Pricing is a nested object, not a number: hourly carries HourlyRate plus
+     * a minimum and an extra-hour fee, fixed carries a unit price and a unit
+     * label. Note `UnitPice` — the typo is in the stored data, so reading the
+     * corrected spelling would return nothing.
+     *
+     * @param {object} s - The service document.
+     * @return {string} Display price.
+     */
+    const price = (s) => {
+      const money = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+      const hourly = s.hourlyPricing || null;
+      const fixed = s.fixedPricing || null;
+
+      if (hourly && Number(hourly.HourlyRate)) {
+        const min = Number(hourly.minimumBooking) || 0;
+        return `${money(hourly.HourlyRate)}/hr${min ? ` · min ${min}h` : ""}`;
+      }
+      if (fixed && Number(fixed.UnitPice ?? fixed.UnitPrice)) {
+        const unit = fixed.Unit ? ` / ${fixed.Unit}` : "";
+        return `${money(fixed.UnitPice ?? fixed.UnitPrice)}${unit}`;
+      }
+      return "—";
+    };
+
+    let items = services.map((s) => {
+      const user = users.get(s.providerId);
+      return {
+        id: s.id,
+        providerId: s.providerId || null,
+        provider: user ? displayName(user, "Provider") : s.providerName || "Unknown",
+        email: user?.email || "",
+        category: s.categoryName || "—",
+        subCategory: s.subcategoryName || "—",
+        title: s.serviceName || "Untitled listing",
+        description: s.description || "",
+        pricing: price(s),
+        pricingType: s.pricingType || "—",
+        serviceArea: [s.serviceCity, s.serviceRadiusKm ? `${s.serviceRadiusKm} km` : null]
+            .filter(Boolean)
+            .join(" · ") || "—",
+        image: s.image || "",
+        questions: (s.ServiceQuestions || []).length,
+        status: titleCase(s.status, "Active"),
+        created: formatFirestoreDate(s.createdAt),
+        createdTime: formatFirestoreDateTime(s.createdAt),
+        createdAtRaw: s.createdAt || null,
+      };
+    });
+
+    const categories = [
+      "All",
+      ...[...new Set(items.map((i) => i.category).filter((c) => c && c !== "—"))].sort(),
+    ];
+
+    if (filterCategory !== "All") {
+      items = items.filter((i) => i.category === filterCategory);
+    }
+
+    return {
+      ...filterAndPaginate(items, {
+        searchTerm,
+        searchFields: ["provider", "email", "title", "subCategory"],
+        filterStatus,
+        statusField: "status",
+        startDate,
+        endDate,
+        dateField: "createdAtRaw",
+        page,
+        limit,
+      }),
+      categories,
+    };
+  } catch (error) {
+    console.error("Firestore fetchServiceListings error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 31. Client reviews, for moderation.
+ *
+ * The same collection backs the flagged-content view: a review carries
+ * isFlagged / flagStatus / flagReason, so a flagged item is a review with a
+ * flag rather than a separate record.
+ *
+ * @param {object} params - Options.
+ * @param {boolean} params.flaggedOnly - Restrict to flagged reviews.
+ * @param {string} params.searchTerm - Free-text filter.
+ * @param {string} params.filterRating - "All" or a star value.
+ * @param {number} params.page - 1-based page.
+ * @param {number} params.limit - Page size.
+ * @return {Promise<object>} Paginated rows plus counts.
+ */
+export async function fetchReviewsFromFirestore(params = {}) {
+  const {
+    flaggedOnly = false,
+    searchTerm = "",
+    filterRating = "All",
+    filterStatus = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const reviews = await safeCollection("reviews");
+    if (reviews.length === 0) {
+      return { items: [], total: 0, totalPages: 1, counts: null };
+    }
+
+    // Reviews store the client name but not the provider's, so that side is
+    // joined; the client name is trusted as written at review time.
+    const uids = [...new Set(reviews.map((r) => r.providerId).filter(Boolean))];
+    const users = new Map();
+    await Promise.all(
+        uids.map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            if (snap.exists()) users.set(uid, snap.data());
+          } catch (_) {
+            // A missing provider must not hide the review.
+          }
+        }),
+    );
+
+    let items = reviews.map((r) => {
+      const provider = users.get(r.providerId);
+      return {
+        id: r.id,
+        clientId: r.clientId || null,
+        providerId: r.providerId || null,
+        client: r.clientName || "Client",
+        clientPhotoUrl: r.clientPhotoUrl || "",
+        provider: provider ? displayName(provider, "Provider") : "Unknown provider",
+        providerEmail: provider?.email || "",
+        service: r.serviceTitle || "—",
+        bookingId: r.bookingId || null,
+        rating: Number(r.rating) || 0,
+        // The sub-scores the app collects, shown on the detail view.
+        ratingQuality: Number(r.ratingQuality) || 0,
+        ratingPunctuality: Number(r.ratingPunctuality) || 0,
+        ratingProfessionalism: Number(r.ratingProfessionalism) || 0,
+        ratingCompliance: Number(r.ratingCompliance) || 0,
+        reviewText: r.comment || "",
+        providerResponse: r.providerResponse || "",
+        isFlagged: Boolean(r.isFlagged),
+        flagReason: r.flagReason || "",
+        flaggedBy: r.flaggedBy || "",
+        flagStatus: titleCase(r.flagStatus, r.isFlagged ? "Pending" : "—"),
+        // isVisible is the moderation outcome; absent means visible.
+        isVisible: r.isVisible !== false,
+        status: r.isVisible === false ? "Removed" : r.isFlagged ? "Flagged" : "Published",
+        date: formatFirestoreDate(r.createdAt),
+        dateTime: toDate(r.createdAt),
+        createdAtRaw: r.createdAt || null,
+      };
+    });
+
+    const counts = {
+      total: items.length,
+      flagged: items.filter((i) => i.isFlagged).length,
+      removed: items.filter((i) => !i.isVisible).length,
+      averageRating:
+        items.length > 0 ?
+          Math.round(
+              (items.reduce((a, i) => a + i.rating, 0) / items.length) * 10,
+          ) / 10 :
+          0,
+    };
+
+    if (flaggedOnly) items = items.filter((i) => i.isFlagged);
+    if (filterRating !== "All") {
+      items = items.filter((i) => String(i.rating) === String(filterRating));
+    }
+
+    items.sort(
+        (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+    );
+
+    return {
+      ...filterAndPaginate(items, {
+        searchTerm,
+        searchFields: ["client", "provider", "reviewText", "service"],
+        filterStatus,
+        statusField: "status",
+        startDate,
+        endDate,
+        dateField: "createdAtRaw",
+        page,
+        limit,
+      }),
+      counts,
+    };
+  } catch (error) {
+    console.error("Firestore fetchReviews error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 32. User growth and activity statistics.
+ *
+ * Derived from users, bookings and addresses rather than a stats collection —
+ * nothing aggregates these server-side, and at this scale a client-side pass
+ * is cheaper than maintaining counters.
+ *
+ * @return {Promise<object>} Totals, per-city rows and a 12-month series.
+ */
+export async function fetchUserStatsFromFirestore() {
+  try {
+    const [clients, providers, bookings] = await Promise.all([
+      loadUsersByType("client"),
+      loadUsersByType("provider"),
+      safeCollection("bookings"),
+    ]);
+
+    const all = [...clients, ...providers];
+    const addresses = await loadAddressMap(all.map((u) => u.uid));
+
+    const norm = (v) => String(v || "").toLowerCase();
+    const bookingsByClient = new Map();
+    bookings.forEach((b) => {
+      if (b.clientId) {
+        bookingsByClient.set(b.clientId, (bookingsByClient.get(b.clientId) || 0) + 1);
+      }
+    });
+
+    // ── per-city breakdown ──
+    const byCity = new Map();
+    const addRow = (uid, type) => {
+      const addr = addresses.get(uid) || {};
+      const city = (addr.city || "").trim() || "Unknown";
+      const row = byCity.get(city) || {
+        id: city,
+        city,
+        country: addr.country || addr.province || "—",
+        clients: 0,
+        providers: 0,
+        bookings: 0,
+      };
+      row[type === "client" ? "clients" : "providers"] += 1;
+      if (type === "client") row.bookings += bookingsByClient.get(uid) || 0;
+      byCity.set(city, row);
+    };
+    clients.forEach(({ uid }) => addRow(uid, "client"));
+    providers.forEach(({ uid }) => addRow(uid, "provider"));
+
+    // Per-city GMV and the dominant category, joined through the listing a
+    // booking was made against.
+    const svcById = new Map(
+        (await safeCollection("services")).map((sv) => [sv.id, sv]),
+    );
+    const cityOf = (uid) => (addresses.get(uid) || {}).city?.trim() || "Unknown";
+    const gmvByCity = new Map();
+    const catByCity = new Map();
+    bookings.forEach((b) => {
+      const city = b.clientId ? cityOf(b.clientId) : "Unknown";
+      gmvByCity.set(
+          city,
+          (gmvByCity.get(city) || 0) + (Number(b.transactionAmount) || 0),
+      );
+      const svc = svcById.get(b.serviceId);
+      if (svc) {
+        const key = `${city}||${svc.categoryName || ""}||${svc.subcategoryName || ""}`;
+        catByCity.set(key, (catByCity.get(key) || 0) + 1);
+      }
+    });
+
+    /**
+     * The most-booked category in a city.
+     * @param {string} city - City name.
+     * @return {{category: string, subCategory: string}} Top pair.
+     */
+    const topCategory = (city) => {
+      let best = null;
+      let bestN = 0;
+      for (const [key, n] of catByCity) {
+        if (!key.startsWith(`${city}||`) || n <= bestN) continue;
+        best = key;
+        bestN = n;
+      }
+      if (!best) return { category: "—", subCategory: "—" };
+      const [, category, subCategory] = best.split("||");
+      return { category: category || "—", subCategory: subCategory || "—" };
+    };
+
+    const cities = [...byCity.values()]
+        .map((r) => {
+          const { category, subCategory } = topCategory(r.city);
+          // Clients per provider. A high ratio means demand outstrips supply.
+          const ratio = r.providers > 0 ?
+            Math.round((r.clients / r.providers) * 10) / 10 :
+            r.clients;
+          return {
+            ...r,
+            users: r.clients + r.providers,
+            category,
+            subCategory,
+            ratio,
+            volume: r.bookings,
+            gmv: Math.round((gmvByCity.get(r.city) || 0) * 100) / 100,
+            demandLevel:
+              r.providers === 0 && r.clients > 0 ?
+                "Unserved" :
+                ratio >= 4 ?
+                  "High demand" :
+                  ratio >= 2 ?
+                    "Medium" :
+                    "Balanced",
+          };
+        })
+        .sort((a, b) => b.users - a.users);
+
+    // ── 12-month signup series ──
+    const now = new Date();
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+      return {
+        key: `${d.getFullYear()}-${d.getMonth()}`,
+        month: d.toLocaleDateString("en-US", { month: "short" }),
+        clients: 0,
+        providers: 0,
+      };
+    });
+    const bucket = new Map(months.map((m) => [m.key, m]));
+    const place = (uid, data, type) => {
+      const d = toDate(data.createdAt);
+      if (!d) return;
+      const m = bucket.get(`${d.getFullYear()}-${d.getMonth()}`);
+      if (m) m[type === "client" ? "clients" : "providers"] += 1;
+    };
+    clients.forEach(({ uid, data }) => place(uid, data, "client"));
+    providers.forEach(({ uid, data }) => place(uid, data, "provider"));
+
+    const active = (list) =>
+      list.filter(({ data }) => norm(data.status) === "active").length;
+
+    return {
+      totals: {
+        users: all.length,
+        clients: clients.length,
+        providers: providers.length,
+        activeClients: active(clients),
+        activeProviders: active(providers),
+        suspended: all.filter(({ data }) =>
+          ["suspended", "banned"].includes(norm(data.status)),
+        ).length,
+        invited: all.filter(({ data }) => norm(data.status) === "invited").length,
+        bookings: bookings.length,
+        cities: cities.filter((c) => c.city !== "Unknown").length,
+      },
+      cities,
+      months,
+    };
+  } catch (error) {
+    console.error("Firestore fetchUserStats error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 33. The flagged-content queue.
+ *
+ * Two things land here and they are stored differently: user-submitted
+ * `reports` (raised from the apps against a listing, review or user), and
+ * reviews carrying an `isFlagged` marker. Merging them means an admin works
+ * one queue instead of remembering which surface a complaint arrived through.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.searchTerm - Free-text filter.
+ * @param {string} params.filterType - "All", "Listing", "Review" or "User".
+ * @param {number} params.page - 1-based page.
+ * @param {number} params.limit - Page size.
+ * @return {Promise<object>} Paginated rows plus queue counts.
+ */
+export async function fetchFlaggedContentFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterType = "All",
+    filterStatus = "All",
+    startDate = null,
+    endDate = null,
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const [reports, reviews] = await Promise.all([
+      safeCollection("reports"),
+      safeCollection("reviews"),
+    ]);
+
+    // Resolve every uid mentioned by either source in one pass.
+    const uids = new Set();
+    reports.forEach((r) => {
+      if (r.reportedBy) uids.add(r.reportedBy);
+      if (r.targetUserId) uids.add(r.targetUserId);
+    });
+    reviews.filter((r) => r.isFlagged).forEach((r) => {
+      if (r.clientId) uids.add(r.clientId);
+      if (r.providerId) uids.add(r.providerId);
+    });
+
+    const users = new Map();
+    await Promise.all(
+        [...uids].map(async (uid) => {
+          try {
+            const snap = await getDoc(doc(db, "users", uid));
+            if (snap.exists()) users.set(uid, snap.data());
+          } catch (_) {
+            // A missing user must not hide the complaint.
+          }
+        }),
+    );
+    const nameOf = (uid, fallback) => {
+      const u = users.get(uid);
+      return u ? displayName(u, fallback) : fallback;
+    };
+
+    const rows = [
+      // ── user-submitted reports ──
+      ...reports.map((r) => ({
+        id: r.id,
+        source: "report",
+        reportId: r.id,
+        type: titleCase(r.targetType, "Content"),
+        targetId: r.targetId || null,
+        reportedBy: nameOf(r.reportedBy, "Reporter"),
+        email: users.get(r.reportedBy)?.email || "",
+        subjectEmail: users.get(r.targetUserId)?.email || "",
+        content: r.reason || r.description || "No detail provided.",
+        status: titleCase(r.status, "Pending"),
+        isPending: String(r.status || "pending").toLowerCase() === "pending",
+        date: formatFirestoreDate(r.createdAt),
+        dateTime: toDate(r.createdAt),
+        createdAtRaw: r.createdAt || null,
+      })),
+
+      // ── reviews flagged in-app ──
+      ...reviews
+          .filter((r) => r.isFlagged)
+          .map((r) => ({
+            id: `review-${r.id}`,
+            source: "review",
+            reviewId: r.id,
+            type: "Review",
+            targetId: r.id,
+            // flaggedBy holds a uid when the flag came from a user, and is
+            // blank when the app's own filters raised it.
+            reportedBy: r.flaggedBy ?
+              nameOf(r.flaggedBy, "Reporter") :
+              "Automatic filter",
+            email: users.get(r.flaggedBy)?.email || "",
+            subjectEmail: users.get(r.providerId)?.email || "",
+            content:
+              r.flagReason ?
+                `${r.flagReason} — “${r.comment || "(no comment)"}”` :
+                `“${r.comment || "(no comment)"}”`,
+            rating: Number(r.rating) || 0,
+            status: titleCase(r.flagStatus, "Pending"),
+            isPending: !r.flagStatus || String(r.flagStatus).toLowerCase() === "pending",
+            date: formatFirestoreDate(r.createdAt),
+            dateTime: toDate(r.createdAt),
+            createdAtRaw: r.createdAt || null,
+          })),
+    ];
+
+    const counts = {
+      total: rows.length,
+      pending: rows.filter((r) => r.isPending).length,
+      listings: rows.filter((r) => r.type === "Listing").length,
+      reviews: rows.filter((r) => r.type === "Review").length,
+    };
+
+    let items = rows;
+    if (filterType !== "All") items = items.filter((r) => r.type === filterType);
+
+    // Pending first — those are the only rows needing a decision.
+    items.sort((a, b) => {
+      if (a.isPending !== b.isPending) return a.isPending ? -1 : 1;
+      return (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0);
+    });
+
+    return {
+      ...filterAndPaginate(items, {
+        searchTerm,
+        searchFields: ["reportedBy", "email", "content", "subjectEmail"],
+        filterStatus,
+        statusField: "status",
+        startDate,
+        endDate,
+        dateField: "createdAtRaw",
+        page,
+        limit,
+      }),
+      counts,
+    };
+  } catch (error) {
+    console.error("Firestore fetchFlaggedContent error:", error);
     throw error;
   }
 }

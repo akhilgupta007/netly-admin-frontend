@@ -8,111 +8,14 @@ import Pagination from "@/components/ui/Pagination";
 import ListingDetailsModal from "@/components/platform/ListingDetailsModal";
 import DeactivateListingModal from "@/components/platform/DeactivateListingModal";
 import RemoveListingModal from "@/components/platform/RemoveListingModal";
+import { useServiceListings } from "@/hooks/usePlatform";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { moderateListing } from "@/lib/callables";
+import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 // Initial Mock Listings list
-const initialListings = [
-  {
-    id: "LST-001",
-    provider: "Kwame Adjei",
-    email: "kwame@clean.io",
-    category: "Home Cleaning",
-    subCategory: "Deep Cleaning",
-    title: "Professional Deep Clean -- Any Size Home",
-    created: "May 22, 2027",
-    createdTime: new Date(2027, 4, 22),
-    pricing: "Hourly",
-    status: "Active",
-    description: "Thorough room-by-room clean including oven, fridge, bathrooms. Eco-friendly products. 5-star rated.",
-    serviceArea: "Accra Metro"
-  },
-  {
-    id: "LST-002",
-    provider: "Emily Chen",
-    email: "emily@clean.io",
-    category: "Lawn Care",
-    subCategory: "Seasonal Maintenance",
-    title: "Comprehensive Lawn Service -- All Seasons",
-    created: "Aug 1, 2027",
-    createdTime: new Date(2027, 7, 1),
-    pricing: "Quote based",
-    status: "Active",
-    description: "Full lawn mowing, leaf blowing, weed control, edging, and seasonal aeration/overseeding. Reliable weekly slots.",
-    serviceArea: "Toronto West"
-  },
-  {
-    id: "LST-003",
-    provider: "Jamal Robinson",
-    email: "jamal@clean.io",
-    category: "Pet Care",
-    subCategory: "Daily Walks",
-    title: "Regular Dog Walking Service -- Up to 3 Dogs",
-    created: "Jul 10, 2027",
-    createdTime: new Date(2027, 6, 10),
-    pricing: "Per Item",
-    status: "Active",
-    description: "Professional dog walking. 30/60 minute options. Photo updates, water refills, and clean paws guaranteed.",
-    serviceArea: "Brooklyn Heights"
-  },
-  {
-    id: "LST-004",
-    provider: "Liam Patel",
-    email: "liam@clean.io",
-    category: "Graphic Design",
-    subCategory: "Brand Identity",
-    title: "Comprehensive Branding Package -- Logo and Visuals",
-    created: "Sep 5, 2027",
-    createdTime: new Date(2027, 8, 5),
-    pricing: "Hourly",
-    status: "Deactivated",
-    description: "Complete brand identity setup, logo, business card design, brand style guide, social media kits.",
-    serviceArea: "Vancouver Metro"
-  },
-  {
-    id: "LST-005",
-    provider: "Sophia Martinez",
-    email: "sophia@clean.io",
-    category: "Lawn Care",
-    subCategory: "Seasonal Maintenance",
-    title: "Full Lawn Restoration -- Large Yard",
-    created: "Jun 15, 2027",
-    createdTime: new Date(2027, 5, 15),
-    pricing: "Hourly",
-    status: "Active",
-    description: "Weed removal, top dressing, seeding, and organic fertilizing for large properties.",
-    serviceArea: "Austin North"
-  },
-  {
-    id: "LST-006",
-    provider: "Olivia Kim",
-    email: "olivia@clean.io",
-    category: "Web Development",
-    subCategory: "E-commerce Solutions",
-    title: "Custom E-commerce Website Development",
-    created: "Oct 12, 2027",
-    createdTime: new Date(2027, 9, 12),
-    pricing: "Quote based",
-    status: "Active",
-    description: "Fully responsive Shopify or NextJS ecommerce portal development with payment integrations.",
-    serviceArea: "Seattle Central"
-  },
-  {
-    id: "LST-007",
-    provider: "Ethan Carter",
-    email: "ethan@clean.io",
-    category: "Mobile Development",
-    subCategory: "Social Media App",
-    title: "iOS and Android App Development",
-    created: "Feb 15, 2028",
-    createdTime: new Date(2028, 1, 15),
-    pricing: "Fixed priced",
-    status: "Active",
-    description: "Native or React Native cross-platform app design and launch services.",
-    serviceArea: "Accra Metro"
-  }
-];
 
 export default function ServiceListingsTab() {
-  const [listings, setListings] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterPricing, setFilterPricing] = useState("All");
@@ -120,6 +23,22 @@ export default function ServiceListingsTab() {
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+  const queryClient = useQueryClient();
+
+  const {
+    listings,
+    totalCount,
+    categories,
+    isLoading,
+    isFetching,
+    isError,
+  } = useServiceListings({
+    searchTerm,
+    filterStatus,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+
 
   // Active action dropdown row ID
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
@@ -133,28 +52,7 @@ export default function ServiceListingsTab() {
   const [removeOpen, setRemoveOpen] = useState(false);
 
   // Load from LocalStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("netly_service_listings");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored).map(item => ({
-          ...item,
-          createdTime: item.createdTime ? new Date(item.createdTime) : new Date()
-        }));
-        setListings(parsed);
-      } catch (e) {
-        setListings(initialListings);
-      }
-    } else {
-      setListings(initialListings);
-      localStorage.setItem("netly_service_listings", JSON.stringify(initialListings));
-    }
-  }, []);
 
-  const saveListings = (updatedList) => {
-    setListings(updatedList);
-    localStorage.setItem("netly_service_listings", JSON.stringify(updatedList));
-  };
 
   // Close dropdown menu on clicking outside
   useEffect(() => {
@@ -168,22 +66,38 @@ export default function ServiceListingsTab() {
   }, []);
 
   // Action callback executors
+  const moderate = useMutation({
+    mutationFn: moderateListing,
+    onSuccess: (_r, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["serviceListings"] });
+      queryClient.invalidateQueries({ queryKey: ["flaggedContent"] });
+      setDeactivateOpen(false);
+      setRemoveOpen(false);
+      setSelectedListing(null);
+      toast.success(
+          variables.action === "remove" ?
+            "Listing removed from the marketplace." :
+            "Listing deactivated.",
+      );
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const confirmDeactivate = (listing, reason) => {
-    const updated = listings.map((lst) =>
-      lst.id === listing.id ? { ...lst, status: "Deactivated" } : lst
-    );
-    saveListings(updated);
-    setDeactivateOpen(false);
-    setSelectedListing(null);
-    toast.success(`Listing deactivated successfully. Reason: "${reason}"`);
+    moderate.mutate({
+      listingId: (listing || selectedListing)?.id,
+      action: "deactivate",
+      reason,
+    });
   };
 
   const confirmRemove = (listing, reason) => {
-    const updated = listings.filter((lst) => lst.id !== listing.id);
-    saveListings(updated);
-    setRemoveOpen(false);
-    setSelectedListing(null);
-    toast.success(`Listing has been permanently removed.`);
+    // Soft delete on the backend — bookings reference the listing.
+    moderate.mutate({
+      listingId: (listing || selectedListing)?.id,
+      action: "remove",
+      reason,
+    });
   };
 
   // Filtering
@@ -218,7 +132,8 @@ export default function ServiceListingsTab() {
     <div className="space-y-4 animate-scale-up">
 
       {/* Inline Filters bar inside the white container */}
-      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs">
+      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs relative">
+        <RefreshingBar active={isFetching && !isLoading} />
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border-main">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-text-muted" />
@@ -282,7 +197,16 @@ export default function ServiceListingsTab() {
         </div>
 
         {/* Listings Data List */}
-        {filteredListings.length === 0 ? (
+        {isLoading ? (
+          <ListSkeleton rows={6} columns={6} firstColAvatar={false} />
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white">
+            <h3 className="text-sm font-semibold text-text-primary">Could not load listings</h3>
+            <p className="text-xs text-text-muted font-light">
+              Check your connection and refresh.
+            </p>
+          </div>
+        ) : filteredListings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
             <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
             <div className="space-y-1">

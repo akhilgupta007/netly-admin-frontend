@@ -22,7 +22,7 @@ import {
 import { getInitials } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDispute, useDisputeChat } from "@/hooks/useDisputes";
-import { resolveDispute, postDisputeMessage } from "@/lib/callables";
+import { resolveDispute, postDisputeMessage, claimDispute } from "@/lib/callables";
 
 export default function DisputeDetailPage() {
   const params = useParams();
@@ -74,12 +74,27 @@ export default function DisputeDetailPage() {
     onError: (err) => toast.error(err.message),
   });
 
-  // Claiming is a status-only change. resolveDispute is terminal — it moves
-  // money — so there is no callable for the intermediate "under review" step.
+  const claimMutation = useMutation({
+    mutationFn: claimDispute,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["dispute", id] });
+      queryClient.invalidateQueries({ queryKey: ["disputes"] });
+      toast.success(
+          result.claimedBy ?
+            "Dispute claimed — it is now under your review." :
+            "Claim released back to the queue.",
+      );
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleClaimDispute = () => {
-    toast.info(
-      "Claiming a dispute is not wired yet — only final resolution has a backend endpoint.",
-    );
+    // Claiming stops two admins working the same dispute; resolveDispute is
+    // the separate, terminal step that moves money.
+    claimMutation.mutate({
+      disputeId: id,
+      action: dispute?.claimedBy ? "release" : "claim",
+    });
   };
 
   const handleSendChatSubmit = (e) => {

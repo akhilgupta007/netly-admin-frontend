@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { usePayoutQueue } from "@/hooks/useFinance";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { holdProviderPayout } from "@/lib/callables";
 import { Search, ChevronDown, Calendar, Users, AlertCircle, Clock } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
@@ -40,6 +42,7 @@ export default function PayoutQueueTab() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
+  const queryClient = useQueryClient();
   const itemsPerPage = 8;
 
   const {
@@ -56,25 +59,45 @@ export default function PayoutQueueTab() {
     limit: itemsPerPage,
   });
 
-  // Holding and retrying a payout have no Cloud Function behind them yet, and
-  // every write has to go through one. Rather than mutate local state and imply
-  // the transfer changed, both paths say plainly that they are unavailable.
+  const holdMutation = useMutation({
+    mutationFn: holdProviderPayout,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["payoutQueue"] });
+      setIsHoldModalOpen(false);
+      setSelectedPayout(null);
+      toast.success(
+          result.payoutHold ?
+            "Payout held — the balance stays in ACTIVE and rolls to next Friday." :
+            "Hold released — this provider is back in the Friday run.",
+      );
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleActionClick = (item) => {
     setSelectedPayout(item);
     if (item.status === "Failed") {
+      // Retrying is automatic: the balance never left ACTIVE, so the next
+      // Friday run picks it up without intervention.
       toast.info(
-          "Retry is not available yet. The balance stays in ACTIVE and the next " +
-        "Friday run will attempt it again automatically.",
+          "The balance stays in ACTIVE and the next Friday run will attempt it " +
+        "again automatically.",
       );
+      return;
+    }
+    if (item.payoutHold) {
+      holdMutation.mutate({ providerId: item.uid, action: "release" });
       return;
     }
     setIsViewModalOpen(true);
   };
 
-  const handleConfirmHold = () => {
-    toast.info("Holding a payout is not implemented yet.");
-    setIsHoldModalOpen(false);
-    setSelectedPayout(null);
+  const handleConfirmHold = (reason) => {
+    holdMutation.mutate({
+      providerId: selectedPayout?.uid,
+      action: "hold",
+      reason,
+    });
   };
 
   // The date filter applied to lastPayoutDate, which is not what this view is

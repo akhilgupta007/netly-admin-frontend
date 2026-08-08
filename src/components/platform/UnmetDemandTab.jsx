@@ -6,22 +6,15 @@ import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import { exportCSV } from "@/utils/exportHelper";
+import { useUnmetDemand } from "@/hooks/useDashboard";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 
 // Mock demand data matching Screenshot 2
-const mockDemand = [
-  { id: "DEM-001", city: "Lagos", category: "Window Cleaning", count: 45, date: "Jun 24, 2027", dateTime: new Date(2027, 5, 24) },
-  { id: "DEM-002", city: "Nairobi", category: "General Cleaning", count: 30, date: "Jul 15, 2027", dateTime: new Date(2027, 6, 15) },
-  { id: "DEM-003", city: "Johannesburg", category: "Office Cleaning", count: 50, date: "Aug 01, 2027", dateTime: new Date(2027, 7, 1) },
-  { id: "DEM-004", city: "Accra", category: "Carpet Cleaning", count: 25, date: "Sep 10, 2027", dateTime: new Date(2027, 8, 10) },
-  { id: "DEM-005", city: "Kampala", category: "Post-Construction Cleaning", count: 60, date: "Oct 05, 2027", dateTime: new Date(2027, 9, 5) },
-  { id: "DEM-006", city: "Dar es Salaam", category: "Deep Cleaning", count: 40, date: "Nov 11, 2027", dateTime: new Date(2027, 10, 11) },
-  { id: "DEM-007", city: "Abuja", category: "Pressure Washing", count: 55, date: "Dec 20, 2027", dateTime: new Date(2027, 11, 20) },
-  { id: "DEM-008", city: "Cairo", category: "Window Cleaning", count: 70, date: "Jan 15, 2028", dateTime: new Date(2028, 0, 15) },
-  { id: "DEM-009", city: "Nairobi", category: "Residential Cleaning", count: 35, date: "Feb 28, 2028", dateTime: new Date(2028, 1, 28) }
-];
 
 export default function UnmetDemandTab() {
-  const [data, setData] = useState(mockDemand);
+  // availability_alerts records a search where no provider covered the area,
+  // grouped here by city and category.
+  const { rows: data, isLoading, isError } = useUnmetDemand();
   const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -125,7 +118,22 @@ export default function UnmetDemandTab() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
-                {paginated.map((item) => (
+                {isLoading ? (
+                  <TableSkeleton columns={5} rows={5} />
+                ) : isError ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12 text-center text-text-muted font-light">
+                      Could not load demand data.
+                    </td>
+                  </tr>
+                ) : paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12 text-center text-text-muted font-light">
+                      No unmet demand recorded yet. Rows appear when a client
+                      searches somewhere no provider covers.
+                    </td>
+                  </tr>
+                ) : paginated.map((item) => (
                   <tr key={item.id} className="hover:bg-page-bg/50 transition">
                     <td className="px-4 py-3 flex items-center gap-2">
                       <MapPin size={13} className="text-text-muted shrink-0" />
