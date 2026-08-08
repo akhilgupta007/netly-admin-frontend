@@ -6,24 +6,26 @@ import { Bell, Menu, User } from "lucide-react";
 import { navigation } from "./Sidebar";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useEffect, useState } from "react";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { ADMIN_ROLE_LABELS } from "@/lib/adminRoles";
 
 export default function Header({ setSidebarOpen, title: propTitle, subtitle: propSubtitle }) {
   const pathname = usePathname();
   
   const authRole = useAuthStore((state) => state.role);
-  const [adminName, setAdminName] = useState("Sophia");
+  // Reads the admin's own users document. This previously came from a
+  // localStorage copy that no longer exists, so it always fell back to a
+  // placeholder name.
+  const { profile } = useAdminProfile();
 
-  useEffect(() => {
-    const storedProfile = localStorage.getItem("netly_admin_profile");
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile);
-        if (parsed.firstName) {
-          setAdminName(parsed.firstName);
-        }
-      } catch (e) {}
-    }
-  }, []);
+  // First name only — the header has room for one word.
+  // An email prefix is not a name — "rojor83711+admin2" reads worse than the
+  // generic label, so an admin who has not set a name gets "Admin" until they
+  // save one in Profile Settings.
+  const adminName =
+    profile?.firstName ||
+    (profile?.fullName || "").trim().split(" ")[0] ||
+    "Admin";
 
   // Extract all navigation items into a single flat array
   const allItems = navigation.flatMap((group) => group.items);
@@ -112,7 +114,7 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
           {/* User details text */}
           <div className="hidden sm:flex flex-col text-left">
             <span className="text-sm font-medium text-text-primary leading-tight">{adminName}</span>
-            <span className="text-xs text-text-muted font-light leading-none">{authRole || "Admin"}</span>
+            <span className="text-xs text-text-muted font-light leading-none">{ADMIN_ROLE_LABELS[authRole] || authRole || "Admin"}</span>
           </div>
         </Link>
       </div>

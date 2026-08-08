@@ -116,16 +116,6 @@ export default function WalletsRefundsPage() {
       { enabled: activeTab === "transfer" },
   );
 
-  // Calendar toggle helper
-  const toggleCalendar = () => {
-    if (!calendarOpen) {
-      setTempStartDate(startDate);
-      setTempEndDate(endDate);
-      setShowMonthYearSelector(false);
-    }
-    setCalendarOpen(!calendarOpen);
-  };
-
   // Filtering Wallets List
   const filteredWallets = useMemo(() => {
     return wallets.filter(w => {
