@@ -3376,3 +3376,142 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
     throw error;
   }
 }
+
+/**
+ * 34. The admin notification feed.
+ *
+ * There is no admin_notifications collection, and inventing one would mean
+ * every function that already writes a queue entry also writing a duplicate
+ * notification that could drift from it. Instead the feed is derived: the
+ * things an admin needs to act on are exactly the rows sitting unresolved in
+ * the operational queues, so those queues *are* the notifications.
+ *
+ * Everything listed is still waiting on a decision. An item leaves the feed the
+ * moment it is dealt with, because it stops matching the filter that put it
+ * there — resolving a dispute, approving a refund, reviewing a KYC submission.
+ * Nothing here is ever "dismissed": the queue is the source of truth, so the
+ * bell cannot disagree with the screen it links to.
+ *
+ * Ids are stable and derived from the source document, which is what lets the
+ * read watermark in localStorage stay meaningful across refreshes.
+ *
+ * @param {object} params - Options.
+ * @param {number} [params.max] - Cap on returned items.
+ * @return {Promise<Array<object>>} Newest first.
+ */
+export async function fetchAdminNotificationsFromFirestore({ max = 50 } = {}) {
+  try {
+    const [disputes, creditRequests, withdrawals, kyc, payouts] =
+      await Promise.all([
+        safeCollection("disputes"),
+        safeCollection("wallet_credit_requests"),
+        safeCollection("withdrawal_requests"),
+        safeCollection("kyc"),
+        safeCollection("payout_logs"),
+      ]);
+
+    const items = [];
+    const money = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+
+    // Open disputes — the only queue with a compliance clock on it.
+    disputes
+        .filter((d) => {
+          const s = String(d.status || "").toLowerCase().replace(/[\s_-]/g, "");
+          return s === "open" || s === "underreview";
+        })
+        .forEach((d) => {
+          items.push({
+            id: `dispute:${d.id}`,
+            kind: "dispute",
+            title: "Dispute needs a decision",
+            message: `${d.clientName || "A client"} disputed ${
+              d.serviceTitle || "a booking"
+            }${d.bookingAmount ? ` (${money(d.bookingAmount)})` : ""}.`,
+            href: `/compliance/disputes/${d.id}`,
+            at: toMillis(d.createdAt) || 0,
+            severity: "high",
+          });
+        });
+
+    // Refunds waiting on approval — money owed to a client until cleared.
+    creditRequests
+        .filter((r) => String(r.status || "").toLowerCase() === "pending")
+        .forEach((r) => {
+          items.push({
+            id: `credit:${r.id}`,
+            kind: "refund",
+            title: "Refund awaiting approval",
+            message: `${money(r.amount)} to credit — ${
+              r.reason || "no reason recorded"
+            }.`,
+            href: "/wallets",
+            at: toMillis(r.createdAt) || 0,
+            severity: "high",
+          });
+        });
+
+    // Withdrawals waiting on approval.
+    withdrawals
+        .filter((w) => String(w.status || "").toLowerCase() === "pending")
+        .forEach((w) => {
+          items.push({
+            id: `withdrawal:${w.id}`,
+            kind: "withdrawal",
+            title: "Withdrawal request",
+            message: `${money(w.amount)} requested for payout.`,
+            href: "/wallets",
+            at: toMillis(w.createdAt) || 0,
+            severity: "medium",
+          });
+        });
+
+    // KYC submissions a provider cannot start earning without.
+    kyc
+        .filter((k) => String(k.status || "").toLowerCase() === "pending")
+        .forEach((k) => {
+          items.push({
+            id: `kyc:${k.id}`,
+            kind: "kyc",
+            title: "KYC awaiting review",
+            message: "A provider submitted verification documents.",
+            href: "/compliance/kyc",
+            at: toMillis(k.submittedAt) || toMillis(k.createdAt) || 0,
+            severity: "medium",
+          });
+        });
+
+    // Failed payouts. A provider has worked and not been paid, so this ranks
+    // with disputes rather than with the informational rows.
+    //
+    // Unlike every other source here, a payout log has no resolved state — it
+    // records what happened and is never updated. So recency is what retires
+    // it: the next Friday run either pays the provider or writes a fresh
+    // failure, which means anything older than two weeks has been superseded
+    // either way and would otherwise sit in the bell forever.
+    const PAYOUT_FAILURE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+    const payoutCutoff = Date.now() - PAYOUT_FAILURE_WINDOW_MS;
+
+    payouts
+        .filter((p) => String(p.status || "").toLowerCase() === "failed")
+        .forEach((p) => {
+          const at = toMillis(p.processedAt) || 0;
+          if (at < payoutCutoff) return;
+          items.push({
+            id: `payout:${p.id}`,
+            kind: "payout",
+            title: "Payout failed",
+            message: `${money(p.amount)} did not reach a provider${
+              p.errorMessage ? `: ${p.errorMessage}` : "."
+            }`,
+            href: "/finance/commissions",
+            at,
+            severity: "high",
+          });
+        });
+
+    return items.sort((a, b) => b.at - a.at).slice(0, max);
+  } catch (error) {
+    console.error("Firestore fetchAdminNotifications error:", error);
+    throw error;
+  }
+}
