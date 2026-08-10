@@ -1775,6 +1775,30 @@ function isPaidBooking(b) {
   return ["confirmed", "inprogress", "completedbyprovider", "completed"].includes(st);
 }
 
+/**
+ * Has this booking's entire charge been given back?
+ *
+ * isPaidBooking only asks whether money ever changed hands, which a refunded
+ * booking still satisfies — it has a PaymentIntent. Counting one as revenue
+ * overstates every finance report: a provider-cancelled booking refunded in
+ * full was contributing its GMV, its client fee and its commission to the
+ * totals despite Netly keeping none of it.
+ *
+ * Partial refunds are deliberately left in. Under the cancellation policy the
+ * 5% client fee is never returned and the platform does keep something, but
+ * exactly how much commission survives a partial refund is an accounting
+ * decision, not something to infer here.
+ *
+ * @param {object} b - Booking document.
+ * @return {boolean} True when nothing was retained.
+ */
+function isFullyRefunded(b) {
+  const charged = Number(b.totalChargedToClient) || 0;
+  if (charged <= 0) return false;
+  // Half a cent of tolerance, so rounding cannot leave a booking half-counted.
+  return (Number(b.refundAmount) || 0) >= charged - 0.005;
+}
+
 /** Inclusive day-boundary range test built from a start/end pair. */
 function rangeTest(startDate, endDate) {
   const from = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
@@ -2029,7 +2053,10 @@ export async function fetchFinanceReportsFromFirestore({
     ]);
 
     const paid = bookings.filter(
-      (b) => isPaidBooking(b) && inRange(b.confirmedAt || b.createdAt),
+      (b) =>
+        isPaidBooking(b) &&
+        !isFullyRefunded(b) &&
+        inRange(b.confirmedAt || b.createdAt),
     );
     const at = (b) => toMillis(b.confirmedAt || b.createdAt);
     const num = (v) => Number(v) || 0;
@@ -2144,7 +2171,7 @@ export async function fetchMonthlyAccountingFromFirestore(params = {}) {
       nameOf.set(uid, displayName(data, "Account")),
     );
 
-    const paid = bookings.filter(isPaidBooking);
+    const paid = bookings.filter((b) => isPaidBooking(b) && !isFullyRefunded(b));
     const num = (v) => Number(v) || 0;
 
     const items = paid
@@ -2230,7 +2257,10 @@ export async function fetchFeeReportFromFirestore({ startDate, endDate } = {}) {
   try {
     const bookings = await safeCollection("bookings");
     const paid = bookings.filter(
-      (b) => isPaidBooking(b) && inRange(b.confirmedAt || b.createdAt),
+      (b) =>
+        isPaidBooking(b) &&
+        !isFullyRefunded(b) &&
+        inRange(b.confirmedAt || b.createdAt),
     );
     const at = (b) => toMillis(b.confirmedAt || b.createdAt);
     const num = (v) => Number(v) || 0;
@@ -3512,6 +3542,140 @@ export async function fetchAdminNotificationsFromFirestore({ max = 50 } = {}) {
     return items.sort((a, b) => b.at - a.at).slice(0, max);
   } catch (error) {
     console.error("Firestore fetchAdminNotifications error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 35. One provider's payout detail — the wallet breakdown and payout history
+ * behind the payout queue's View action.
+ *
+ * Both halves were hardcoded: four invented booking IDs scaled by
+ * walletBalance/434.50, and a fixed five-event timeline dated 2027. The
+ * numbers moved when the balance moved, which made the mock look live.
+ *
+ * The breakdown comes from the provider's wallet ledger rather than from
+ * bookings, because the ledger is what actually built the balance — a manual
+ * adjustment or a dispute clawback belongs in the list, and querying bookings
+ * would miss both.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.uid - Provider uid.
+ * @param {number} [params.max] - Cap on ledger rows.
+ * @return {Promise<{entries: Array<object>, history: Array<object>}>} Detail.
+ */
+export async function fetchProviderPayoutDetailFromFirestore({
+  uid,
+  max = 25,
+} = {}) {
+  if (!uid) return { entries: [], history: [] };
+
+  try {
+    const ledgerPath = ["users", uid, "walletProvider", uid, "transactions"];
+
+    const [ledgerSnap, payoutSnap] = await Promise.all([
+      getDocs(
+          query(
+              collection(db, ...ledgerPath),
+              orderBy("createdAt", "desc"),
+              fsLimit(max),
+          ),
+      ).catch((error) => {
+        console.warn(`payout detail: ledger read failed:`, error?.code);
+        return { docs: [] };
+      }),
+      getDocs(
+          query(
+              collection(db, "payout_logs"),
+              where("cleanerId", "==", uid),
+          ),
+      ).catch((error) => {
+        console.warn(`payout detail: payout_logs read failed:`, error?.code);
+        return { docs: [] };
+      }),
+    ]);
+
+    // Earnings and adjustments are what make up the balance. A withdrawal or a
+    // payout is money leaving, which the history section below covers.
+    const CONTRIBUTING = new Set(["job_payout", "adjustment", "admin_credit"]);
+
+    const rawEntries = ledgerSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((e) => CONTRIBUTING.has(e.kind));
+
+    // Join to bookings for the gross and the commission taken. The ledger
+    // stores the net credit only, so without this the breakdown could not show
+    // what the platform kept.
+    const bookingIds = [
+      ...new Set(rawEntries.map((e) => e.bookingId).filter(Boolean)),
+    ];
+    const bookings = new Map();
+    await Promise.all(
+        bookingIds.map(async (id) => {
+          try {
+            const snap = await getDoc(doc(db, "bookings", id));
+            if (snap.exists()) bookings.set(id, snap.data());
+          } catch (_) {
+            // A deleted booking must not drop its earning from the list.
+          }
+        }),
+    );
+
+    const entries = rawEntries.map((e) => {
+      const booking = e.bookingId ? bookings.get(e.bookingId) : null;
+      const net = Number(e.amount) || 0;
+      const gross = booking ? Number(booking.transactionAmount) || 0 : null;
+      const commission = booking ?
+        Number(booking.providerServiceFee) || 0 :
+        null;
+
+      return {
+        id: e.id,
+        bookingId: e.bookingId || null,
+        // Adjustments have no booking, so the ledger title is the only label.
+        label: e.bookingId ?
+          e.serviceTitle || e.serviceName || e.bookingId :
+          e.title || "Adjustment",
+        date: formatFirestoreDate(e.createdAt),
+        at: toMillis(e.createdAt) || 0,
+        gross,
+        commission,
+        net,
+        kind: e.kind,
+      };
+    });
+
+    const STATUS = {
+      succeeded: { label: "Completed", type: "success" },
+      failed: { label: "Failed", type: "fail" },
+      skipped: { label: "Skipped", type: "skip" },
+    };
+
+    const history = payoutSnap.docs
+        .map((d) => {
+          const p = d.data();
+          const raw = String(p.status || "").toLowerCase();
+          const mapped = STATUS[raw] || { label: titleCase(raw, "Unknown"), type: "skip" };
+          return {
+            id: d.id,
+            date: formatFirestoreDate(p.processedAt),
+            at: toMillis(p.processedAt) || 0,
+            status: mapped.label,
+            type: mapped.type,
+            // Only a completed transfer moved money; the others show a reason.
+            amount: raw === "succeeded" ? Number(p.amount) || 0 : null,
+            detail: raw === "succeeded" ? null : p.errorMessage || null,
+            weekKey: p.weekKey || null,
+            stripeTransferId: p.stripeTransferId || null,
+          };
+        })
+        // Ordered here rather than in the query, so no composite index on
+        // (cleanerId, processedAt) is needed.
+        .sort((a, b) => b.at - a.at);
+
+    return { entries, history };
+  } catch (error) {
+    console.error("Firestore fetchProviderPayoutDetail error:", error);
     throw error;
   }
 }

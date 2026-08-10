@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import { ChevronDown, Download, FileText } from "lucide-react";
 import { toast } from "react-toastify";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
-import DateRangePicker from "@/components/ui/DateRangePicker";
+import DateRangePicker, {
+  getMondayAndSunday,
+} from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
 import { useFinanceReports } from "@/hooks/useFinance";
 
@@ -17,8 +19,15 @@ const currency = (n) =>
 export default function NetRevenueTab() {
   const [chartType, setChartType] = useState("Line"); // "Bar" | "Line"
   const [category, setCategory] = useState("All");
-  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
-  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
+  // The current week, not a fixed date. These were pinned to 1–7 July 2026,
+  // so the page opened on a window with no bookings in it and every chart
+  // looked broken.
+  const [startDate, setStartDate] = useState(
+    () => getMondayAndSunday(new Date()).monday,
+  );
+  const [endDate, setEndDate] = useState(
+    () => getMondayAndSunday(new Date()).sunday,
+  );
   const [hoveredValue, setHoveredValue] = useState(null);
 
   const { revenue, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });

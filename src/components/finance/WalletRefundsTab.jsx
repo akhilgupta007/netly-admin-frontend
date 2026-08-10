@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { exportCSV, exportPDF } from "@/utils/exportHelper";
-import DateRangePicker from "@/components/ui/DateRangePicker";
+import DateRangePicker, {
+  getMondayAndSunday,
+} from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
 import { useFinanceReports } from "@/hooks/useFinance";
 
@@ -19,11 +21,27 @@ const pct = (part, whole) =>
 
 export default function WalletRefundsTab() {
   const [chartType, setChartType] = useState("Bar"); // "Bar" | "Line"
-  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
-  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
+  // The current week, not a fixed date. These were pinned to 1–7 July 2026,
+  // so the page opened on a window with no bookings in it and every chart
+  // looked broken.
+  const [startDate, setStartDate] = useState(
+    () => getMondayAndSunday(new Date()).monday,
+  );
+  const [endDate, setEndDate] = useState(
+    () => getMondayAndSunday(new Date()).sunday,
+  );
   const [hoveredValue, setHoveredValue] = useState(null);
 
   const { funding, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
+
+  // The cards used to be labelled "Jun 18-24" regardless of what was selected.
+  const rangeLabel = `${startDate.toLocaleDateString("en-CA", {
+    month: "short",
+    day: "numeric",
+  })} – ${endDate.toLocaleDateString("en-CA", {
+    month: "short",
+    day: "numeric",
+  })}`;
 
   // wallet = credit applied at checkout, card = the rest charged to the card.
   const chartData = funding.map((r) => ({
@@ -103,22 +121,22 @@ export default function WalletRefundsTab() {
         <CardWrapper
           name="Retained as wallet credit"
           value={currency(totals?.retainedAsCredit)}
-          subtext="Jun 18-24"
+          subtext={rangeLabel}
         />
         <CardWrapper
           name="Refunded to card"
           value={currency(totals?.refundedToCard)}
-          subtext="Jun 18-24"
+          subtext={rangeLabel}
         />
         <CardWrapper
           name="Left the platform"
           value={pct(totals?.refundedToCard, totals?.refundedToCard + totals?.retainedAsCredit)}
-          subtext="Jun 18-24"
+          subtext={rangeLabel}
         />
         <CardWrapper
           name="Retention rate"
           value={pct(totals?.retainedAsCredit, totals?.refundedToCard + totals?.retainedAsCredit)}
-          subtext="Jun 18-24"
+          subtext={rangeLabel}
         />
       </div>
 

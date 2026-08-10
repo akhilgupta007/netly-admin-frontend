@@ -11,7 +11,7 @@ import { Calendar } from "lucide-react";
  * @param {Date} date - Any date inside the week.
  * @return {{monday: Date, sunday: Date}} The week's bounds.
  */
-function getMondayAndSunday(date) {
+export function getMondayAndSunday(date) {
   // getDay() is 0 for Sunday, which belongs to the week that began 6 days ago.
   const diffToMonday = date.getDay() === 0 ? -6 : 1 - date.getDay();
   const monday = new Date(date);

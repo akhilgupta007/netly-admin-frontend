@@ -9,13 +9,29 @@ import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import T4APreviewModal from "./T4APreviewModal";
 
+/**
+ * Selectable tax years: 2026 through five years out.
+ *
+ * Computed once at module load rather than per render — Date.now() during
+ * render is impure, and the list does not need to change while a tab is open.
+ */
+const TAX_YEARS = (() => {
+  const FIRST = 2026;
+  const last = Math.max(new Date().getFullYear() + 5, FIRST);
+  return Array.from({ length: last - FIRST + 1 }, (_, i) => FIRST + i);
+})();
+
 export default function T4ATaxTab() {
   const [slips, setSlips] = useState([]);
   const [report, setReport] = useState(null);
   const [taxYearInput, setTaxYearInput] = useState(
-    String(new Date().getFullYear() - 1),
+    String(TAX_YEARS[0]),
   );
   const [providerInput, setProviderInput] = useState("");
+  // The CRA only requires a slip above $500. Finance still needs to review
+  // everyone — a provider at $480 is one job away from being reportable — so
+  // the threshold is a filter, not a hard rule.
+  const [includeBelowThreshold, setIncludeBelowThreshold] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterYear, setFilterYear] = useState("All");
@@ -52,6 +68,15 @@ export default function T4ATaxTab() {
           jobs: p.jobs,
           hasSin: p.hasSin,
           warnings: p.warnings || [],
+          // Carried through for the slip preview and its PDF. These were
+          // dropped here, which is why the preview fell back to placeholders.
+          email: p.email || "",
+          sinLast3: p.sinLast3 || null,
+          businessNumber: p.businessNumber || null,
+          province: p.province || null,
+          grossBilled: p.grossBilled,
+          platformCommission: p.platformCommission,
+          generatedAtRaw: result.generatedAt,
         })),
       );
       setCurrentPage(1);
@@ -59,7 +84,10 @@ export default function T4ATaxTab() {
       const t = result.totals;
       if (t.providers === 0) {
         toast.info(
-          `No provider earned above the reporting threshold in ${result.year}.`,
+          result.minimumAmount > 0 ?
+            `No provider earned more than $${result.minimumAmount} in ` +
+              `${result.year}. Tick "include below threshold" to see everyone.` :
+            `No completed work found for ${result.year}.`,
         );
       } else if (t.blocked > 0) {
         // Filing without a SIN is impossible, so this is surfaced rather than
@@ -82,7 +110,10 @@ export default function T4ATaxTab() {
       toast.error("Pick a tax year.");
       return;
     }
-    generate.mutate({ year });
+    generate.mutate({
+      year,
+      ...(includeBelowThreshold ? { minimumAmount: 0 } : {}),
+    });
   };
 
   const filteredSlips = useMemo(() => {
@@ -138,11 +169,11 @@ export default function T4ATaxTab() {
                 onChange={(e) => setTaxYearInput(e.target.value)}
                 className="appearance-none bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary w-full cursor-pointer"
               >
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
+                {TAX_YEARS.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-3.5 h-4 w-4 text-text-muted pointer-events-none" />
             </div>
@@ -163,6 +194,21 @@ export default function T4ATaxTab() {
               Leave blank to generate for all providers
             </span>
           </div>
+
+          <label className="md:col-span-2 flex items-center gap-2 cursor-pointer w-fit">
+            <input
+              type="checkbox"
+              checked={includeBelowThreshold}
+              onChange={(e) => setIncludeBelowThreshold(e.target.checked)}
+              className="accent-primary-bg cursor-pointer"
+            />
+            <span className="text-xs text-text-primary">
+              Include providers below the $500 threshold
+            </span>
+            <span className="text-[10px] text-text-muted font-light">
+              — a slip is only required above $500, but everyone can be reviewed
+            </span>
+          </label>
         </div>
       </form>
 
@@ -195,11 +241,11 @@ export default function T4ATaxTab() {
                 className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Tax Year</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
+                {TAX_YEARS.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
             </div>

@@ -29,6 +29,42 @@ export function exportCSV(headers, rows, filename = "export.csv") {
 }
 
 /**
+ * Makes text safe for the PDF content stream.
+ *
+ * Two problems, both of which bite in a bilingual product. The stream declares
+ * its own byte count via /Length, computed from a JS string — but a Blob
+ * encodes UTF-8, so a single "é" makes the real byte count larger than the
+ * declared one and the file is malformed. And the font here is Courier with a
+ * single-byte encoding, so multi-byte characters render as mojibake anyway:
+ * "Émile Côté" comes out "Ãmile CÃ´tÃ©".
+ *
+ * Accents are therefore folded to their base letter and the common typographic
+ * punctuation is replaced with ASCII, leaving a string whose character count
+ * equals its byte count.
+ *
+ * @param {*} value - Any value destined for the PDF.
+ * @return {string} ASCII-only text.
+ */
+function toPdfText(value) {
+  return String(value ?? "")
+      // é → e, ô → o. Decompose, then drop the combining marks.
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201c\u201d]/g, "\"")
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\u2022/g, "*")
+      .replace(/\u2026/g, "...")
+      .replace(/\u00a0/g, " ")
+      // Parentheses and backslashes delimit strings in a PDF, so escape them.
+      .replace(/\\/g, "\\\\")
+      .replace(/\(/g, "\\(")
+      .replace(/\)/g, "\\)")
+      // Anything still outside ASCII would break the length count.
+      .replace(/[^\x20-\x7e]/g, "?");
+}
+
+/**
  * Universal helper to export data to PDF format and trigger a direct file download.
  * @param {string} title - PDF document header title
  * @param {Array<string>} headers - Table column headers
@@ -38,10 +74,13 @@ export function exportCSV(headers, rows, filename = "export.csv") {
 export function exportPDF(title, headers, rows, filename = "report.pdf") {
   try {
     // Calculate max length of each column to align in Courier monospaced font
-    const colWidths = headers.map((header, colIdx) => {
+    const safeHeaders = headers.map(toPdfText);
+    const safeRows = rows.map((row) => row.map(toPdfText));
+
+    const colWidths = safeHeaders.map((header, colIdx) => {
       let maxLen = header.length;
-      for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-        const val = String(rows[rowIdx][colIdx] || "");
+      for (let rowIdx = 0; rowIdx < safeRows.length; rowIdx++) {
+        const val = safeRows[rowIdx][colIdx] || "";
         if (val.length > maxLen) {
           maxLen = val.length;
         }
@@ -51,28 +90,24 @@ export function exportPDF(title, headers, rows, filename = "report.pdf") {
 
     const formatRow = (arr) => {
       return arr
-        .map((val, colIdx) => {
-          const str = String(val || "");
-          return str.padEnd(colWidths[colIdx], " ");
-        })
+        .map((val, colIdx) => (val || "").padEnd(colWidths[colIdx], " "))
         .join("");
     };
 
-    const headerLine = formatRow(headers);
+    const headerLine = formatRow(safeHeaders);
     const dividerLine = "=".repeat(headerLine.length);
-    const dataLines = rows.map((row) => formatRow(row));
+    const dataLines = safeRows.map((row) => formatRow(row));
 
     const allLines = [headerLine, dividerLine, ...dataLines];
 
     // Build Courier text stream (Landscape layout: 842 width x 595 height)
     let streamText = "BT\n/F1 12 Tf\n40 540 Td\n";
-    streamText += `(${title.replace(/[\(\)\\]/g, "")}) Tj\n`;
+    streamText += `(${toPdfText(title)}) Tj\n`;
     streamText += "0 -30 Td\n";
     streamText += "/F1 8 Tf\n";
 
     for (let i = 0; i < allLines.length; i++) {
-      const cleanLine = allLines[i].replace(/[\(\)\\]/g, "");
-      streamText += `(${cleanLine}) Tj\n0 -13 Td\n`;
+      streamText += `(${allLines[i]}) Tj\n0 -13 Td\n`;
     }
     streamText += "ET";
 
