@@ -2,12 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Bell, Menu, User } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import { navigation } from "./Sidebar";
 import { useAuthStore } from "@/store/useAuthStore";
-import { useEffect, useState } from "react";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { ADMIN_ROLE_LABELS } from "@/lib/adminRoles";
+import NotificationBell from "./NotificationBell";
 
 export default function Header({ setSidebarOpen, title: propTitle, subtitle: propSubtitle }) {
   const pathname = usePathname();
@@ -93,12 +93,7 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
       <div className="flex items-center gap-3 sm:gap-6 shrink-0">
 
         {/* Notification Bell */}
-        <button className="relative p-2.5 sm:p-3 rounded-xl border border-border-main text-text-primary bg-primary-bg/10 hover:bg-secondary-bg transition shrink-0">
-          <Bell size={18} />
-          <span className="absolute top-2 right-2 flex h-2 w-2">
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary-bg"></span>
-          </span>
-        </button>
+        <NotificationBell />
 
         <div className="w-px h-10 bg-black/10 shrink-0"></div>
 
