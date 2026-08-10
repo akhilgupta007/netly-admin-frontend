@@ -6,6 +6,7 @@ import {
   fetchFinanceReportsFromFirestore,
   fetchMonthlyAccountingFromFirestore,
   fetchFeeReportFromFirestore,
+  fetchProviderPayoutDetailFromFirestore,
 } from "@/services/firestoreServices";
 
 /**
@@ -28,6 +29,31 @@ export function usePayoutQueue(params = {}, options = {}) {
     totalCount: query.data?.totalCount ?? 0,
     totalPages: query.data?.totalPages ?? 1,
     totals: query.data?.totals ?? null,
+  };
+}
+
+/**
+ * One provider's wallet breakdown and payout history.
+ *
+ * Only fetched while the detail dialog is open — pass {enabled} rather than
+ * loading this for every row in the queue.
+ *
+ * @param {string} uid - Provider uid.
+ * @param {object} options - Extra react-query options, e.g. {enabled}.
+ * @return {object} Query state plus entries and history.
+ */
+export function useProviderPayoutDetail(uid, options = {}) {
+  const query = useQuery({
+    queryKey: ["providerPayoutDetail", uid],
+    queryFn: () => fetchProviderPayoutDetailFromFirestore({ uid }),
+    enabled: Boolean(uid),
+    ...options,
+  });
+
+  return {
+    ...query,
+    entries: query.data?.entries ?? [],
+    history: query.data?.history ?? [],
   };
 }
 
