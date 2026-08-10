@@ -5,6 +5,7 @@ import {
   fetchDisputesFromFirestore,
   fetchDisputeByIdFromFirestore,
   fetchDisputeChatFromFirestore,
+  fetchDisputeThreadFromFirestore,
 } from "@/services/firestoreServices";
 
 /**
@@ -49,10 +50,43 @@ export function useDispute(id) {
 }
 
 /**
- * The chat thread behind a dispute.
+ * The dispute's own group chat — client, provider and NETLY support.
  *
- * Polled rather than live: a compliance reviewer needs the conversation to move
- * while they read it, and one-shot reads keep us off realtime listeners.
+ * This is the thread an admin acts on. useDisputeChat below returns the
+ * separate booking conversation, which the panel shows read-only for context.
+ *
+ * @param {object} dispute - The dispute record.
+ * @return {object} Query state plus messages.
+ */
+export function useDisputeThread(dispute) {
+  const query = useQuery({
+    queryKey: ["disputeThread", dispute?.id],
+    queryFn: () =>
+      fetchDisputeThreadFromFirestore({
+        disputeId: dispute.id,
+        clientId: dispute.clientId,
+        providerId: dispute.providerId,
+      }),
+    enabled: Boolean(dispute?.id),
+    refetchInterval: 15000,
+    staleTime: 1000 * 10,
+  });
+  return {
+    chatId: query.data?.chatId || null,
+    messages: query.data?.messages || [],
+    isLoading: query.isLoading,
+    isFetching: query.isFetching,
+    isError: query.isError,
+    error: query.error,
+  };
+}
+
+/**
+ * The booking conversation between the client and provider.
+ *
+ * Shown read-only alongside the dispute thread for context. Polled rather than
+ * live: a reviewer needs it to move while they read, without a listener.
+ *
  * @param {object} dispute - The dispute, for its bookingId and clientId.
  * @return {object} Thread messages and query state.
  */

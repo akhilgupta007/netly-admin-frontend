@@ -60,7 +60,11 @@ function getStatusClass(status) {
   }
 }
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useDispute, useDisputeChat } from "@/hooks/useDisputes";
+import {
+  useDispute,
+  useDisputeChat,
+  useDisputeThread,
+} from "@/hooks/useDisputes";
 import { resolveDispute, postDisputeMessage, claimDispute } from "@/lib/callables";
 
 export default function DisputeDetailPage() {
@@ -70,7 +74,19 @@ export default function DisputeDetailPage() {
 
   const { dispute, isLoading, isError, error, notFound } = useDispute(id);
   const [evidence, setEvidence] = useState(null);
-  const { messages, chatId } = useDisputeChat(dispute);
+  // Two separate conversations. The dispute thread is the one an admin acts
+  // on — client, provider and support together — and is the default. The
+  // booking thread is the pair's ordinary chat, shown read-only for context;
+  // it may span several bookings and predates the dispute.
+  const [chatView, setChatView] = useState("dispute");
+  const disputeThread = useDisputeThread(dispute);
+  const bookingThread = useDisputeChat(dispute);
+
+  const isBookingView = chatView === "booking";
+  const messages = isBookingView ?
+    bookingThread.messages :
+    disputeThread.messages;
+  const chatId = isBookingView ? bookingThread.chatId : disputeThread.chatId;
   const queryClient = useQueryClient();
 
   // Redesign tabs and modal states
@@ -98,7 +114,7 @@ export default function DisputeDetailPage() {
     onSuccess: () => {
       setChatMessage("");
       queryClient.invalidateQueries({
-        queryKey: ["disputeChat", dispute?.bookingId],
+        queryKey: ["disputeThread", dispute?.id],
       });
     },
     onError: (err) => toast.error(err.message),
@@ -154,11 +170,13 @@ export default function DisputeDetailPage() {
   const handleSendChatSubmit = (e) => {
     e.preventDefault();
     const text = chatMessage.trim();
-    if (!text || !dispute?.bookingId) return;
+    // Only the dispute thread is writable; the booking chat is a record of a
+    // conversation between two other people.
+    if (!text || !dispute?.id || isBookingView) return;
     messageMutation.mutate({
-      bookingId: dispute.bookingId,
-      message: text,
       disputeId: dispute.id,
+      message: text,
+      bookingId: dispute.bookingId,
     });
   };
 
@@ -168,7 +186,7 @@ export default function DisputeDetailPage() {
       chatContainerRef.current.scrollTop =
         chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, chatView]);
 
   // Submit resolution handler
   const handleResolveSubmit = (e) => {
@@ -650,6 +668,33 @@ export default function DisputeDetailPage() {
               </div>
             </div>
 
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Which conversation is on screen */}
+              <div className="flex items-center rounded-xl border border-border-main bg-white p-0.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setChatView("dispute")}
+                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer font-semibold ${
+                    !isBookingView ?
+                      "bg-primary-bg/10 text-primary-bg" :
+                      "text-text-muted hover:text-text-primary"
+                  }`}
+                >
+                  Dispute chat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChatView("booking")}
+                  className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer font-semibold ${
+                    isBookingView ?
+                      "bg-primary-bg/10 text-primary-bg" :
+                      "text-text-muted hover:text-text-primary"
+                  }`}
+                >
+                  Booking chat
+                </button>
+              </div>
+
             {/* Claim / Resolve buttons */}
             {dispute.status !== "Resolved" &&
               (dispute.status === "Open" ? (
@@ -669,6 +714,7 @@ export default function DisputeDetailPage() {
                   Resolve Dispute
                 </button>
               ))}
+            </div>
           </div>
 
           {/* Conversation Chat Thread */}
@@ -870,7 +916,20 @@ export default function DisputeDetailPage() {
               </span>
             </div>
 
-            {dispute.status !== "Resolved" ? (
+            {isBookingView ? (
+              <div className="bg-page-bg/50 border border-border-main/30 text-center text-text-muted font-light py-2 text-xs rounded-xl select-none">
+                Read-only — this is the client and provider&apos;s own booking
+                conversation. Switch to{" "}
+                <button
+                  type="button"
+                  onClick={() => setChatView("dispute")}
+                  className="text-primary-bg hover:underline cursor-pointer font-medium"
+                >
+                  Dispute chat
+                </button>{" "}
+                to reply.
+              </div>
+            ) : dispute.status !== "Resolved" ? (
               <form
                 onSubmit={handleSendChatSubmit}
                 className="flex items-center gap-2 border border-border-main rounded-2xl p-1 bg-white focus-within:ring-1 focus-within:ring-primary-bg/20 transition"
@@ -999,7 +1058,7 @@ export default function DisputeDetailPage() {
                     required
                   />
                   <span className="text-[10px] text-text-muted block mt-0.5">
-                    Credit issued back to client's wallet.
+                    Credit issued back to the client&apos;s wallet.
                   </span>
                 </div>
               )}

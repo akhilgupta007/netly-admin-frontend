@@ -1462,7 +1462,69 @@ function disputeStatus(raw, resolution) {
  * @param {Map<string, object>} users - uid → user data.
  * @return {object} Dispute row.
  */
-function toDispute(id, d, users) {
+/**
+ * Builds the dispute's timeline from the timestamps actually recorded.
+ *
+ * There is no stored timeline array — `dispute.timeline` was simply never set,
+ * so the tab rendered an empty list on every dispute. Each entry below comes
+ * from a field the backend writes, and an entry is omitted rather than shown
+ * blank when its timestamp is missing.
+ *
+ * @param {object} d - Raw dispute document.
+ * @param {object} [booking] - The disputed booking, when it could be read.
+ * @return {Array<{event: string, time: string, at: number}>} Oldest first.
+ */
+function buildDisputeTimeline(d, booking) {
+  const entries = [];
+  const add = (ts, event) => {
+    const at = toMillis(ts);
+    if (at === null) return;
+    entries.push({ event, time: formatFirestoreDateTime(ts), at });
+  };
+
+  // Booking milestones give the dispute its context — what happened before
+  // anyone complained.
+  if (booking) {
+    add(booking.createdAt, "Booking created");
+    add(booking.confirmedAt, "Payment received, booking confirmed");
+    add(booking.completedAt, "Service marked complete");
+    if (String(booking.status || "").toLowerCase().includes("cancel")) {
+      add(booking.cancelledAt || booking.updatedAt, "Booking cancelled");
+    }
+  }
+
+  const opener = d.raisedBy === "provider" ? "provider" : d.raisedBy || "client";
+  add(d.createdAt, `Dispute opened by ${opener}`);
+
+  if ((d.attachments || []).length > 0) {
+    // Attachments carry no timestamp of their own, so they are pinned to the
+    // moment the dispute was raised, which is when the app uploads them.
+    const n = d.attachments.length;
+    add(d.createdAt, `${n} piece${n === 1 ? "" : "s"} of evidence attached`);
+  }
+
+  add(
+      d.claimedAt,
+      d.claimedByEmail ?
+        `Claimed for review by ${d.claimedByEmail}` :
+        "Claimed for review",
+  );
+
+  add(d.lastMessageAt, "Latest message in the dispute chat");
+
+  if (d.resolvedAt) {
+    const outcome = {
+      client_favour: "in the client's favour",
+      provider_favour: "in the provider's favour",
+      split: "as a split",
+    }[d.resolution] || "";
+    add(d.resolvedAt, `Dispute resolved ${outcome}`.trim());
+  }
+
+  return entries.sort((a, b) => a.at - b.at);
+}
+
+function toDispute(id, d, users, booking) {
   const client = users.get(d.clientId) || null;
   const provider = users.get(d.providerId) || null;
   const { label, outcome } = disputeStatus(d.status, d.resolution);
@@ -1493,6 +1555,7 @@ function toDispute(id, d, users) {
     resolutionNote: d.resolutionNote || "",
     resolvedBy: d.resolvedBy || null,
     resolvedAt: formatFirestoreDateTime(d.resolvedAt),
+    timeline: buildDisputeTimeline(d, booking),
   };
 }
 
@@ -1569,7 +1632,19 @@ export async function fetchDisputeByIdFromFirestore(id) {
       ).filter(Boolean),
     );
 
-    return toDispute(snap.id, d, users);
+    // The booking supplies the timeline's earlier milestones. A missing one
+    // must not fail the page, so the timeline simply starts at the dispute.
+    let booking = null;
+    if (d.bookingId) {
+      try {
+        const b = await getDoc(doc(db, "bookings", d.bookingId));
+        if (b.exists()) booking = b.data();
+      } catch (_) {
+        // Ignored deliberately — see above.
+      }
+    }
+
+    return toDispute(snap.id, d, users, booking);
   } catch (error) {
     console.error("Firestore fetchDisputeById error:", error);
     throw error;
@@ -3676,6 +3751,79 @@ export async function fetchProviderPayoutDetailFromFirestore({
     return { entries, history };
   } catch (error) {
     console.error("Firestore fetchProviderPayoutDetail error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 36. A dispute's own group chat.
+ *
+ * Distinct from the booking thread. `disputes/{id}/disputeChat` is where the
+ * apps put the client, the provider and NETLY support together once a dispute
+ * is opened; the booking thread is the ordinary conversation those two were
+ * already having and may span several bookings.
+ *
+ * The panel only ever read the booking thread, so the messages an admin most
+ * needs — the ones actually arguing the dispute — were never on screen.
+ *
+ * Returned oldest-first, matching how the thread renders.
+ *
+ * @param {object} params - Options.
+ * @param {string} params.disputeId - Dispute document id.
+ * @param {string} [params.clientId] - Used to label messages.
+ * @param {string} [params.providerId] - Used to label messages.
+ * @return {Promise<{chatId: string|null, messages: Array<object>}>} Thread.
+ */
+export async function fetchDisputeThreadFromFirestore({
+  disputeId,
+  clientId,
+  providerId,
+} = {}) {
+  if (!disputeId) return { chatId: null, messages: [] };
+
+  try {
+    const snap = await getDocs(
+        query(
+            collection(db, "disputes", disputeId, "disputeChat"),
+            orderBy("createdAt", "asc"),
+        ),
+    ).catch((error) => {
+      console.warn("dispute thread read failed:", error?.code);
+      return { docs: [] };
+    });
+
+    const messages = snap.docs.map((d) => {
+      const m = d.data();
+
+      // senderRole is written by the apps and is the reliable signal. The uid
+      // comparison is only a fallback, and deliberately second: a client and
+      // provider can share a uid in seeded test data, which would otherwise
+      // mislabel every message.
+      let role = String(m.senderRole || "").toLowerCase();
+      if (!["client", "provider", "admin", "system"].includes(role)) {
+        if (m.senderId && m.senderId === providerId) role = "provider";
+        else if (m.senderId && m.senderId === clientId) role = "client";
+        else role = "system";
+      }
+
+      return {
+        id: d.id,
+        role,
+        sender:
+          role === "admin" || role === "system" ?
+            m.senderName || "NETLY Support" :
+            m.senderName || (role === "client" ? "Client" : "Provider"),
+        text: m.message || "",
+        image: m.image || "",
+        messageType: m.messageType || "text",
+        time: formatFirestoreDateTime(m.createdAt),
+        createdAtRaw: m.createdAt || null,
+      };
+    });
+
+    return { chatId: disputeId, messages };
+  } catch (error) {
+    console.error("Firestore fetchDisputeThread error:", error);
     throw error;
   }
 }
