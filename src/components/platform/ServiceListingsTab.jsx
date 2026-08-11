@@ -409,6 +409,7 @@ export default function ServiceListingsTab() {
               setSelectedListing(null);
             }}
             onDeactivate={confirmDeactivate}
+        isPending={moderate.isPending}
           />
 
           <RemoveListingModal
@@ -419,6 +420,7 @@ export default function ServiceListingsTab() {
               setSelectedListing(null);
             }}
             onRemove={confirmRemove}
+        isPending={moderate.isPending}
           />
         </>
       )}

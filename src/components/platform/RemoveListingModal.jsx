@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
-export default function RemoveListingModal({ listing, isOpen, onClose, onRemove }) {
+export default function RemoveListingModal({ listing, isOpen, onClose, onRemove, isPending = false }) {
   const [reason, setReason] = useState("");
 
   if (!isOpen || !listing) return null;
@@ -63,9 +63,11 @@ export default function RemoveListingModal({ listing, isOpen, onClose, onRemove 
             </button>
             <button
               type="submit"
-              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center shadow-2xs"
+              disabled={isPending}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center shadow-2xs flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Yes, Remove
+              {isPending && <Loader2 size={13} className="animate-spin" />}
+              {isPending ? "Removing…" : "Yes, Remove"}
             </button>
           </div>
         </form>

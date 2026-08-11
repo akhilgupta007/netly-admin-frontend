@@ -224,6 +224,7 @@ export default function ReviewsTab() {
             setSelectedReview(null);
           }}
           onRemove={confirmRemoveReview}
+          isPending={moderate.isPending}
         />
       )}
 
