@@ -53,6 +53,28 @@ const KYC_DISPLAY = {
 };
 
 /**
+ * The status to show for an account.
+ *
+ * The schema has only active | invited | banned, so a timed suspension is
+ * stored as `banned` plus `isSuspended` and a `suspendedUntil` date. Reading
+ * `status` alone therefore showed every suspended user as "Banned" — which is
+ * what an admin saw immediately after choosing Suspend (Temporary).
+ *
+ * @param {object} data - The users/{uid} document.
+ * @return {string} Active | Invited | Suspended | Banned.
+ */
+function accountStatus(data) {
+  const raw = String(data.status || "").toLowerCase();
+  if (raw === "banned" && data.isSuspended) {
+    const until = toMillis(data.suspendedUntil);
+    // An elapsed suspension has not been lifted anywhere, so it still reads as
+    // suspended rather than silently becoming a ban.
+    return until && until < Date.now() ? "Suspension expired" : "Suspended";
+  }
+  return titleCase(data.status, "Active");
+}
+
+/**
  * Builds a display name from whatever the user document actually has.
  * @param {object} data - The users/{uid} data.
  * @param {string} fallback - Used when nothing is present.
@@ -91,7 +113,7 @@ export async function fetchUsersFromFirestore() {
         phoneNumber: data.phoneNumber || "",
         countryCode: data.countryCode || "",
         photoUrl: data.photoUrl || "",
-        status: titleCase(data.status, "Active"),
+        status: accountStatus(data),
       });
     });
   } catch (error) {
@@ -143,7 +165,7 @@ export async function fetchClientsFromFirestore(params = {}) {
         profileCompleted: Boolean(profile.profileCompleted),
         addressCompleted: Boolean(profile.addressCompleted),
         onboardingCompleted: Boolean(profile.onboardingCompleted),
-        status: titleCase(data.status, "Active"),
+        status: accountStatus(data),
       });
     });
 
@@ -189,9 +211,9 @@ async function countBookingsBy(field) {
       // Providers are stored under either key depending on when the booking
       // was written.
       const uid =
-        field === "providerId" ?
-          data.providerId || data.professionalId :
-          data[field];
+        field === "providerId"
+          ? data.providerId || data.professionalId
+          : data[field];
       if (uid) counts.set(uid, (counts.get(uid) || 0) + 1);
     });
   } catch (error) {
@@ -269,7 +291,7 @@ export async function fetchProvidersFromFirestore(params = {}) {
         chargesEnabled: Boolean(profile.chargesEnabled),
         payoutsEnabled: Boolean(profile.payoutsEnabled),
         isActive: Boolean(profile.isActive),
-        status: titleCase(data.status, "Active"),
+        status: accountStatus(data),
       });
     });
 
@@ -376,9 +398,15 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
     let items = rows.map((row) => kycSubmissionSchema.parse(row));
 
     if (filterDocType !== "All") {
+      // The panel filters by label ("Government ID"); older callers passed the
+      // raw slug ("governmentId"). Match either, or this silently returns
+      // nothing for whichever form it was not expecting.
+      const wanted = filterDocType.toLowerCase();
       items = items.filter((k) =>
         (k.documents || []).some(
-          (d) => String(d).toLowerCase() === filterDocType.toLowerCase(),
+          (d) =>
+            String(d).toLowerCase() === wanted ||
+            kycDocLabel(d).toLowerCase() === wanted,
         ),
       );
     }
@@ -413,6 +441,31 @@ export async function fetchKycSubmissionsFromFirestore(params = {}) {
  * @param {object} source - Normalised inputs.
  * @return {object} Row ready for kycSubmissionSchema.
  */
+/** The document slugs the apps submit, and how they read in the panel. */
+const KYC_DOC_LABELS = {
+  governmentId: "Government ID",
+  proofOfAddress: "Proof of Address",
+  businessRegistration: "Business Registration",
+  drivingLicense: "Driving Licence",
+  passport: "Passport",
+};
+
+/**
+ * Readable label for a document slug.
+ *
+ * @param {string} slug - e.g. "governmentId".
+ * @return {string} e.g. "Government ID".
+ */
+function kycDocLabel(slug) {
+  return (
+    KYC_DOC_LABELS[slug] ||
+    String(slug || "")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (c) => c.toUpperCase())
+      .trim()
+  );
+}
+
 function buildKycRow({
   kycId,
   uid,
@@ -444,6 +497,10 @@ function buildKycRow({
     // When an admin last decided on this submission.
     reviewedAt: formatFirestoreDate(reviewedAt),
     documents,
+    // Readable names for the Document Type filter. The page used to filter on
+    // a `docType` field that nothing ever set, so selecting any type matched
+    // nothing at all.
+    documentLabels: documents.map(kycDocLabel),
     verificationDocuments: files,
     // notSubmitted must not read as Pending — that put providers who uploaded
     // nothing into the review queue as though awaiting a decision.
@@ -524,7 +581,7 @@ export async function fetchWalletsFromFirestore(params = {}) {
             ),
             lastTxTime: "",
             updatedAtRaw: wallet.updatedAt || mirror.updatedAt || null,
-            status: titleCase(data.status, "Active"),
+            status: accountStatus(data),
           };
         });
       }),
@@ -1455,10 +1512,7 @@ function disputeStatus(raw, resolution) {
   // Whether an admin can still act. Comparing against the "Resolved" label
   // alone let a rejected or withdrawn dispute keep its Claim and Resolve
   // buttons, because those carry different labels.
-  const isClosed = ![
-    "open",
-    "underreview",
-  ].includes(key);
+  const isClosed = !["open", "underreview"].includes(key);
 
   return {
     label: DISPUTE_STATUS_LABELS[key] || raw || "Open",
@@ -1500,12 +1554,17 @@ function buildDisputeTimeline(d, booking) {
     add(booking.createdAt, "Booking created");
     add(booking.confirmedAt, "Payment received, booking confirmed");
     add(booking.completedAt, "Service marked complete");
-    if (String(booking.status || "").toLowerCase().includes("cancel")) {
+    if (
+      String(booking.status || "")
+        .toLowerCase()
+        .includes("cancel")
+    ) {
       add(booking.cancelledAt || booking.updatedAt, "Booking cancelled");
     }
   }
 
-  const opener = d.raisedBy === "provider" ? "provider" : d.raisedBy || "client";
+  const opener =
+    d.raisedBy === "provider" ? "provider" : d.raisedBy || "client";
   add(d.createdAt, `Dispute opened by ${opener}`);
 
   if ((d.attachments || []).length > 0) {
@@ -1516,20 +1575,21 @@ function buildDisputeTimeline(d, booking) {
   }
 
   add(
-      d.claimedAt,
-      d.claimedByEmail ?
-        `Claimed for review by ${d.claimedByEmail}` :
-        "Claimed for review",
+    d.claimedAt,
+    d.claimedByEmail
+      ? `Claimed for review by ${d.claimedByEmail}`
+      : "Claimed for review",
   );
 
   add(d.lastMessageAt, "Latest message in the dispute chat");
 
   if (d.resolvedAt) {
-    const outcome = {
-      client_favour: "in the client's favour",
-      provider_favour: "in the provider's favour",
-      split: "as a split",
-    }[d.resolution] || "";
+    const outcome =
+      {
+        client_favour: "in the client's favour",
+        provider_favour: "in the provider's favour",
+        split: "as a split",
+      }[d.resolution] || "";
     add(d.resolvedAt, `Dispute resolved ${outcome}`.trim());
   }
 
@@ -1860,7 +1920,12 @@ function isPaidBooking(b) {
   const st = String(b.status || "")
     .toLowerCase()
     .replace(/[\s_-]/g, "");
-  return ["confirmed", "inprogress", "completedbyprovider", "completed"].includes(st);
+  return [
+    "confirmed",
+    "inprogress",
+    "completedbyprovider",
+    "completed",
+  ].includes(st);
 }
 
 /**
@@ -2259,7 +2324,9 @@ export async function fetchMonthlyAccountingFromFirestore(params = {}) {
       nameOf.set(uid, displayName(data, "Account")),
     );
 
-    const paid = bookings.filter((b) => isPaidBooking(b) && !isFullyRefunded(b));
+    const paid = bookings.filter(
+      (b) => isPaidBooking(b) && !isFullyRefunded(b),
+    );
     const num = (v) => Number(v) || 0;
 
     const items = paid
@@ -2616,26 +2683,32 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
     alerts.forEach((a) => {
       const city = (a.city || "").trim();
       if (!city) return;
-      const row = byCity.get(city) || { city, total: 0, pending: 0, province: a.province || "" };
+      const row = byCity.get(city) || {
+        city,
+        total: 0,
+        pending: 0,
+        province: a.province || "",
+      };
       row.total += 1;
       if (unresolved(a)) row.pending += 1;
       byCity.set(city, row);
     });
 
     const cities = [...byCity.values()]
-        .map((r) => ({
-          ...r,
-          gap: r.total > 0 ? Math.round((r.pending / r.total) * 100) : 0,
-        }))
-        .sort((a, b) => b.pending - a.pending || b.gap - a.gap)
-        .slice(0, max);
+      .map((r) => ({
+        ...r,
+        gap: r.total > 0 ? Math.round((r.pending / r.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.pending - a.pending || b.gap - a.gap)
+      .slice(0, max);
 
     // ── by search term ──
     // searchQuery is often empty; the service the client was looking at is the
     // better signal, so it stands in when there is no typed query.
     const byTerm = new Map();
     alerts.forEach((a) => {
-      const term = (a.searchQuery || "").trim() ||
+      const term =
+        (a.searchQuery || "").trim() ||
         (a.serviceTitle || "").trim() ||
         (a.subcategoryName || "").trim();
       if (!term) return;
@@ -2643,9 +2716,9 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
     });
 
     const searches = [...byTerm.entries()]
-        .map(([term, count]) => ({ term, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, max);
+      .map(([term, count]) => ({ term, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, max);
 
     // ── by service ──
     const bySvc = new Map();
@@ -2656,15 +2729,20 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
     });
 
     const services = [...bySvc.entries()]
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, max);
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, max);
 
     // ── one row per city+category, for the market-intelligence table ──
     const byPair = new Map();
     alerts.forEach((a) => {
       const city = (a.city || "").trim();
-      const category = (a.subcategoryName || a.serviceTitle || a.categoryName || "").trim();
+      const category = (
+        a.subcategoryName ||
+        a.serviceTitle ||
+        a.categoryName ||
+        ""
+      ).trim();
       if (!city && !category) return;
       const key = `${city}||${category}`;
       const at = toMillis(a.createdAt);
@@ -2680,17 +2758,18 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
       row.count += 1;
       if (unresolved(a)) row.pending += 1;
       // "Last search" is the most recent alert in this city/category pair.
-      if (at !== null && (row.lastAt === null || at > row.lastAt)) row.lastAt = at;
+      if (at !== null && (row.lastAt === null || at > row.lastAt))
+        row.lastAt = at;
       byPair.set(key, row);
     });
 
     const rows = [...byPair.values()]
-        .map((r) => ({
-          ...r,
-          date: r.lastAt ? formatFirestoreDate(new Date(r.lastAt)) : "N/A",
-          dateTime: r.lastAt ? new Date(r.lastAt) : null,
-        }))
-        .sort((a, b) => b.count - a.count);
+      .map((r) => ({
+        ...r,
+        date: r.lastAt ? formatFirestoreDate(new Date(r.lastAt)) : "N/A",
+        dateTime: r.lastAt ? new Date(r.lastAt) : null,
+      }))
+      .sort((a, b) => b.count - a.count);
 
     return {
       cities,
@@ -2743,14 +2822,14 @@ export async function fetchWithdrawalRequestsFromFirestore(params = {}) {
     const uids = [...new Set(requests.map((r) => r.userId).filter(Boolean))];
     const users = new Map();
     await Promise.all(
-        uids.map(async (uid) => {
-          try {
-            const snap = await getDoc(doc(db, "users", uid));
-            if (snap.exists()) users.set(uid, snap.data());
-          } catch (_) {
-            // A missing user must not drop the request from the queue.
-          }
-        }),
+      uids.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) users.set(uid, snap.data());
+        } catch (_) {
+          // A missing user must not drop the request from the queue.
+        }
+      }),
     );
 
     const STATUS = {
@@ -2761,44 +2840,46 @@ export async function fetchWithdrawalRequestsFromFirestore(params = {}) {
     };
 
     const items = requests
-        .map((r) => {
-          const raw = String(r.status || "pending").toLowerCase();
-          const user = users.get(r.userId);
-          return {
-            id: r.id,
-            requestId: r.id,
-            uid: r.userId || null,
-            client: {
-              name: user ? displayName(user, "Client") : "Unknown client",
-              email: user?.email || r.email || "",
-            },
+      .map((r) => {
+        const raw = String(r.status || "pending").toLowerCase();
+        const user = users.get(r.userId);
+        return {
+          id: r.id,
+          requestId: r.id,
+          uid: r.userId || null,
+          client: {
             name: user ? displayName(user, "Client") : "Unknown client",
             email: user?.email || r.email || "",
-            amount: Number(r.amount) || 0,
-            currency: (r.currency || "CAD").toUpperCase(),
-            status: STATUS[raw] || titleCase(raw, "Pending"),
-            rawStatus: raw,
-            isPending: raw === "pending",
-            // How much of this can go back to a card, priced when requested.
-            refundable: Number(r.refundableAtRequest) || 0,
-            nonRefundable: Number(r.nonRefundableAtRequest) || 0,
-            requestedDate: formatFirestoreDate(r.createdAt),
-            requestedTime: formatFirestoreDateTime(r.createdAt),
-            createdAtRaw: r.createdAt || null,
-            resolvedDate: formatFirestoreDate(r.resolvedAt),
-            resolvedByEmail: r.resolvedByEmail || null,
-            rejectionReason: r.rejectionReason || "",
-            refundedAmount: Number(r.refundedAmount) || 0,
-            transferredAmount: Number(r.transferredAmount) || 0,
-            errorMessage: (r.failures || [])[0]?.error || "",
-            txn: (r.stripeRefundIds || [])[0] || r.stripeTransferId || "-",
-          };
-        })
-        // Pending first — they are the only rows that need a decision.
-        .sort((a, b) => {
-          if (a.isPending !== b.isPending) return a.isPending ? -1 : 1;
-          return (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0);
-        });
+          },
+          name: user ? displayName(user, "Client") : "Unknown client",
+          email: user?.email || r.email || "",
+          amount: Number(r.amount) || 0,
+          currency: (r.currency || "CAD").toUpperCase(),
+          status: STATUS[raw] || titleCase(raw, "Pending"),
+          rawStatus: raw,
+          isPending: raw === "pending",
+          // How much of this can go back to a card, priced when requested.
+          refundable: Number(r.refundableAtRequest) || 0,
+          nonRefundable: Number(r.nonRefundableAtRequest) || 0,
+          requestedDate: formatFirestoreDate(r.createdAt),
+          requestedTime: formatFirestoreDateTime(r.createdAt),
+          createdAtRaw: r.createdAt || null,
+          resolvedDate: formatFirestoreDate(r.resolvedAt),
+          resolvedByEmail: r.resolvedByEmail || null,
+          rejectionReason: r.rejectionReason || "",
+          refundedAmount: Number(r.refundedAmount) || 0,
+          transferredAmount: Number(r.transferredAmount) || 0,
+          errorMessage: (r.failures || [])[0]?.error || "",
+          txn: (r.stripeRefundIds || [])[0] || r.stripeTransferId || "-",
+        };
+      })
+      // Pending first — they are the only rows that need a decision.
+      .sort((a, b) => {
+        if (a.isPending !== b.isPending) return a.isPending ? -1 : 1;
+        return (
+          (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0)
+        );
+      });
 
     const result = filterAndPaginate(items, {
       searchTerm,
@@ -2818,9 +2899,8 @@ export async function fetchWithdrawalRequestsFromFirestore(params = {}) {
         pending: items.filter((i) => i.isPending).length,
         pendingAmount:
           Math.round(
-              items
-                  .filter((i) => i.isPending)
-                  .reduce((a, i) => a + i.amount, 0) * 100,
+            items.filter((i) => i.isPending).reduce((a, i) => a + i.amount, 0) *
+              100,
           ) / 100,
         failed: items.filter((i) => i.rawStatus === "failed").length,
       },
@@ -2860,16 +2940,16 @@ export async function fetchAccountActivityFromFirestore({
 
     const [bookingSnap, disputeSnap, serviceSnap] = await Promise.all([
       getDocs(query(collection(db, "bookings"), where(field, "==", uid))).catch(
-          () => ({ docs: [] }),
+        () => ({ docs: [] }),
       ),
       getDocs(query(collection(db, "disputes"), where(field, "==", uid))).catch(
-          () => ({ docs: [] }),
+        () => ({ docs: [] }),
       ),
-      isClient ?
-        Promise.resolve({ docs: [] }) :
-        getDocs(
+      isClient
+        ? Promise.resolve({ docs: [] })
+        : getDocs(
             query(collection(db, "services"), where("providerId", "==", uid)),
-        ).catch(() => ({ docs: [] })),
+          ).catch(() => ({ docs: [] })),
     ]);
 
     const bookings = bookingSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -2886,33 +2966,41 @@ export async function fetchAccountActivityFromFirestore({
     };
 
     const recent = bookings
-        .map((b) => {
-          const label = transactionStatus(b);
-          return {
-            id: b.id,
-            category: b.serviceTitle || b.categoryId || "Service",
-            date: formatFirestoreDate(b.serviceDateAndTime || b.createdAt),
-            createdAtRaw: b.createdAt || b.serviceDateAndTime || null,
-            amount: Number(b.totalChargedToClient) || Number(b.transactionAmount) || 0,
-            status: label,
-            statusClass: CLASSES[label] || "bg-secondary-bg text-text-muted",
-          };
-        })
-        .sort((a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0))
-        .slice(0, max);
+      .map((b) => {
+        const label = transactionStatus(b);
+        return {
+          id: b.id,
+          category: b.serviceTitle || b.categoryId || "Service",
+          date: formatFirestoreDate(b.serviceDateAndTime || b.createdAt),
+          createdAtRaw: b.createdAt || b.serviceDateAndTime || null,
+          amount:
+            Number(b.totalChargedToClient) || Number(b.transactionAmount) || 0,
+          status: label,
+          statusClass: CLASSES[label] || "bg-secondary-bg text-text-muted",
+        };
+      })
+      .sort(
+        (a, b) =>
+          (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+      )
+      .slice(0, max);
 
     const norm = (v) => String(v || "").toLowerCase();
-    const cancelled = bookings.filter((b) => norm(b.status).startsWith("cancel")).length;
-    const completed = bookings.filter((b) => norm(b.status) === "completed").length;
+    const cancelled = bookings.filter((b) =>
+      norm(b.status).startsWith("cancel"),
+    ).length;
+    const completed = bookings.filter(
+      (b) => norm(b.status) === "completed",
+    ).length;
 
     // ── Provider listings: what they offer and what they ask ──
     const services = serviceSnap.docs.map((d) => d.data());
     const offered = [
       ...new Set(
-          services
-              .filter((s) => norm(s.status) === "active")
-              .map((s) => s.subcategoryName || s.serviceName)
-              .filter(Boolean),
+        services
+          .filter((s) => norm(s.status) === "active")
+          .map((s) => s.subcategoryName || s.serviceName)
+          .filter(Boolean),
       ),
     ];
     const questions = [];
@@ -2975,17 +3063,19 @@ export async function fetchServiceListingsFromFirestore(params = {}) {
 
     // The listing denormalises providerName, but it can be stale or missing,
     // so the user document wins where one exists.
-    const uids = [...new Set(services.map((s) => s.providerId).filter(Boolean))];
+    const uids = [
+      ...new Set(services.map((s) => s.providerId).filter(Boolean)),
+    ];
     const users = new Map();
     await Promise.all(
-        uids.map(async (uid) => {
-          try {
-            const snap = await getDoc(doc(db, "users", uid));
-            if (snap.exists()) users.set(uid, snap.data());
-          } catch (_) {
-            // A missing user must not drop the listing.
-          }
-        }),
+      uids.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) users.set(uid, snap.data());
+        } catch (_) {
+          // A missing user must not drop the listing.
+        }
+      }),
     );
 
     /**
@@ -3020,7 +3110,9 @@ export async function fetchServiceListingsFromFirestore(params = {}) {
       return {
         id: s.id,
         providerId: s.providerId || null,
-        provider: user ? displayName(user, "Provider") : s.providerName || "Unknown",
+        provider: user
+          ? displayName(user, "Provider")
+          : s.providerName || "Unknown",
         email: user?.email || "",
         category: s.categoryName || "—",
         subCategory: s.subcategoryName || "—",
@@ -3028,7 +3120,8 @@ export async function fetchServiceListingsFromFirestore(params = {}) {
         description: s.description || "",
         pricing: price(s),
         pricingType: s.pricingType || "—",
-        serviceArea: [s.serviceCity, s.serviceRadiusKm ? `${s.serviceRadiusKm} km` : null]
+        serviceArea:
+          [s.serviceCity, s.serviceRadiusKm ? `${s.serviceRadiusKm} km` : null]
             .filter(Boolean)
             .join(" · ") || "—",
         image: s.image || "",
@@ -3042,7 +3135,9 @@ export async function fetchServiceListingsFromFirestore(params = {}) {
 
     const categories = [
       "All",
-      ...[...new Set(items.map((i) => i.category).filter((c) => c && c !== "—"))].sort(),
+      ...[
+        ...new Set(items.map((i) => i.category).filter((c) => c && c !== "—")),
+      ].sort(),
     ];
 
     if (filterCategory !== "All") {
@@ -3107,14 +3202,14 @@ export async function fetchReviewsFromFirestore(params = {}) {
     const uids = [...new Set(reviews.map((r) => r.providerId).filter(Boolean))];
     const users = new Map();
     await Promise.all(
-        uids.map(async (uid) => {
-          try {
-            const snap = await getDoc(doc(db, "users", uid));
-            if (snap.exists()) users.set(uid, snap.data());
-          } catch (_) {
-            // A missing provider must not hide the review.
-          }
-        }),
+      uids.map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) users.set(uid, snap.data());
+        } catch (_) {
+          // A missing provider must not hide the review.
+        }
+      }),
     );
 
     let items = reviews.map((r) => {
@@ -3125,7 +3220,9 @@ export async function fetchReviewsFromFirestore(params = {}) {
         providerId: r.providerId || null,
         client: r.clientName || "Client",
         clientPhotoUrl: r.clientPhotoUrl || "",
-        provider: provider ? displayName(provider, "Provider") : "Unknown provider",
+        provider: provider
+          ? displayName(provider, "Provider")
+          : "Unknown provider",
         providerEmail: provider?.email || "",
         service: r.serviceTitle || "—",
         bookingId: r.bookingId || null,
@@ -3143,7 +3240,12 @@ export async function fetchReviewsFromFirestore(params = {}) {
         flagStatus: titleCase(r.flagStatus, r.isFlagged ? "Pending" : "—"),
         // isVisible is the moderation outcome; absent means visible.
         isVisible: r.isVisible !== false,
-        status: r.isVisible === false ? "Removed" : r.isFlagged ? "Flagged" : "Published",
+        status:
+          r.isVisible === false
+            ? "Removed"
+            : r.isFlagged
+              ? "Flagged"
+              : "Published",
         date: formatFirestoreDate(r.createdAt),
         dateTime: toDate(r.createdAt),
         createdAtRaw: r.createdAt || null,
@@ -3155,11 +3257,11 @@ export async function fetchReviewsFromFirestore(params = {}) {
       flagged: items.filter((i) => i.isFlagged).length,
       removed: items.filter((i) => !i.isVisible).length,
       averageRating:
-        items.length > 0 ?
-          Math.round(
+        items.length > 0
+          ? Math.round(
               (items.reduce((a, i) => a + i.rating, 0) / items.length) * 10,
-          ) / 10 :
-          0,
+            ) / 10
+          : 0,
     };
 
     if (flaggedOnly) items = items.filter((i) => i.isFlagged);
@@ -3167,8 +3269,18 @@ export async function fetchReviewsFromFirestore(params = {}) {
       items = items.filter((i) => String(i.rating) === String(filterRating));
     }
 
+    // A removed review is gone from the marketplace, so it should not sit in
+    // the moderation list either — an admin who had just removed one still saw
+    // it in the table and reasonably read that as the removal having failed.
+    // It stays reachable by asking for it explicitly, because hiding is
+    // reversible and the record is kept deliberately.
+    if (filterStatus !== "Removed") {
+      items = items.filter((i) => i.isVisible);
+    }
+
     items.sort(
-        (a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
+      (a, b) =>
+        (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0),
     );
 
     return {
@@ -3215,7 +3327,10 @@ export async function fetchUserStatsFromFirestore() {
     const bookingsByClient = new Map();
     bookings.forEach((b) => {
       if (b.clientId) {
-        bookingsByClient.set(b.clientId, (bookingsByClient.get(b.clientId) || 0) + 1);
+        bookingsByClient.set(
+          b.clientId,
+          (bookingsByClient.get(b.clientId) || 0) + 1,
+        );
       }
     });
 
@@ -3242,16 +3357,17 @@ export async function fetchUserStatsFromFirestore() {
     // Per-city GMV and the dominant category, joined through the listing a
     // booking was made against.
     const svcById = new Map(
-        (await safeCollection("services")).map((sv) => [sv.id, sv]),
+      (await safeCollection("services")).map((sv) => [sv.id, sv]),
     );
-    const cityOf = (uid) => (addresses.get(uid) || {}).city?.trim() || "Unknown";
+    const cityOf = (uid) =>
+      (addresses.get(uid) || {}).city?.trim() || "Unknown";
     const gmvByCity = new Map();
     const catByCity = new Map();
     bookings.forEach((b) => {
       const city = b.clientId ? cityOf(b.clientId) : "Unknown";
       gmvByCity.set(
-          city,
-          (gmvByCity.get(city) || 0) + (Number(b.transactionAmount) || 0),
+        city,
+        (gmvByCity.get(city) || 0) + (Number(b.transactionAmount) || 0),
       );
       const svc = svcById.get(b.serviceId);
       if (svc) {
@@ -3279,31 +3395,32 @@ export async function fetchUserStatsFromFirestore() {
     };
 
     const cities = [...byCity.values()]
-        .map((r) => {
-          const { category, subCategory } = topCategory(r.city);
-          // Clients per provider. A high ratio means demand outstrips supply.
-          const ratio = r.providers > 0 ?
-            Math.round((r.clients / r.providers) * 10) / 10 :
-            r.clients;
-          return {
-            ...r,
-            users: r.clients + r.providers,
-            category,
-            subCategory,
-            ratio,
-            volume: r.bookings,
-            gmv: Math.round((gmvByCity.get(r.city) || 0) * 100) / 100,
-            demandLevel:
-              r.providers === 0 && r.clients > 0 ?
-                "Unserved" :
-                ratio >= 4 ?
-                  "High demand" :
-                  ratio >= 2 ?
-                    "Medium" :
-                    "Balanced",
-          };
-        })
-        .sort((a, b) => b.users - a.users);
+      .map((r) => {
+        const { category, subCategory } = topCategory(r.city);
+        // Clients per provider. A high ratio means demand outstrips supply.
+        const ratio =
+          r.providers > 0
+            ? Math.round((r.clients / r.providers) * 10) / 10
+            : r.clients;
+        return {
+          ...r,
+          users: r.clients + r.providers,
+          category,
+          subCategory,
+          ratio,
+          volume: r.bookings,
+          gmv: Math.round((gmvByCity.get(r.city) || 0) * 100) / 100,
+          demandLevel:
+            r.providers === 0 && r.clients > 0
+              ? "Unserved"
+              : ratio >= 4
+                ? "High demand"
+                : ratio >= 2
+                  ? "Medium"
+                  : "Balanced",
+        };
+      })
+      .sort((a, b) => b.users - a.users);
 
     // ── 12-month signup series ──
     const now = new Date();
@@ -3339,7 +3456,8 @@ export async function fetchUserStatsFromFirestore() {
         suspended: all.filter(({ data }) =>
           ["suspended", "banned"].includes(norm(data.status)),
         ).length,
-        invited: all.filter(({ data }) => norm(data.status) === "invited").length,
+        invited: all.filter(({ data }) => norm(data.status) === "invited")
+          .length,
         bookings: bookings.length,
         cities: cities.filter((c) => c.city !== "Unknown").length,
       },
@@ -3390,21 +3508,23 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
       if (r.reportedBy) uids.add(r.reportedBy);
       if (r.targetUserId) uids.add(r.targetUserId);
     });
-    reviews.filter((r) => r.isFlagged).forEach((r) => {
-      if (r.clientId) uids.add(r.clientId);
-      if (r.providerId) uids.add(r.providerId);
-    });
+    reviews
+      .filter((r) => r.isFlagged)
+      .forEach((r) => {
+        if (r.clientId) uids.add(r.clientId);
+        if (r.providerId) uids.add(r.providerId);
+      });
 
     const users = new Map();
     await Promise.all(
-        [...uids].map(async (uid) => {
-          try {
-            const snap = await getDoc(doc(db, "users", uid));
-            if (snap.exists()) users.set(uid, snap.data());
-          } catch (_) {
-            // A missing user must not hide the complaint.
-          }
-        }),
+      [...uids].map(async (uid) => {
+        try {
+          const snap = await getDoc(doc(db, "users", uid));
+          if (snap.exists()) users.set(uid, snap.data());
+        } catch (_) {
+          // A missing user must not hide the complaint.
+        }
+      }),
     );
     const nameOf = (uid, fallback) => {
       const u = users.get(uid);
@@ -3432,31 +3552,31 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
 
       // ── reviews flagged in-app ──
       ...reviews
-          .filter((r) => r.isFlagged)
-          .map((r) => ({
-            id: `review-${r.id}`,
-            source: "review",
-            reviewId: r.id,
-            type: "Review",
-            targetId: r.id,
-            // flaggedBy holds a uid when the flag came from a user, and is
-            // blank when the app's own filters raised it.
-            reportedBy: r.flaggedBy ?
-              nameOf(r.flaggedBy, "Reporter") :
-              "Automatic filter",
-            email: users.get(r.flaggedBy)?.email || "",
-            subjectEmail: users.get(r.providerId)?.email || "",
-            content:
-              r.flagReason ?
-                `${r.flagReason} — “${r.comment || "(no comment)"}”` :
-                `“${r.comment || "(no comment)"}”`,
-            rating: Number(r.rating) || 0,
-            status: titleCase(r.flagStatus, "Pending"),
-            isPending: !r.flagStatus || String(r.flagStatus).toLowerCase() === "pending",
-            date: formatFirestoreDate(r.createdAt),
-            dateTime: toDate(r.createdAt),
-            createdAtRaw: r.createdAt || null,
-          })),
+        .filter((r) => r.isFlagged)
+        .map((r) => ({
+          id: `review-${r.id}`,
+          source: "review",
+          reviewId: r.id,
+          type: "Review",
+          targetId: r.id,
+          // flaggedBy holds a uid when the flag came from a user, and is
+          // blank when the app's own filters raised it.
+          reportedBy: r.flaggedBy
+            ? nameOf(r.flaggedBy, "Reporter")
+            : "Automatic filter",
+          email: users.get(r.flaggedBy)?.email || "",
+          subjectEmail: users.get(r.providerId)?.email || "",
+          content: r.flagReason
+            ? `${r.flagReason} — “${r.comment || "(no comment)"}”`
+            : `“${r.comment || "(no comment)"}”`,
+          rating: Number(r.rating) || 0,
+          status: titleCase(r.flagStatus, "Pending"),
+          isPending:
+            !r.flagStatus || String(r.flagStatus).toLowerCase() === "pending",
+          date: formatFirestoreDate(r.createdAt),
+          dateTime: toDate(r.createdAt),
+          createdAtRaw: r.createdAt || null,
+        })),
     ];
 
     const counts = {
@@ -3467,7 +3587,8 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
     };
 
     let items = rows;
-    if (filterType !== "All") items = items.filter((r) => r.type === filterType);
+    if (filterType !== "All")
+      items = items.filter((r) => r.type === filterType);
 
     // Pending first — those are the only rows needing a decision.
     items.sort((a, b) => {
@@ -3533,70 +3654,72 @@ export async function fetchAdminNotificationsFromFirestore({ max = 50 } = {}) {
 
     // Open disputes — the only queue with a compliance clock on it.
     disputes
-        .filter((d) => {
-          const s = String(d.status || "").toLowerCase().replace(/[\s_-]/g, "");
-          return s === "open" || s === "underreview";
-        })
-        .forEach((d) => {
-          items.push({
-            id: `dispute:${d.id}`,
-            kind: "dispute",
-            title: "Dispute needs a decision",
-            message: `${d.clientName || "A client"} disputed ${
-              d.serviceTitle || "a booking"
-            }${d.bookingAmount ? ` (${money(d.bookingAmount)})` : ""}.`,
-            href: `/compliance/disputes/${d.id}`,
-            at: toMillis(d.createdAt) || 0,
-            severity: "high",
-          });
+      .filter((d) => {
+        const s = String(d.status || "")
+          .toLowerCase()
+          .replace(/[\s_-]/g, "");
+        return s === "open" || s === "underreview";
+      })
+      .forEach((d) => {
+        items.push({
+          id: `dispute:${d.id}`,
+          kind: "dispute",
+          title: "Dispute needs a decision",
+          message: `${d.clientName || "A client"} disputed ${
+            d.serviceTitle || "a booking"
+          }${d.bookingAmount ? ` (${money(d.bookingAmount)})` : ""}.`,
+          href: `/compliance/disputes/${d.id}`,
+          at: toMillis(d.createdAt) || 0,
+          severity: "high",
         });
+      });
 
     // Refunds waiting on approval — money owed to a client until cleared.
     creditRequests
-        .filter((r) => String(r.status || "").toLowerCase() === "pending")
-        .forEach((r) => {
-          items.push({
-            id: `credit:${r.id}`,
-            kind: "refund",
-            title: "Refund awaiting approval",
-            message: `${money(r.amount)} to credit — ${
-              r.reason || "no reason recorded"
-            }.`,
-            href: "/wallets",
-            at: toMillis(r.createdAt) || 0,
-            severity: "high",
-          });
+      .filter((r) => String(r.status || "").toLowerCase() === "pending")
+      .forEach((r) => {
+        items.push({
+          id: `credit:${r.id}`,
+          kind: "refund",
+          title: "Refund awaiting approval",
+          message: `${money(r.amount)} to credit — ${
+            r.reason || "no reason recorded"
+          }.`,
+          href: "/wallets",
+          at: toMillis(r.createdAt) || 0,
+          severity: "high",
         });
+      });
 
     // Withdrawals waiting on approval.
     withdrawals
-        .filter((w) => String(w.status || "").toLowerCase() === "pending")
-        .forEach((w) => {
-          items.push({
-            id: `withdrawal:${w.id}`,
-            kind: "withdrawal",
-            title: "Withdrawal request",
-            message: `${money(w.amount)} requested for payout.`,
-            href: "/wallets",
-            at: toMillis(w.createdAt) || 0,
-            severity: "medium",
-          });
+      .filter((w) => String(w.status || "").toLowerCase() === "pending")
+      .forEach((w) => {
+        items.push({
+          id: `withdrawal:${w.id}`,
+          kind: "withdrawal",
+          title: "Withdrawal request",
+          message: `${money(w.amount)} requested for payout.`,
+          href: "/wallets",
+          at: toMillis(w.createdAt) || 0,
+          severity: "medium",
         });
+      });
 
     // KYC submissions a provider cannot start earning without.
     kyc
-        .filter((k) => String(k.status || "").toLowerCase() === "pending")
-        .forEach((k) => {
-          items.push({
-            id: `kyc:${k.id}`,
-            kind: "kyc",
-            title: "KYC awaiting review",
-            message: "A provider submitted verification documents.",
-            href: "/compliance/kyc",
-            at: toMillis(k.submittedAt) || toMillis(k.createdAt) || 0,
-            severity: "medium",
-          });
+      .filter((k) => String(k.status || "").toLowerCase() === "pending")
+      .forEach((k) => {
+        items.push({
+          id: `kyc:${k.id}`,
+          kind: "kyc",
+          title: "KYC awaiting review",
+          message: "A provider submitted verification documents.",
+          href: "/compliance/kyc",
+          at: toMillis(k.submittedAt) || toMillis(k.createdAt) || 0,
+          severity: "medium",
         });
+      });
 
     // Failed payouts. A provider has worked and not been paid, so this ranks
     // with disputes rather than with the informational rows.
@@ -3610,22 +3733,22 @@ export async function fetchAdminNotificationsFromFirestore({ max = 50 } = {}) {
     const payoutCutoff = Date.now() - PAYOUT_FAILURE_WINDOW_MS;
 
     payouts
-        .filter((p) => String(p.status || "").toLowerCase() === "failed")
-        .forEach((p) => {
-          const at = toMillis(p.processedAt) || 0;
-          if (at < payoutCutoff) return;
-          items.push({
-            id: `payout:${p.id}`,
-            kind: "payout",
-            title: "Payout failed",
-            message: `${money(p.amount)} did not reach a provider${
-              p.errorMessage ? `: ${p.errorMessage}` : "."
-            }`,
-            href: "/finance/commissions",
-            at,
-            severity: "high",
-          });
+      .filter((p) => String(p.status || "").toLowerCase() === "failed")
+      .forEach((p) => {
+        const at = toMillis(p.processedAt) || 0;
+        if (at < payoutCutoff) return;
+        items.push({
+          id: `payout:${p.id}`,
+          kind: "payout",
+          title: "Payout failed",
+          message: `${money(p.amount)} did not reach a provider${
+            p.errorMessage ? `: ${p.errorMessage}` : "."
+          }`,
+          href: "/finance/commissions",
+          at,
+          severity: "high",
         });
+      });
 
     return items.sort((a, b) => b.at - a.at).slice(0, max);
   } catch (error) {
@@ -3663,20 +3786,17 @@ export async function fetchProviderPayoutDetailFromFirestore({
 
     const [ledgerSnap, payoutSnap] = await Promise.all([
       getDocs(
-          query(
-              collection(db, ...ledgerPath),
-              orderBy("createdAt", "desc"),
-              fsLimit(max),
-          ),
+        query(
+          collection(db, ...ledgerPath),
+          orderBy("createdAt", "desc"),
+          fsLimit(max),
+        ),
       ).catch((error) => {
         console.warn(`payout detail: ledger read failed:`, error?.code);
         return { docs: [] };
       }),
       getDocs(
-          query(
-              collection(db, "payout_logs"),
-              where("cleanerId", "==", uid),
-          ),
+        query(collection(db, "payout_logs"), where("cleanerId", "==", uid)),
       ).catch((error) => {
         console.warn(`payout detail: payout_logs read failed:`, error?.code);
         return { docs: [] };
@@ -3688,8 +3808,8 @@ export async function fetchProviderPayoutDetailFromFirestore({
     const CONTRIBUTING = new Set(["job_payout", "adjustment", "admin_credit"]);
 
     const rawEntries = ledgerSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((e) => CONTRIBUTING.has(e.kind));
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((e) => CONTRIBUTING.has(e.kind));
 
     // Join to bookings for the gross and the commission taken. The ledger
     // stores the net credit only, so without this the breakdown could not show
@@ -3699,31 +3819,31 @@ export async function fetchProviderPayoutDetailFromFirestore({
     ];
     const bookings = new Map();
     await Promise.all(
-        bookingIds.map(async (id) => {
-          try {
-            const snap = await getDoc(doc(db, "bookings", id));
-            if (snap.exists()) bookings.set(id, snap.data());
-          } catch (_) {
-            // A deleted booking must not drop its earning from the list.
-          }
-        }),
+      bookingIds.map(async (id) => {
+        try {
+          const snap = await getDoc(doc(db, "bookings", id));
+          if (snap.exists()) bookings.set(id, snap.data());
+        } catch (_) {
+          // A deleted booking must not drop its earning from the list.
+        }
+      }),
     );
 
     const entries = rawEntries.map((e) => {
       const booking = e.bookingId ? bookings.get(e.bookingId) : null;
       const net = Number(e.amount) || 0;
       const gross = booking ? Number(booking.transactionAmount) || 0 : null;
-      const commission = booking ?
-        Number(booking.providerServiceFee) || 0 :
-        null;
+      const commission = booking
+        ? Number(booking.providerServiceFee) || 0
+        : null;
 
       return {
         id: e.id,
         bookingId: e.bookingId || null,
         // Adjustments have no booking, so the ledger title is the only label.
-        label: e.bookingId ?
-          e.serviceTitle || e.serviceName || e.bookingId :
-          e.title || "Adjustment",
+        label: e.bookingId
+          ? e.serviceTitle || e.serviceName || e.bookingId
+          : e.title || "Adjustment",
         date: formatFirestoreDate(e.createdAt),
         at: toMillis(e.createdAt) || 0,
         gross,
@@ -3740,26 +3860,29 @@ export async function fetchProviderPayoutDetailFromFirestore({
     };
 
     const history = payoutSnap.docs
-        .map((d) => {
-          const p = d.data();
-          const raw = String(p.status || "").toLowerCase();
-          const mapped = STATUS[raw] || { label: titleCase(raw, "Unknown"), type: "skip" };
-          return {
-            id: d.id,
-            date: formatFirestoreDate(p.processedAt),
-            at: toMillis(p.processedAt) || 0,
-            status: mapped.label,
-            type: mapped.type,
-            // Only a completed transfer moved money; the others show a reason.
-            amount: raw === "succeeded" ? Number(p.amount) || 0 : null,
-            detail: raw === "succeeded" ? null : p.errorMessage || null,
-            weekKey: p.weekKey || null,
-            stripeTransferId: p.stripeTransferId || null,
-          };
-        })
-        // Ordered here rather than in the query, so no composite index on
-        // (cleanerId, processedAt) is needed.
-        .sort((a, b) => b.at - a.at);
+      .map((d) => {
+        const p = d.data();
+        const raw = String(p.status || "").toLowerCase();
+        const mapped = STATUS[raw] || {
+          label: titleCase(raw, "Unknown"),
+          type: "skip",
+        };
+        return {
+          id: d.id,
+          date: formatFirestoreDate(p.processedAt),
+          at: toMillis(p.processedAt) || 0,
+          status: mapped.label,
+          type: mapped.type,
+          // Only a completed transfer moved money; the others show a reason.
+          amount: raw === "succeeded" ? Number(p.amount) || 0 : null,
+          detail: raw === "succeeded" ? null : p.errorMessage || null,
+          weekKey: p.weekKey || null,
+          stripeTransferId: p.stripeTransferId || null,
+        };
+      })
+      // Ordered here rather than in the query, so no composite index on
+      // (cleanerId, processedAt) is needed.
+      .sort((a, b) => b.at - a.at);
 
     return { entries, history };
   } catch (error) {
@@ -3796,10 +3919,10 @@ export async function fetchDisputeThreadFromFirestore({
 
   try {
     const snap = await getDocs(
-        query(
-            collection(db, "disputes", disputeId, "disputeChat"),
-            orderBy("createdAt", "asc"),
-        ),
+      query(
+        collection(db, "disputes", disputeId, "disputeChat"),
+        orderBy("createdAt", "asc"),
+      ),
     ).catch((error) => {
       console.warn("dispute thread read failed:", error?.code);
       return { docs: [] };
@@ -3823,9 +3946,9 @@ export async function fetchDisputeThreadFromFirestore({
         id: d.id,
         role,
         sender:
-          role === "admin" || role === "system" ?
-            m.senderName || "NETLY Support" :
-            m.senderName || (role === "client" ? "Client" : "Provider"),
+          role === "admin" || role === "system"
+            ? m.senderName || "NETLY Support"
+            : m.senderName || (role === "client" ? "Client" : "Provider"),
         text: m.message || "",
         image: m.image || "",
         messageType: m.messageType || "text",

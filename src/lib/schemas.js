@@ -19,7 +19,7 @@ export const userSchema = z.object({
   // Display form ("Active"/"Invited"/"Banned"). This was a lowercase enum while
   // the service passed a capitalised value, so every parse fell through to the
   // catch and every user read as active regardless of their real status.
-  status: z.string().catch("Active")
+  status: z.string().catch("Active"),
 });
 
 /**
@@ -38,12 +38,12 @@ export const clientProfileSchema = z.object({
   createdAtRaw: z.any().nullable().optional(),
   otp: z.string().catch("Verified"),
   bookings: z.number().catch(0),
-  wallet: z.number().catch(0.00),
-  creditUsed: z.number().catch(0.00),
+  wallet: z.number().catch(0.0),
+  creditUsed: z.number().catch(0.0),
   profileCompleted: z.boolean().catch(false),
   addressCompleted: z.boolean().catch(false),
   onboardingCompleted: z.boolean().catch(false),
-  status: z.string().catch("Active")
+  status: z.string().catch("Active"),
 });
 
 /**
@@ -72,7 +72,9 @@ export const providerProfileSchema = z.object({
   joinDate: z.string().catch("N/A"),
   createdAtRaw: z.any().nullable().optional(),
   kyc: z.string().catch("Not Submitted"),
-  kycStatus: z.enum(["notSubmitted", "pending", "verified", "rejected"]).catch("notSubmitted"),
+  kycStatus: z
+    .enum(["notSubmitted", "pending", "verified", "rejected"])
+    .catch("notSubmitted"),
   isKycVerified: z.boolean().catch(false),
   kycSubmittedAt: z.string().catch("N/A"),
   kycReviewedAt: z.string().catch("N/A"),
@@ -82,14 +84,14 @@ export const providerProfileSchema = z.object({
   skills: z.array(z.string()).catch([]),
   badges: z.array(z.string()).catch([]),
   isFoundingPartner: z.boolean().catch(false),
-  walletBalance: z.number().catch(0.00),
-  creditUsed: z.number().catch(0.00),
+  walletBalance: z.number().catch(0.0),
+  creditUsed: z.number().catch(0.0),
   stripeAccountId: z.string().catch(""),
   stripeAccountType: z.string().catch(""),
   chargesEnabled: z.boolean().catch(false),
   payoutsEnabled: z.boolean().catch(false),
   isActive: z.boolean().catch(true),
-  status: z.string().catch("Active")
+  status: z.string().catch("Active"),
 });
 
 /**
@@ -109,9 +111,12 @@ export const kycSubmissionSchema = z.object({
   submittedAtRaw: z.any().nullable().optional(),
   date: z.string().catch("N/A"),
   documents: z.array(z.string()).catch([]),
+  documentLabels: z.array(z.string()).catch([]),
   verificationDocuments: z.array(z.any()).catch([]),
+  joinedAtRaw: z.any().nullable().optional(),
+  reviewedAt: z.string().catch("N/A"),
   status: z.string().catch("Pending"),
   kycStatus: z.string().catch("pending"),
   isKycVerified: z.boolean().catch(false),
-  rejectionReason: z.string().catch("")
+  rejectionReason: z.string().catch(""),
 });

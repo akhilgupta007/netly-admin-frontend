@@ -203,12 +203,13 @@ export default function WalletsRefundsPage() {
     onError: (error) => toast.error(error.message)
   });
 
-  const handleAdjustSubmit = ({ walletId, uid, amount, type, reason }) => {
+  const handleAdjustSubmit = ({ walletId, uid, amount, type, reason, requestId }) => {
     adjustMutation.mutate({
       uid: uid || walletId,
       amount,
       type: type === "Add Credit" ? "credit" : "debit",
-      reason
+      reason,
+      requestId
     });
   };
 
@@ -402,6 +403,7 @@ export default function WalletsRefundsPage() {
         isOpen={activeModal === "adjust"}
         onClose={() => setActiveModal(null)}
         onSubmit={handleAdjustSubmit}
+        isSubmitting={adjustMutation.isPending}
       />
 
       {/* AUTHORIZE TRANSFER MODAL (Slide 2) */}

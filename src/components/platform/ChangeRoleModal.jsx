@@ -1,16 +1,29 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
+import {
+  ADMIN_ROLES,
+  ASSIGNABLE_ADMIN_ROLES,
+  roleLabel,
+} from "@/lib/adminRoles";
 
 export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole }) {
-  const [role, setRole] = useState("Moderator");
+  // Slugs, not labels. The options used to carry display text ("Finance
+  // Admin"), which meant two things: the current role — stored as a slug —
+  // matched no option, so the select fell back to the first one and showed
+  // Finance Admin for everybody; and submitting sent the label to
+  // updateAdminRole, which only accepts slugs and rejected it.
+  const [role, setRole] = useState(ADMIN_ROLES.MODERATOR);
+  const [lastUid, setLastUid] = useState(user?.uid ?? null);
 
-  useEffect(() => {
-    if (user) {
-      setRole(user.role || "Moderator");
-    }
-  }, [user]);
+  // Adjusted during render rather than in an effect: an effect ran a pass late,
+  // so the select briefly showed the previous admin's role when the modal was
+  // reopened on a different row.
+  if ((user?.uid ?? null) !== lastUid) {
+    setLastUid(user?.uid ?? null);
+    setRole(user?.role || ADMIN_ROLES.MODERATOR);
+  }
 
   if (!isOpen || !user) return null;
 
@@ -55,10 +68,11 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
               >
-                <option value="Finance Admin">Finance Admin</option>
-                <option value="Compliance Admin">Compliance Admin</option>
-                <option value="Moderator">Moderator</option>
-                <option value="Support Admin">Support Admin</option>
+                {ASSIGNABLE_ADMIN_ROLES.map((slug) => (
+                  <option key={slug} value={slug}>
+                    {roleLabel(slug)}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3.5 top-3.5 h-4 w-4 text-text-muted pointer-events-none" />
             </div>

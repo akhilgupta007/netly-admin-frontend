@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, ChevronDown, MoreHorizontal, Edit3, Trash2, Plus } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  MoreHorizontal,
+  Edit3,
+  Trash2,
+  Plus,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
@@ -10,7 +17,11 @@ import ChangeRoleModal from "@/components/platform/ChangeRoleModal";
 import RevokeAccessModal from "@/components/platform/RevokeAccessModal";
 import CardWrapper from "@/components/ui/CardWrapper";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { inviteAdmin, updateAdminRole, revokeAdminAccess } from "@/lib/callables";
+import {
+  inviteAdmin,
+  updateAdminRole,
+  revokeAdminAccess,
+} from "@/lib/callables";
 import { useAdmins } from "@/hooks/useAdmins";
 import { useAuthStore } from "@/store/useAuthStore";
 import { ADMIN_ROLES, roleLabel, canManageAdmins } from "@/lib/adminRoles";
@@ -57,12 +68,20 @@ export default function AdminUsersTab() {
 
   const inviteMutation = useMutation({
     mutationFn: inviteAdmin,
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       invalidateAdmins();
       setInviteOpen(false);
-      toast.success(`Invite sent to ${variables.email}.`);
+      if (data?.inviteEmailSent === false) {
+        toast.warn(
+          `${variables.email} was added as an admin, but the invite email ` +
+            `could not be sent (${data.emailError || "unknown reason"}). ` +
+            "Ask them to use Forgot Password on the login page.",
+        );
+      } else {
+        toast.success(`Invite sent to ${variables.email}.`);
+      }
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => toast.error(error.message),
   });
 
   const roleMutation = useMutation({
@@ -73,7 +92,7 @@ export default function AdminUsersTab() {
       setSelectedAdmin(null);
       toast.success(`Role updated to ${roleLabel(variables.role)}.`);
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => toast.error(error.message),
   });
 
   const revokeMutation = useMutation({
@@ -84,7 +103,7 @@ export default function AdminUsersTab() {
       setSelectedAdmin(null);
       toast.success("Admin access revoked.");
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => toast.error(error.message),
   });
 
   const handleInviteSubmit = (data) => {
@@ -105,15 +124,15 @@ export default function AdminUsersTab() {
       a.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      filterStatus === "All" || a.status === filterStatus;
+    const matchesStatus = filterStatus === "All" || a.status === filterStatus;
 
     let matchesDate = true;
     if (startDate && endDate) {
       const start = new Date(startDate).setHours(0, 0, 0, 0);
       const end = new Date(endDate).setHours(23, 59, 59, 999);
       const createdAt = toMillis(a.createdAtRaw);
-      matchesDate = createdAt === null || (createdAt >= start && createdAt <= end);
+      matchesDate =
+        createdAt === null || (createdAt >= start && createdAt <= end);
     }
 
     return matchesSearch && matchesStatus && matchesDate;
@@ -130,19 +149,34 @@ export default function AdminUsersTab() {
   const totalPages = Math.ceil(filteredAdmins.length / itemsPerPage) || 1;
   const paginatedAdmins = filteredAdmins.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   return (
     <div className="space-y-4 font-onest animate-scale-up text-xs text-text-primary">
-
       {/* Summary Stat Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {[
-          { title: "Finance", count: statsFinance, sub: "Manages the transactions, refunds, etc." },
-          { title: "Compliance", count: statsCompliance, sub: "Manages the KYC, disputes, audit logs, etc." },
-          { title: "Support", count: statsSupport, sub: "Manages accounts, disputes, etc." },
-          { title: "Moderator", count: statsModerator, sub: "Manages content, service categories, etc." }
+          {
+            title: "Finance",
+            count: statsFinance,
+            sub: "Manages the transactions, refunds, etc.",
+          },
+          {
+            title: "Compliance",
+            count: statsCompliance,
+            sub: "Manages the KYC, disputes, audit logs, etc.",
+          },
+          {
+            title: "Support",
+            count: statsSupport,
+            sub: "Manages accounts, disputes, etc.",
+          },
+          {
+            title: "Moderator",
+            count: statsModerator,
+            sub: "Manages content, service categories, etc.",
+          },
         ].map((card, i) => (
           <CardWrapper
             key={i}
@@ -200,12 +234,14 @@ export default function AdminUsersTab() {
               }}
             />
 
-            {isSuperAdmin && <button
-              onClick={() => setInviteOpen(true)}
-              className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 px-4 rounded-lg transition cursor-pointer select-none flex items-center gap-1.5 h-9.5 shrink-0"
-            >
-              <Plus size={18} /> Invite Admin
-            </button>}
+            {isSuperAdmin && (
+              <button
+                onClick={() => setInviteOpen(true)}
+                className="bg-primary-bg hover:opacity-90 text-white font-medium text-sm py-2.5 px-4 rounded-lg transition cursor-pointer select-none flex items-center gap-1.5 h-9.5 shrink-0"
+              >
+                <Plus size={18} /> Invite Admin
+              </button>
+            )}
           </div>
         </div>
 
@@ -214,17 +250,27 @@ export default function AdminUsersTab() {
           <ListSkeleton rows={6} columns={5} firstColAvatar />
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white min-h-80">
-            <h3 className="text-sm font-semibold text-red-600">Could not load admin users</h3>
+            <h3 className="text-sm font-semibold text-red-600">
+              Could not load admin users
+            </h3>
             <p className="text-xs text-text-muted font-light max-w-sm">
               {error?.message || "Check your connection and try again."}
             </p>
           </div>
         ) : filteredAdmins.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white min-h-80">
-            <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75 animate-pulse" />
+            <img
+              src="/empty.png"
+              alt="No data"
+              className="w-16 h-16 object-contain opacity-75 animate-pulse"
+            />
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-text-primary">No Admin Users Found</h3>
-              <p className="text-xs text-text-muted font-light">No admin users match the filtered parameters.</p>
+              <h3 className="text-sm font-semibold text-text-primary">
+                No Admin Users Found
+              </h3>
+              <p className="text-xs text-text-muted font-light">
+                No admin users match the filtered parameters.
+              </p>
             </div>
           </div>
         ) : (
@@ -243,17 +289,28 @@ export default function AdminUsersTab() {
                 </thead>
                 <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedAdmins.map((item, index) => {
-                    const displayUpwards = index > 0 && (index === paginatedAdmins.length - 1 || (index >= 3 && paginatedAdmins.length > 3));
+                    const displayUpwards =
+                      index > 0 &&
+                      (index === paginatedAdmins.length - 1 ||
+                        (index >= 3 && paginatedAdmins.length > 3));
 
                     return (
-                      <tr key={item.id} className="hover:bg-page-bg/50 transition">
+                      <tr
+                        key={item.id}
+                        className="hover:bg-page-bg/50 transition"
+                      >
                         <td className="px-4 py-3">{item.name}</td>
                         <td className="px-4 py-3">{item.email}</td>
                         <td className="px-4 py-3">{roleLabel(item.role)}</td>
                         <td className="px-4 py-3 text-nowrap">
                           {item.lastLogin.includes(" ") ? (
                             <>
-                              <div>{item.lastLogin.split(" ").slice(0, 3).join(" ")}</div>
+                              <div>
+                                {item.lastLogin
+                                  .split(" ")
+                                  .slice(0, 3)
+                                  .join(" ")}
+                              </div>
                               <div className="text-[10px] text-text-muted/75 mt-0.5">
                                 {item.lastLogin.split(" ").slice(3).join(" ")}
                               </div>
@@ -263,10 +320,15 @@ export default function AdminUsersTab() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full md:text-xs text-[10px] capitalize ${item.status === "active" ? "text-emerald-500 bg-emerald-50" :
-                              item.status === "invited" ? "text-amber-500 bg-amber-50" :
-                                "text-red-500 bg-red-50"
-                            }`}>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full md:text-xs text-[10px] capitalize ${
+                              item.status === "active"
+                                ? "text-emerald-500 bg-emerald-50"
+                                : item.status === "invited"
+                                  ? "text-amber-500 bg-amber-50"
+                                  : "text-red-500 bg-red-50"
+                            }`}
+                          >
                             <span className="h-1 w-1 rounded-full bg-current" />
                             {item.status}
                           </span>
@@ -282,10 +344,17 @@ export default function AdminUsersTab() {
                                   if (activeMenuRowId === item.id) {
                                     setActiveMenuRowId(null);
                                   } else {
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const isLastItem = index === paginatedAdmins.length - 1;
-                                    const top = isLastItem ? rect.top - 80 : rect.bottom + 4;
-                                    setDropdownPos({ top, left: rect.left - 120 });
+                                    const rect =
+                                      e.currentTarget.getBoundingClientRect();
+                                    const isLastItem =
+                                      index === paginatedAdmins.length - 1;
+                                    const top = isLastItem
+                                      ? rect.top - 80
+                                      : rect.bottom + 4;
+                                    setDropdownPos({
+                                      top,
+                                      left: rect.left - 120,
+                                    });
                                     setActiveMenuRowId(item.id);
                                   }
                                 }}
@@ -298,7 +367,10 @@ export default function AdminUsersTab() {
                               {activeMenuRowId === item.id && (
                                 <div
                                   className="fixed w-30 bg-white border border-border-main rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
-                                  style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                                  style={{
+                                    top: dropdownPos.top,
+                                    left: dropdownPos.left,
+                                  }}
                                 >
                                   <button
                                     onClick={() => {
@@ -308,7 +380,11 @@ export default function AdminUsersTab() {
                                     }}
                                     className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-page-bg transition cursor-pointer font-medium"
                                   >
-                                    <Edit3 size={13} className="text-text-muted" /> Edit
+                                    <Edit3
+                                      size={13}
+                                      className="text-text-muted"
+                                    />{" "}
+                                    Edit
                                   </button>
                                   <button
                                     onClick={() => {
@@ -318,13 +394,19 @@ export default function AdminUsersTab() {
                                     }}
                                     className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-red-50 text-red-500 transition cursor-pointer font-medium"
                                   >
-                                    <Trash2 size={13} className="text-red-400" /> Revoke
+                                    <Trash2
+                                      size={13}
+                                      className="text-red-400"
+                                    />{" "}
+                                    Revoke
                                   </button>
                                 </div>
                               )}
                             </div>
                           ) : (
-                            <span className="text-[10px] text-text-muted select-none font-light">—</span>
+                            <span className="text-[10px] text-text-muted select-none font-light">
+                              —
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -380,7 +462,6 @@ export default function AdminUsersTab() {
           />
         </>
       )}
-
     </div>
   );
 }

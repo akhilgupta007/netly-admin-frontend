@@ -82,8 +82,8 @@ export const reviewKycSubmission = ({ uid, decision, reasonCategory, reason, exp
 // ─── Wallets ───────────────────────────────────────────────
 
 /** type is "credit" | "debit". Reason must be at least 20 characters. */
-export const adjustWalletBalance = ({ uid, amount, type, reason }) =>
-  callFunction("adjustWalletBalance", { uid, amount, type, reason });
+export const adjustWalletBalance = ({ uid, amount, type, reason, requestId }) =>
+  callFunction("adjustWalletBalance", { uid, amount, type, reason, requestId });
 
 /** action is "approve" | "reject" — one function handles both. */
 /**

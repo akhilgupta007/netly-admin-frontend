@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Search, ChevronDown, MoreHorizontal, Eye, Slash, Trash2 } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  MoreHorizontal,
+  Eye,
+  Slash,
+  Trash2,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
@@ -25,20 +32,13 @@ export default function ServiceListingsTab() {
   const itemsPerPage = 8;
   const queryClient = useQueryClient();
 
-  const {
-    listings,
-    totalCount,
-    categories,
-    isLoading,
-    isFetching,
-    isError,
-  } = useServiceListings({
-    searchTerm,
-    filterStatus,
-    page: currentPage,
-    limit: itemsPerPage,
-  });
-
+  const { listings, totalCount, categories, isLoading, isFetching, isError } =
+    useServiceListings({
+      searchTerm,
+      filterStatus,
+      page: currentPage,
+      limit: itemsPerPage,
+    });
 
   // Active action dropdown row ID
   const [activeMenuRowId, setActiveMenuRowId] = useState(null);
@@ -52,7 +52,6 @@ export default function ServiceListingsTab() {
   const [removeOpen, setRemoveOpen] = useState(false);
 
   // Load from LocalStorage
-
 
   // Close dropdown menu on clicking outside
   useEffect(() => {
@@ -75,9 +74,9 @@ export default function ServiceListingsTab() {
       setRemoveOpen(false);
       setSelectedListing(null);
       toast.success(
-          variables.action === "remove" ?
-            "Listing removed from the marketplace." :
-            "Listing deactivated.",
+        variables.action === "remove"
+          ? "Listing removed from the marketplace."
+          : "Listing deactivated.",
       );
     },
     onError: (err) => toast.error(err.message),
@@ -100,6 +99,13 @@ export default function ServiceListingsTab() {
     });
   };
 
+  // The pricing models present in the data, for the filter dropdown.
+  const pricingOptions = [
+    ...new Set(
+      listings.map((l) => l.pricingType).filter((t) => t && t !== "—"),
+    ),
+  ].sort();
+
   // Filtering
   const filteredListings = listings.filter((lst) => {
     const matchesSearch =
@@ -108,7 +114,11 @@ export default function ServiceListingsTab() {
       lst.provider.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = filterStatus === "All" || lst.status === filterStatus;
-    const matchesPricing = filterPricing === "All" || lst.pricing === filterPricing;
+    // pricingType is the model ("Hourly", "Fixed priced"); `pricing` is the
+    // formatted price ("$25.00/hr · min 2h"). Comparing the latter against a
+    // type never matched, so the filter appeared to do nothing.
+    const matchesPricing =
+      filterPricing === "All" || lst.pricingType === filterPricing;
 
     let matchesDate = true;
     if (startDate && endDate) {
@@ -125,14 +135,19 @@ export default function ServiceListingsTab() {
   const totalPages = Math.ceil(filteredListings.length / itemsPerPage) || 1;
   const paginatedListings = filteredListings.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   return (
     <div className="space-y-4 animate-scale-up">
+      {/* Inline Filters bar inside the white container.
 
-      {/* Inline Filters bar inside the white container */}
-      <div className="bg-white border border-border-main rounded-3xl overflow-hidden shadow-2xs relative">
+          Not overflow-hidden: the date picker opens as an absolutely
+          positioned panel inside this card on desktop, and clipping it cut off
+          the bottom row — which is where Reset and Apply live. That is why the
+          picker appeared to have no way to apply a range. The table below
+          keeps its own clipping so the rounded corners still hold. */}
+      <div className="bg-white border border-border-main rounded-3xl shadow-2xs relative">
         <RefreshingBar active={isFetching && !isLoading} />
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 border-b border-border-main">
           <div className="relative flex-1">
@@ -162,6 +177,9 @@ export default function ServiceListingsTab() {
                 <option value="All">Status</option>
                 <option value="Active">Active</option>
                 <option value="Deactivated">Deactivated</option>
+                {/* moderateListing can also set Removed, and a removed
+                    listing was unreachable through this filter. */}
+                <option value="Removed">Removed</option>
               </select>
               <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
             </div>
@@ -176,10 +194,13 @@ export default function ServiceListingsTab() {
                 className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Pricing</option>
-                <option value="Hourly">Hourly</option>
-                <option value="Quote based">Quote based</option>
-                <option value="Per Item">Per Item</option>
-                <option value="Fixed priced">Fixed priced</option>
+                {/* Built from the listings themselves, so the options are the
+                    pricing types that actually exist rather than a guess. */}
+                {pricingOptions.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
             </div>
@@ -201,22 +222,32 @@ export default function ServiceListingsTab() {
           <ListSkeleton rows={6} columns={6} firstColAvatar={false} />
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-2 select-none bg-white">
-            <h3 className="text-sm font-semibold text-text-primary">Could not load listings</h3>
+            <h3 className="text-sm font-semibold text-text-primary">
+              Could not load listings
+            </h3>
             <p className="text-xs text-text-muted font-light">
               Check your connection and refresh.
             </p>
           </div>
         ) : filteredListings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-4 select-none bg-white">
-            <img src="/empty.png" alt="No data" className="w-16 h-16 object-contain opacity-75" />
+            <img
+              src="/empty.png"
+              alt="No data"
+              className="w-16 h-16 object-contain opacity-75"
+            />
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-text-primary">No Listings Found</h3>
-              <p className="text-xs text-text-muted font-light">No listings match current criteria.</p>
+              <h3 className="text-sm font-semibold text-text-primary">
+                No Listings Found
+              </h3>
+              <p className="text-xs text-text-muted font-light">
+                No listings match current criteria.
+              </p>
             </div>
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto overflow-y-visible">
+            <div className="overflow-x-auto overflow-y-visible rounded-b-3xl">
               <table className="min-w-full divide-y divide-secondary-bg md:text-sm text-xs tracking-tight">
                 <thead className="bg-secondary-bg text-text-primary text-left md:text-sm text-xs">
                   <tr>
@@ -232,26 +263,43 @@ export default function ServiceListingsTab() {
                 </thead>
                 <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedListings.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-page-bg/50 transition">
+                    <tr
+                      key={item.id}
+                      className="hover:bg-page-bg/50 transition"
+                    >
                       <td className="px-4 py-3">{item.provider}</td>
                       <td className="px-4 py-3">{item.category}</td>
                       <td className="px-4 py-3">{item.subCategory}</td>
-                      <td className="px-4 py-3 text-wrap">
-                        {item.title}
-                      </td>
+                      <td className="px-4 py-3 text-wrap">{item.title}</td>
                       <td className="px-4 py-3 text-nowrap">{item.created}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.pricing === "Hourly" ? "text-blue-500 bg-blue-50" :
-                            item.pricing === "Quote based" || item.pricing === "Fixed priced" ? "text-amber-500 bg-amber-50" :
-                              item.pricing === "Per Item" ? "text-purple-500 bg-purple-50" :
-                                "text-emerald-500 bg-emerald-50"
-                          }`}>
+                        {/* Coloured by the pricing model, which lives in
+                            pricingType. Keyed on `pricing` this never matched,
+                            so every badge fell through to the same green. */}
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            item.pricingType === "Hourly"
+                              ? "text-blue-500 bg-blue-50"
+                              : item.pricingType === "Quote based" ||
+                                  item.pricingType === "Fixed priced"
+                                ? "text-amber-500 bg-amber-50"
+                                : item.pricingType === "Per Item"
+                                  ? "text-purple-500 bg-purple-50"
+                                  : "text-emerald-500 bg-emerald-50"
+                          }`}
+                          title={item.pricingType}
+                        >
                           {item.pricing}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${item.status === "Active" ? "text-emerald-500 bg-emerald-50" : "text-red-500 bg-red-50"
-                          }`}>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                            item.status === "Active"
+                              ? "text-emerald-500 bg-emerald-50"
+                              : "text-red-500 bg-red-50"
+                          }`}
+                        >
                           <span className="h-1.25 w-1.25 rounded-full bg-current" />
                           {item.status}
                         </span>
@@ -262,9 +310,13 @@ export default function ServiceListingsTab() {
                             if (activeMenuRowId === item.id) {
                               setActiveMenuRowId(null);
                             } else {
-                              const rect = e.currentTarget.getBoundingClientRect();
-                              const isLastItem = idx === paginatedListings.length - 1;
-                              const top = isLastItem ? rect.top - 110 : rect.bottom + 4;
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              const isLastItem =
+                                idx === paginatedListings.length - 1;
+                              const top = isLastItem
+                                ? rect.top - 110
+                                : rect.bottom + 4;
                               setDropdownPos({ top, left: rect.left - 130 });
                               setActiveMenuRowId(item.id);
                             }
@@ -278,7 +330,10 @@ export default function ServiceListingsTab() {
                         {activeMenuRowId === item.id && (
                           <div
                             className="fixed w-44 bg-white border border-border-main rounded-xl shadow-lg p-1.5 space-y-0.5 text-left text-xs animate-scale-up text-text-primary z-50"
-                            style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                            style={{
+                              top: dropdownPos.top,
+                              left: dropdownPos.left,
+                            }}
                           >
                             <button
                               onClick={() => {
@@ -288,7 +343,8 @@ export default function ServiceListingsTab() {
                               }}
                               className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-page-bg transition cursor-pointer font-medium"
                             >
-                              <Eye size={13} className="text-text-muted" /> View Listing
+                              <Eye size={13} className="text-text-muted" /> View
+                              Listing
                             </button>
                             <button
                               disabled={item.status === "Deactivated"}
@@ -299,7 +355,8 @@ export default function ServiceListingsTab() {
                               }}
                               className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-page-bg transition cursor-pointer font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              <Slash size={13} className="text-text-muted" /> Deactivate Listing
+                              <Slash size={13} className="text-text-muted" />{" "}
+                              Deactivate Listing
                             </button>
                             <button
                               onClick={() => {
@@ -309,7 +366,8 @@ export default function ServiceListingsTab() {
                               }}
                               className="w-full flex items-center gap-2 px-3 py-1.75 rounded-lg hover:bg-red-50 text-red-500 transition cursor-pointer font-medium"
                             >
-                              <Trash2 size={13} className="text-red-400" /> Remove Listing
+                              <Trash2 size={13} className="text-red-400" />{" "}
+                              Remove Listing
                             </button>
                           </div>
                         )}
@@ -364,7 +422,6 @@ export default function ServiceListingsTab() {
           />
         </>
       )}
-
     </div>
   );
 }
