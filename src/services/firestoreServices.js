@@ -1452,7 +1452,19 @@ function disputeStatus(raw, resolution) {
         : key === "resolvedsplit"
           ? "Split decision"
           : null);
-  return { label: DISPUTE_STATUS_LABELS[key] || raw || "Open", outcome };
+  // Whether an admin can still act. Comparing against the "Resolved" label
+  // alone let a rejected or withdrawn dispute keep its Claim and Resolve
+  // buttons, because those carry different labels.
+  const isClosed = ![
+    "open",
+    "underreview",
+  ].includes(key);
+
+  return {
+    label: DISPUTE_STATUS_LABELS[key] || raw || "Open",
+    outcome,
+    isClosed,
+  };
 }
 
 /**
@@ -1527,7 +1539,7 @@ function buildDisputeTimeline(d, booking) {
 function toDispute(id, d, users, booking) {
   const client = users.get(d.clientId) || null;
   const provider = users.get(d.providerId) || null;
-  const { label, outcome } = disputeStatus(d.status, d.resolution);
+  const { label, outcome, isClosed } = disputeStatus(d.status, d.resolution);
 
   return {
     id,
@@ -1544,6 +1556,7 @@ function toDispute(id, d, users, booking) {
     createdAtRaw: d.createdAt || null,
     status: label,
     outcome,
+    isClosed,
     rawStatus: d.status || "",
     raisedBy: d.raisedBy || null,
     reason: d.reason || "—",

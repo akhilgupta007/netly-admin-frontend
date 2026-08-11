@@ -201,9 +201,11 @@ export default function DisputeDetailPage() {
     const resolution =
       decision === "Split"
         ? "split"
-        : decision === "Favor Client"
-          ? "client_favour"
-          : "provider_favour";
+        : decision === "Reject"
+          ? "rejected"
+          : decision === "Favor Client"
+            ? "client_favour"
+            : "provider_favour";
 
     const amount = Number(adjustmentAmount) || 0;
     const serviceAmount = Number(dispute.serviceAmount) || 0;
@@ -214,7 +216,11 @@ export default function DisputeDetailPage() {
     let clientRefundAmount = 0;
     let providerCreditAmount = 0;
 
-    if (resolution === "provider_favour") {
+    if (resolution === "rejected") {
+      // A rejection changes nothing about the booking, so neither side is
+      // credited. Without this it fell into the client-favour branch below and
+      // sent a full refund amount the backend then ignored.
+    } else if (resolution === "provider_favour") {
       providerCreditAmount = amount;
     } else if (resolution === "split") {
       clientRefundAmount = amount;
@@ -501,7 +507,7 @@ export default function DisputeDetailPage() {
                   </p>
                 </div>
 
-                {dispute.status === "Resolved" && (
+                {dispute.isClosed && (
                   <div className="bg-emerald-50/30 border border-emerald-100 rounded-2xl p-4 space-y-2 text-xs">
                     <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-wider block">
                       ⚖️ Resolution Decision
@@ -696,7 +702,7 @@ export default function DisputeDetailPage() {
               </div>
 
             {/* Claim / Resolve buttons */}
-            {dispute.status !== "Resolved" &&
+            {!dispute.isClosed &&
               (dispute.status === "Open" ? (
                 <button
                   type="button"
@@ -929,7 +935,7 @@ export default function DisputeDetailPage() {
                 </button>{" "}
                 to reply.
               </div>
-            ) : dispute.status !== "Resolved" ? (
+            ) : !dispute.isClosed ? (
               <form
                 onSubmit={handleSendChatSubmit}
                 className="flex items-center gap-2 border border-border-main rounded-2xl p-1 bg-white focus-within:ring-1 focus-within:ring-primary-bg/20 transition"
@@ -1005,6 +1011,7 @@ export default function DisputeDetailPage() {
                     { id: "Favor Client", label: "Favor Client" },
                     { id: "Favor Provider", label: "Favor Provider" },
                     { id: "Split", label: "Split Decision" },
+                    { id: "Reject", label: "Reject" },
                   ].map((opt) => (
                     <label
                       key={opt.id}
