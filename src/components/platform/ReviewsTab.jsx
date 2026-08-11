@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, Star } from "lucide-react";
+import { Search, Star, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
@@ -15,6 +15,7 @@ import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
 
 export default function ReviewsTab() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,7 +28,12 @@ export default function ReviewsTab() {
     isLoading,
     isFetching,
     isError,
-  } = useReviews({ searchTerm, page: currentPage, limit: 8 });
+  } = useReviews({
+    searchTerm,
+    filterStatus,
+    page: currentPage,
+    limit: 8,
+  });
   const itemsPerPage = 8;
 
   // Selected entities for modals
@@ -101,7 +107,26 @@ export default function ReviewsTab() {
             />
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex items-center gap-2 justify-center">
+            {/* Removed reviews are excluded from the list by default; this is
+                how an admin gets back to one to restore it. */}
+            <div className="relative">
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
+              >
+                <option value="All">Status</option>
+                <option value="Published">Published</option>
+                <option value="Flagged">Flagged</option>
+                <option value="Removed">Removed</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
+            </div>
+
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}

@@ -6,15 +6,35 @@ import { toast } from "react-toastify";
 import Link from "next/link";
 import { getInitials } from "@/lib/utils";
 
-export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }) {
+export default function AdjustBalanceModal({
+  wallet,
+  isOpen,
+  onClose,
+  onSubmit,
+  isSubmitting = false,
+}) {
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustType, setAdjustType] = useState("Add Credit"); // 'Add Credit' | 'Deduct'
   const [adjustReason, setAdjustReason] = useState("");
+  // One id per intended adjustment, so the callable can refuse a repeat.
+  // Regenerated only once an adjustment succeeds — a retry after a failure is
+  // the same intended action and must reuse the key.
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
+  const [lastWalletId, setLastWalletId] = useState(wallet?.id ?? null);
+
+  // A different wallet is a different adjustment.
+  if ((wallet?.id ?? null) !== lastWalletId) {
+    setLastWalletId(wallet?.id ?? null);
+    setRequestId(crypto.randomUUID());
+  }
 
   if (!isOpen || !wallet) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Belt and braces: the button is disabled while a submission is in
+    // flight, but Enter in a text field would otherwise still fire this.
+    if (isSubmitting) return;
     if (adjustReason.trim().length < 20) {
       toast.error("Justification text must contain at least 20 characters.");
       return;
@@ -32,7 +52,8 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
       uid: wallet.uid,
       amount: val,
       type: adjustType,
-      reason: adjustReason
+      reason: adjustReason,
+      requestId,
     });
   };
 
@@ -142,9 +163,10 @@ export default function AdjustBalanceModal({ wallet, isOpen, onClose, onSubmit }
             </button>
             <button
               type="submit"
-              className="flex-1 bg-primary-bg text-white hover:opacity-90 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center"
+              disabled={isSubmitting}
+              className="flex-1 bg-primary-bg text-white hover:opacity-90 font-semibold text-xs py-2.5 rounded-xl transition cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Confirm Adjustment
+              {isSubmitting ? "Adjusting…" : "Confirm Adjustment"}
             </button>
           </div>
         </form>

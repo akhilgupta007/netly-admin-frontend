@@ -52,8 +52,15 @@ export default function ConsentManagementTab() {
       const a = document.createElement("a");
       a.href = url;
       a.download = `netly-data-export-${result.subject.email || result.subject.uid}.json`;
+      // The anchor has to be in the document for the click to start a
+      // download — a detached element is ignored by Firefox and Safari, which
+      // is why nothing appeared to happen. Same pattern as exportHelper.js.
+      a.style.display = "none";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      // Revoking in the same tick can cancel a download that has not started.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success("Data archive downloaded.");
     },
     onError: (error) => toast.error(error.message)
@@ -162,16 +169,30 @@ export default function ConsentManagementTab() {
               <button
                 onClick={() => handleExportUserData(matchedRecord)}
                 disabled={exportMutation.isPending}
-                className="flex-1 min-w-37.5 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 min-w-37.5 bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Download size={13} /> Export User Data
+                <Download size={13} />
+                {exportMutation.isPending ? "Preparing…" : "Export User Data"}
               </button>
               <button
                 onClick={() => handleUnsubscribeUser(matchedRecord)}
-                disabled={consentMutation.isPending || matchedRecord.marketingConsent !== true}
-                className="flex-1 min-w-37.5 bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5"
+                // Only an account already opted out has nothing to withdraw.
+                // This used to require marketingConsent === true, and the field
+                // is null on every account that was never asked — so the
+                // button was permanently disabled while still looking active.
+                disabled={
+                  consentMutation.isPending ||
+                  matchedRecord.marketingConsent === false
+                }
+                title={
+                  matchedRecord.marketingConsent === false
+                    ? "This user has already opted out of marketing."
+                    : "Record a marketing opt-out for this user"
+                }
+                className="flex-1 min-w-37.5 bg-white border border-primary-bg-muted text-primary-bg hover:bg-page-bg font-medium text-xs py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <MailX size={13} /> Unsubscribe User
+                <MailX size={13} />
+                {consentMutation.isPending ? "Saving…" : "Unsubscribe User"}
               </button>
               <button
                 onClick={() => handleDeleteUserData(matchedRecord)}
