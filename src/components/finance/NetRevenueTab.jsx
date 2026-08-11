@@ -35,10 +35,48 @@ export default function NetRevenueTab() {
   const chartData = revenue.map((r) => ({
     ...r,
     dayName: r.day,
-    fullDate: new Date(r.date).toLocaleDateString("en-US", {
+    fullDate: new Date(`${r.date}T00:00:00`).toLocaleDateString("en-US", {
       month: "short", day: "numeric", year: "numeric",
     }),
   }));
+
+  /**
+   * Rounds a maximum up to a readable axis top (480 → 500, 3200 → 5000).
+   *
+   * Both series were divided by a hardcoded 10000, so anything under a few
+   * thousand dollars drew as a sliver at the baseline and the chart looked
+   * empty regardless of the data.
+   *
+   * @param {number} value - Largest value across the series.
+   * @return {number} Axis maximum, never zero.
+   */
+  const axisMax = (value) => {
+    if (!value || value <= 0) return 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+    const normalised = value / magnitude;
+    const step =
+      normalised <= 1 ? 1 : normalised <= 2 ? 2 : normalised <= 5 ? 5 : 10;
+    return step * magnitude;
+  };
+
+  // Both series are money on the same scale, so they share one maximum —
+  // otherwise the two are not visually comparable.
+  const valueMax = axisMax(
+    Math.max(0, ...chartData.flatMap((d) => [d.fee, d.commission])),
+  );
+
+  const axisTicks = [1, 0.75, 0.5, 0.25, 0];
+
+  /**
+   * Formats a currency axis tick, using thousands only when it helps.
+   *
+   * @param {number} value - Dollar amount.
+   * @return {string} e.g. "$500" or "$2.5k".
+   */
+  const moneyTick = (value) =>
+    valueMax >= 1000
+      ? `$${(value / 1000).toFixed(1)}k`
+      : `$${Math.round(value)}`;
 
   const handleExportCSV = () => {
     const headers = ["Day", "Platform Fees ($)", "Commissions ($)"];
@@ -138,7 +176,10 @@ export default function NetRevenueTab() {
         />
         <CardWrapper
           name="Average net revenue"
-          value="$25.22"
+          // Was a hardcoded "$25.22", which never moved whatever the range.
+          value={currency(
+            totals && totals.bookings ? totals.netRevenue / totals.bookings : 0,
+          )}
           subtext="Per Booking"
         />
       </div>
@@ -172,11 +213,9 @@ export default function NetRevenueTab() {
             <div className="flex items-stretch h-64 relative">
               {/* Left Y Axis column */}
               <div className="w-12 flex flex-col justify-between md:text-sm text-xs text-text-muted pb-1 select-none">
-                <span>$10.0k</span>
-                <span>$7.5k</span>
-                <span>$5.0k</span>
-                <span>$2.5k</span>
-                <span>$0.0k</span>
+                {axisTicks.map((t) => (
+                  <span key={t}>{moneyTick(valueMax * t)}</span>
+                ))}
               </div>
 
               {/* Middle Graph Area */}
@@ -192,8 +231,8 @@ export default function NetRevenueTab() {
                 {chartType === "Bar" ? (
                   <div className="w-full h-full flex justify-between items-end pb-1 relative z-10" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
                     {chartData.map((d, index) => {
-                      const feeHeight = `${(d.fee / 10000) * 100}%`;
-                      const commissionHeight = `${(d.commission / 10000) * 100}%`;
+                      const feeHeight = `${(d.fee / valueMax) * 100}%`;
+                      const commissionHeight = `${(d.commission / valueMax) * 100}%`;
                       return (
                         <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                           <div className="flex items-end justify-center gap-1 sm:gap-1.5 shrink-0 h-full">
@@ -202,7 +241,7 @@ export default function NetRevenueTab() {
                               className="sm:w-12 w-6 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
-                                y: `${100 - (d.fee / 10000) * 100}%`,
+                                y: `${100 - (d.fee / valueMax) * 100}%`,
                                 value: `$${d.fee.toLocaleString()}`,
                                 label: `5% Fee (${d.dayName}, ${d.fullDate})`
                               })}
@@ -213,7 +252,7 @@ export default function NetRevenueTab() {
                               className="sm:w-12 w-6 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
-                                y: `${100 - (d.commission / 10000) * 100}%`,
+                                y: `${100 - (d.commission / valueMax) * 100}%`,
                                 value: `$${d.commission.toLocaleString()}`,
                                 label: `15% Commission (${d.dayName}, ${d.fullDate})`
                               })}
@@ -230,11 +269,11 @@ export default function NetRevenueTab() {
                       {(() => {
                         const feePoints = chartData.map((d, index) => ({
                           x: `${7.1428 + index * 14.2857}%`,
-                          y: `${(1 - d.fee / 10000) * 100}%`
+                          y: `${(1 - d.fee / valueMax) * 100}%`
                         }));
                         const commissionPoints = chartData.map((d, index) => ({
                           x: `${7.1428 + index * 14.2857}%`,
-                          y: `${(1 - d.commission / 10000) * 100}%`
+                          y: `${(1 - d.commission / valueMax) * 100}%`
                         }));
                         return (
                           <g>
@@ -333,11 +372,9 @@ export default function NetRevenueTab() {
 
               {/* Right Y Axis column */}
               <div className="w-14 flex flex-col justify-between md:text-sm text-xs text-text-muted text-right pb-1 select-none">
-                <span>$10.0k</span>
-                <span>$7.5k</span>
-                <span>$5.0k</span>
-                <span>$2.5k</span>
-                <span>$0.0k</span>
+                {axisTicks.map((t) => (
+                  <span key={t}>{moneyTick(valueMax * t)}</span>
+                ))}
               </div>
             </div>
 

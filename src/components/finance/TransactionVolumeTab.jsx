@@ -36,10 +36,55 @@ export default function TransactionVolumeTab() {
   const chartData = volume.map((r) => ({
     ...r,
     dayName: r.day,
-    fullDate: new Date(r.date).toLocaleDateString("en-US", {
+    // Parsed as a local date. `new Date("2026-08-10")` is parsed as UTC
+    // midnight, which in Toronto is the evening of the 9th — so every bar was
+    // captioned with the previous day and disagreed with its own weekday
+    // label ("Mon, Aug 9").
+    fullDate: new Date(`${r.date}T00:00:00`).toLocaleDateString("en-US", {
       month: "short", day: "numeric", year: "numeric",
     }),
   }));
+
+  /**
+   * Rounds a maximum up to a readable axis top (7 → 10, 230 → 250).
+   *
+   * The axes used to be fixed at 80 bookings and $10k, so three bookings
+   * worth $50 drew bars under 3% tall — a chart that looked empty however
+   * much real data was in it.
+   *
+   * @param {number} value - Largest value in the series.
+   * @return {number} Axis maximum, never zero.
+   */
+  const axisMax = (value) => {
+    if (!value || value <= 0) return 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+    const normalised = value / magnitude;
+    const step =
+      normalised <= 1 ? 1 : normalised <= 2 ? 2 : normalised <= 5 ? 5 : 10;
+    return step * magnitude;
+  };
+
+  // Bookings are whole numbers and the axis has four intervals, so the top is
+  // the peak divided into four equal integer steps. Rounding to a "nice"
+  // number instead gave both repeated labels at small values ("2 2 1 1 0")
+  // and odd ones at larger ("52 39 26 13 0").
+  const peakBookings = Math.max(0, ...chartData.map((d) => d.bookings));
+  const bookingsMax = Math.max(4, Math.ceil(peakBookings / 4) * 4);
+  const gmvMax = axisMax(Math.max(0, ...chartData.map((d) => d.gmv)));
+
+  // Four gridlines plus the baseline, top-down.
+  const axisTicks = [1, 0.75, 0.5, 0.25, 0];
+
+  /**
+   * Formats a GMV axis tick, switching to thousands only when it helps.
+   *
+   * @param {number} value - Dollar amount.
+   * @return {string} e.g. "$50" or "$2.5k".
+   */
+  const gmvTick = (value) =>
+    gmvMax >= 1000
+      ? `$${(value / 1000).toFixed(1)}k`
+      : `$${Math.round(value)}`;
 
   const handleExportCSV = () => {
     const headers = ["Day", "Bookings", "GMV ($)"];
@@ -167,11 +212,9 @@ export default function TransactionVolumeTab() {
             <div className="flex items-stretch h-64 relative">
               {/* Left Y Axis column (Bookings) */}
               <div className="w-12 flex flex-col justify-between md:text-sm text-xs text-text-muted pb-1 select-none">
-                <span>80</span>
-                <span>60</span>
-                <span>40</span>
-                <span>20</span>
-                <span>0</span>
+                {axisTicks.map((t) => (
+                  <span key={t}>{Math.round(bookingsMax * t)}</span>
+                ))}
               </div>
 
               {/* Middle Graph Area */}
@@ -187,8 +230,8 @@ export default function TransactionVolumeTab() {
                 {chartType === "Bar" ? (
                   <div className="w-full h-full flex justify-between items-end pb-1 relative z-10" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
                     {chartData.map((d, index) => {
-                      const bookingsHeight = `${(d.bookings / 80) * 100}%`;
-                      const gmvHeight = `${(d.gmv / 10000) * 100}%`;
+                      const bookingsHeight = `${(d.bookings / bookingsMax) * 100}%`;
+                      const gmvHeight = `${(d.gmv / gmvMax) * 100}%`;
                       return (
                         <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                           <div className="flex items-end justify-center gap-1 sm:gap-1.5 shrink-0 h-full">
@@ -197,7 +240,7 @@ export default function TransactionVolumeTab() {
                               className="sm:w-12 w-6 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
-                                y: `${100 - (d.bookings / 80) * 100}%`,
+                                y: `${100 - (d.bookings / bookingsMax) * 100}%`,
                                 value: `${d.bookings} bookings`,
                                 label: `Bookings (${d.dayName}, ${d.fullDate})`
                               })}
@@ -208,7 +251,7 @@ export default function TransactionVolumeTab() {
                               className="sm:w-12 w-6 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
-                                y: `${100 - (d.gmv / 10000) * 100}%`,
+                                y: `${100 - (d.gmv / gmvMax) * 100}%`,
                                 value: `$${d.gmv.toLocaleString()}`,
                                 label: `GMV (${d.dayName}, ${d.fullDate})`
                               })}
@@ -225,11 +268,11 @@ export default function TransactionVolumeTab() {
                       {(() => {
                         const bookingsPoints = chartData.map((d, index) => ({
                           x: `${7.1428 + index * 14.2857}%`,
-                          y: `${(1 - d.bookings / 80) * 100}%`
+                          y: `${(1 - d.bookings / bookingsMax) * 100}%`
                         }));
                         const gmvPoints = chartData.map((d, index) => ({
                           x: `${7.1428 + index * 14.2857}%`,
-                          y: `${(1 - d.gmv / 10000) * 100}%`
+                          y: `${(1 - d.gmv / gmvMax) * 100}%`
                         }));
                         return (
                           <g>
@@ -328,11 +371,9 @@ export default function TransactionVolumeTab() {
 
               {/* Right Y Axis column (GMV) */}
               <div className="w-14 flex flex-col justify-between md:text-sm text-xs text-text-muted text-right pb-1 select-none">
-                <span>$10.0k</span>
-                <span>$7.5k</span>
-                <span>$5.0k</span>
-                <span>$2.5k</span>
-                <span>$0.0k</span>
+                {axisTicks.map((t) => (
+                  <span key={t}>{gmvTick(gmvMax * t)}</span>
+                ))}
               </div>
             </div>
 
