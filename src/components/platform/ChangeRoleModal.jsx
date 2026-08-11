@@ -1,25 +1,35 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Loader2 } from "lucide-react";
 import {
   ADMIN_ROLES,
   ASSIGNABLE_ADMIN_ROLES,
   roleLabel,
 } from "@/lib/adminRoles";
 
-export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole }) {
+export default function ChangeRoleModal({
+  user,
+  isOpen,
+  onClose,
+  onChangeRole,
+  isPending = false,
+}) {
   // Slugs, not labels. The options used to carry display text ("Finance
   // Admin"), which meant two things: the current role — stored as a slug —
-  // matched no option, so the select fell back to the first one and showed
-  // Finance Admin for everybody; and submitting sent the label to
-  // updateAdminRole, which only accepts slugs and rejected it.
-  const [role, setRole] = useState(ADMIN_ROLES.MODERATOR);
+  // matched no option, so the select fell back to the first one; and
+  // submitting sent the label to updateAdminRole, which only accepts slugs.
+  //
+  // Seeded from the admin being edited rather than from a constant. The parent
+  // only mounts this modal once a row is selected, so lastUid below would
+  // already equal that row's uid on the first render and the adjustment would
+  // never fire — leaving the select on the fallback instead of their real role.
+  const [role, setRole] = useState(user?.role || ADMIN_ROLES.MODERATOR);
   const [lastUid, setLastUid] = useState(user?.uid ?? null);
 
-  // Adjusted during render rather than in an effect: an effect ran a pass late,
-  // so the select briefly showed the previous admin's role when the modal was
-  // reopened on a different row.
+  // Reopening on a different row still has to re-seed. Adjusted during render
+  // rather than in an effect, which would run a pass late and briefly show the
+  // previous admin's role.
   if ((user?.uid ?? null) !== lastUid) {
     setLastUid(user?.uid ?? null);
     setRole(user?.role || ADMIN_ROLES.MODERATOR);
@@ -29,8 +39,13 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Enter in the select would otherwise submit again while the first call is
+    // still running.
+    if (isPending) return;
     onChangeRole(user, role);
   };
+
+  const unchanged = role === user.role;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-alt-bg/40 backdrop-blur-xs p-4 animate-fade-in">
@@ -65,8 +80,9 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
               <select
                 required
                 value={role}
+                disabled={isPending}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer"
+                className="w-full bg-white border border-border-main text-xs rounded-xl p-3 focus:outline-none focus:ring-1 focus:ring-primary-bg text-text-primary appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {ASSIGNABLE_ADMIN_ROLES.map((slug) => (
                   <option key={slug} value={slug}>
@@ -81,9 +97,14 @@ export default function ChangeRoleModal({ user, isOpen, onClose, onChangeRole })
           {/* Full-width action button */}
           <button
             type="submit"
-            className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2"
+            disabled={isPending || unchanged}
+            title={
+              unchanged ? "Pick a different role to change it." : undefined
+            }
+            className="w-full bg-primary-bg hover:opacity-90 text-white font-medium text-xs py-2.5 rounded-lg transition cursor-pointer text-center mt-2 flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Change Role
+            {isPending && <Loader2 size={13} className="animate-spin" />}
+            {isPending ? "Changing role…" : "Change Role"}
           </button>
         </form>
 

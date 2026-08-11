@@ -3269,11 +3269,9 @@ export async function fetchReviewsFromFirestore(params = {}) {
       items = items.filter((i) => String(i.rating) === String(filterRating));
     }
 
-    // A removed review is gone from the marketplace, so it should not sit in
-    // the moderation list either — an admin who had just removed one still saw
-    // it in the table and reasonably read that as the removal having failed.
-    // It stays reachable by asking for it explicitly, because hiding is
-    // reversible and the record is kept deliberately.
+    // Older removals only set isVisible false and left the document in place;
+    // those are still filtered out here. New ones are deleted outright, so
+    // they never reach this point.
     if (filterStatus !== "Removed") {
       items = items.filter((i) => i.isVisible);
     }

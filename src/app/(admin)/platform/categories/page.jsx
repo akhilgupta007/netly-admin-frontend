@@ -554,6 +554,7 @@ export default function ServiceCategoriesPage() {
             setPendingDeactivation(null);
           }}
           onConfirm={confirmDeactivation}
+          isPending={editCategory.isPending || editSubService.isPending}
         />
       )}
     </div>
