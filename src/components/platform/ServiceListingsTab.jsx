@@ -16,6 +16,7 @@ import ListingDetailsModal from "@/components/platform/ListingDetailsModal";
 import DeactivateListingModal from "@/components/platform/DeactivateListingModal";
 import RemoveListingModal from "@/components/platform/RemoveListingModal";
 import { useServiceListings } from "@/hooks/usePlatform";
+import { toMillis } from "@/services/firestoreReads";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { moderateListing } from "@/lib/callables";
 import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
@@ -124,8 +125,12 @@ export default function ServiceListingsTab() {
     if (startDate && endDate) {
       const start = new Date(startDate).setHours(0, 0, 0, 0);
       const end = new Date(endDate).setHours(23, 59, 59, 999);
-      const createdVal = new Date(lst.createdTime).getTime();
-      matchesDate = createdVal >= start && createdVal <= end;
+      // The raw timestamp, not the formatted string. "August 13, 2026 at
+      // 02:13 AM" is not a date any parser accepts, so this was NaN on every
+      // row and setting any range emptied the table.
+      const createdVal = toMillis(lst.createdAtRaw);
+      matchesDate =
+        createdVal !== null && createdVal >= start && createdVal <= end;
     }
 
     return matchesSearch && matchesStatus && matchesPricing && matchesDate;

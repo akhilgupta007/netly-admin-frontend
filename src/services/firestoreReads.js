@@ -23,6 +23,65 @@ import {
  */
 
 /**
+ * The timezone every date in this panel is rendered in.
+ *
+ * Netly is a Canadian platform and the backend runs on Toronto time — the
+ * weekly accumulation closes at Sunday 23:59 America/Toronto, payouts go out
+ * Friday 09:00 America/Toronto, suspensions lift on the same clock. So Toronto
+ * is the default, and it is what an admin anywhere in the world sees, because
+ * the alternative — the browser's own zone — meant the same booking read
+ * "1:30 PM" to one admin and "4:00 AM" to another with nothing on screen
+ * saying which.
+ *
+ * India is the one exception: the team working from there reads these screens
+ * against what the apps on their own devices show, and making them convert in
+ * their heads is how a booking gets misread. Anywhere else falls back to
+ * Toronto rather than to the local zone, so an admin in a third country still
+ * sees the clock the platform runs on.
+ *
+ * Whichever is chosen, the time is labelled — an unlabelled clock time on an
+ * operations screen invites the reader to assume it is theirs.
+ */
+const DEFAULT_TIME_ZONE = "America/Toronto";
+const INDIA_TIME_ZONE = "Asia/Kolkata";
+
+/** Both spellings are in live use — ICU renamed Calcutta, browsers disagree. */
+const INDIA_ZONE_NAMES = ["asia/kolkata", "asia/calcutta"];
+
+/** Resolved once: it cannot change without a reload. */
+let resolvedZone = null;
+
+/**
+ * The zone to render in, from where the admin actually is.
+ *
+ * @return {string} An IANA zone name.
+ */
+export function displayTimeZone() {
+  if (resolvedZone) return resolvedZone;
+
+  resolvedZone = DEFAULT_TIME_ZONE;
+  try {
+    // Undefined during prerender, which is correct: the server is not in
+    // India, and no date reaches the screen before the client has hydrated.
+    const local = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    if (INDIA_ZONE_NAMES.includes(local.toLowerCase())) {
+      resolvedZone = INDIA_TIME_ZONE;
+    }
+  } catch {
+    // No Intl support: the default already holds.
+  }
+  return resolvedZone;
+}
+
+/**
+ * The suffix shown after a clock time.
+ * @return {string} "IST" or "ET".
+ */
+export function displayTimeZoneLabel() {
+  return displayTimeZone() === INDIA_TIME_ZONE ? "IST" : "ET";
+}
+
+/**
  * Formats a Timestamp as a short date.
  * @param {*} timestamp - Firestore Timestamp, Date, string or number.
  * @return {string} Formatted date, or "N/A".
@@ -34,6 +93,7 @@ export function formatFirestoreDate(timestamp) {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: displayTimeZone(),
   });
 }
 
@@ -45,13 +105,30 @@ export function formatFirestoreDate(timestamp) {
 export function formatFirestoreDateTime(timestamp) {
   const date = toDate(timestamp);
   if (!date) return "—";
-  return date.toLocaleString("en-US", {
+  return `${date.toLocaleString("en-US", {
     year: "numeric",
     month: "long",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    timeZone: displayTimeZone(),
+  })} ${displayTimeZoneLabel()}`;
+}
+
+/**
+ * Formats a Timestamp as time of day.
+ *
+ * @param {*} timestamp - Firestore Timestamp, Date, string or number.
+ * @return {string} e.g. "01:30 PM IST", or "" when there is no time.
+ */
+export function formatFirestoreTime(timestamp) {
+  const date = toDate(timestamp);
+  if (!date) return "";
+  return `${date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: displayTimeZone(),
+  })} ${displayTimeZoneLabel()}`;
 }
 
 /**
