@@ -7,6 +7,7 @@ import Header from "@/components/layout/Header";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "@/store/useAuthStore";
+import { canAccessRoute } from "@/lib/adminRoles";
 import { Loader2 } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -17,6 +18,7 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
 
   const token = useAuthStore((state) => state.token);
+  const role = useAuthStore((state) => state.role);
   const isHydrated = useAuthStore((state) => state.isHydrated);
   const hydrate = useAuthStore((state) => state.hydrate);
   const [isFirebaseReady, setIsFirebaseReady] = useState(false);
@@ -40,6 +42,19 @@ export default function AdminLayout({ children }) {
       router.replace("/login");
     }
   }, [isHydrated, token, router]);
+
+  // Role guard.
+  //
+  // Hiding a link in the sidebar does not stop anyone typing the URL, and
+  // several of these pages would then render a table of data the role has no
+  // business seeing even if every button on it fails. The dashboard is open to
+  // every admin, so it is the safe landing place.
+  useEffect(() => {
+    if (!isHydrated || !token || !role) return;
+    if (!canAccessRoute(role, pathname)) {
+      router.replace("/dashboard");
+    }
+  }, [isHydrated, token, role, pathname, router]);
 
   // Extract all navigation items into a single flat array
   const allItems = navigation.flatMap((group) => group.items);

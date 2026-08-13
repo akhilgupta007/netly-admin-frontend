@@ -48,3 +48,81 @@ export function roleLabel(slug) {
 export function canManageAdmins(role) {
   return role === ADMIN_ROLES.SUPER_ADMIN;
 }
+
+/**
+ * Which pages each role may open.
+ *
+ * Derived from the role guards on the Cloud Functions each page calls, so a
+ * role only sees screens where its actions would actually succeed. Showing a
+ * page whose every button returns permission-denied is worse than hiding it.
+ *
+ * This is navigation, not security. The callables and the Firestore rules are
+ * the real boundary; this stops an admin wandering into a screen they cannot
+ * use.
+ *
+ * Super admins are absent deliberately — they are allowed everything, handled
+ * in canAccessRoute below.
+ */
+export const ROLE_ROUTES = {
+  [ADMIN_ROLES.FINANCE_ADMIN]: [
+    "/dashboard",
+    // resendPaymentReminder
+    "/transactions",
+    // adjustWalletBalance, approveWalletWithdrawal
+    "/wallets",
+    // updateCommissionSettings, generateT4AReport, holdProviderPayout
+    "/finance/commissions",
+    "/finance/reports",
+    "/platform/settings",
+  ],
+  [ADMIN_ROLES.COMPLIANCE_ADMIN]: [
+    "/dashboard",
+    // updateAccountStatus, updateUserConsent, exportUserData
+    "/accounts",
+    // reviewKycSubmission
+    "/compliance/kyc",
+    // claimDispute, resolveDispute, postDisputeMessage
+    "/compliance/disputes",
+    "/compliance/logs",
+    // moderateListing, moderateReview, resolveReport
+    "/platform/moderation",
+    "/platform/settings",
+  ],
+  [ADMIN_ROLES.SUPPORT_ADMIN]: [
+    "/dashboard",
+    // inviteUser, resetUserPassword, updateAccountStatus, updateUserConsent
+    "/accounts",
+    // claimDispute, resolveDispute, postDisputeMessage
+    "/compliance/disputes",
+    // resendPaymentReminder
+    "/transactions",
+    "/platform/settings",
+  ],
+  [ADMIN_ROLES.MODERATOR]: [
+    "/dashboard",
+    // moderateListing, moderateReview, resolveReport
+    "/platform/moderation",
+    // the category and sub-category callables
+    "/platform/categories",
+    "/platform/settings",
+  ],
+};
+
+/**
+ * May this role open this path?
+ *
+ * @param {string} role - Role slug.
+ * @param {string} href - Route, e.g. "/finance/reports".
+ * @return {boolean} True when permitted.
+ */
+export function canAccessRoute(role, href) {
+  if (role === ADMIN_ROLES.SUPER_ADMIN) return true;
+  const allowed = ROLE_ROUTES[role];
+  // An unrecognised role gets nothing rather than everything — a typo in a
+  // role slug must not hand out the whole panel.
+  if (!allowed) return false;
+  // Dashboard links carry query strings ("/wallets?tab=credit"), so compare
+  // the path alone.
+  const path = String(href || "").split(/[?#]/)[0];
+  return allowed.some((base) => path === base || path.startsWith(`${base}/`));
+}

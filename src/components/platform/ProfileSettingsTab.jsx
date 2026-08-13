@@ -7,11 +7,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ChangePasswordModal from "@/components/platform/ChangePasswordModal";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { updateAdminProfile, adminChangePassword } from "@/lib/callables";
-import { ADMIN_ROLE_LABELS } from "@/lib/adminRoles";
+import { ADMIN_ROLE_LABELS, canManageAdmins } from "@/lib/adminRoles";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function ProfileSettingsTab() {
   const queryClient = useQueryClient();
   const { profile, isLoading } = useAdminProfile();
+  const currentRole = useAuthStore((state) => state.role);
+  const isSuperAdmin = canManageAdmins(currentRole);
 
   // Profile settings state — seeded from Firestore once the profile arrives.
   const [firstName, setFirstName] = useState("");
@@ -205,7 +208,12 @@ export default function ProfileSettingsTab() {
         </div>
       </form>
 
-      {/* Security configuration card */}
+      {/* Security configuration card.
+
+          Platform-wide policy — session timeout and forced 2FA apply to every
+          admin, not to the person editing their own profile — so it belongs to
+          the super admin alone. */}
+      {isSuperAdmin && (
       <form onSubmit={handleSaveSecurity} className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-5 relative">
         <h3 className="text-sm font-semibold text-text-primary">Security configuration</h3>
 
@@ -273,6 +281,7 @@ export default function ProfileSettingsTab() {
           </button>
         </div>
       </form>
+      )}
 
       {/* Change password modal overlay */}
       <ChangePasswordModal
