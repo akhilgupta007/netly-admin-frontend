@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LogoutModal from "./LogoutModal";
 import { useAuthStore } from "@/store/useAuthStore";
+import { canAccessRoute } from "@/lib/adminRoles";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -66,6 +67,16 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   const router = useRouter();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const role = useAuthStore((state) => state.role);
+
+  // Only the pages this role can actually use. A group with nothing left in it
+  // drops out too, so there are no empty "Finance" headings.
+  const visibleNavigation = navigation
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => canAccessRoute(role, item.href)),
+      }))
+      .filter((group) => group.items.length > 0);
 
   return (
     <>
@@ -99,7 +110,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
         {/* Sidebar Nav Items */}
         <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-2 scrollbar-thin">
-          {navigation.map((group, groupIdx) => (
+          {visibleNavigation.map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-1">
               {group.label && (
                 <span className="block text-sm font-medium tracking-wider text-text-primary select-none">

@@ -3,6 +3,8 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import CardWrapper from "@/components/ui/CardWrapper";
+import { useAuthStore } from "@/store/useAuthStore";
+import { canAccessRoute } from "@/lib/adminRoles";
 import { useDashboardMetrics, useUnmetDemand } from "@/hooks/useDashboard";
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import {
@@ -63,6 +65,28 @@ export default function DashboardPage() {
     startDate: activeRange.startDate,
     endDate: activeRange.endDate,
   });
+
+  const role = useAuthStore((state) => state.role);
+
+  /**
+   * Strips the link and its caption from a card the role cannot open.
+   *
+   * The dashboard is visible to every admin, but most of its cards deep-link
+   * into pages that are not. Left in place those arrows bounce off the route
+   * guard straight back to the dashboard, which reads as a broken link.
+   *
+   * The caption goes with it. "Tap to review" and "Awaiting approval" describe
+   * an action, so they are misleading on a card that does not go anywhere —
+   * and "This week" only earns its space next to a link. The figure itself
+   * stays: the number is still worth knowing.
+   *
+   * @param {object} card - A card definition.
+   * @return {object} The card, with href and note removed when not permitted.
+   */
+  const withAllowedLink = (card) =>
+    card.href && canAccessRoute(role, card.href) ?
+      card :
+      { ...card, href: undefined, note: undefined };
 
   // Only queues with something waiting are shown — a banner listing four
   // zeroes reads as "needs action" when nothing does.
@@ -172,6 +196,12 @@ export default function DashboardPage() {
 
 
   // Operations metrics data
+  // Every item here is purely a link into another page, so one the role
+  // cannot open is dropped rather than shown dead.
+  const visibleActionItems = actionItems.filter((item) =>
+    canAccessRoute(role, item.href),
+  );
+
   const operationsCards = [
     {
       name: "Bookings",
@@ -305,7 +335,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4">
       {/* 1. Needs Action Alert Banner */}
-      {showBanner && actionItems.length > 0 && (
+      {showBanner && visibleActionItems.length > 0 && (
         <div className="flex items-center justify-between gap-4 py-3 px-4 bg-white/90 rounded-xl animate-fade-in transition-all">
           <div className="flex items-center gap-3 flex-wrap">
             <span className="flex items-center gap-1.5 text-xs text-text-primary py-1 rounded-full">
@@ -313,7 +343,7 @@ export default function DashboardPage() {
               Needs action
             </span>
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              {actionItems.map((item) => (
+              {visibleActionItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
@@ -368,7 +398,7 @@ export default function DashboardPage() {
           Operations
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {operationsCards.map((card, idx) => (
+          {operationsCards.map(withAllowedLink).map((card, idx) => (
             <CardWrapper
               key={idx}
               name={card.name}
@@ -389,7 +419,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {/* Money Info Cards Column */}
           <div className="lg:col-span-2 grid md:grid-cols-2 gap-4">
-            {moneyCards.map((card, idx) => (
+            {moneyCards.map(withAllowedLink).map((card, idx) => (
               <CardWrapper
                 key={idx}
                 name={card.name}
@@ -612,7 +642,7 @@ export default function DashboardPage() {
           Accounts & Compliance
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {accountsCards.map((card, idx) => (
+          {accountsCards.map(withAllowedLink).map((card, idx) => (
             <CardWrapper
               key={idx}
               name={card.name}
