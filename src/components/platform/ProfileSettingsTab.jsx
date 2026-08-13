@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Edit2, AlertCircle } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Edit2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ChangePasswordModal from "@/components/platform/ChangePasswordModal";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { updateAdminProfile, adminChangePassword } from "@/lib/callables";
 import { ADMIN_ROLE_LABELS, canManageAdmins } from "@/lib/adminRoles";
+import { readImageForUpload, AVATAR_MAX_EDGE } from "@/lib/imageFile";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function ProfileSettingsTab() {
@@ -28,6 +29,45 @@ export default function ProfileSettingsTab() {
 
   // Modal states
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+
+  // Profile picture. Held until Save so a mis-picked file costs nothing, and
+  // so the picture and the name are committed by one action rather than the
+  // avatar quietly saving itself on click.
+  const [pendingPhoto, setPendingPhoto] = useState(null);
+  const [isReadingPhoto, setIsReadingPhoto] = useState(false);
+  // Distinct from "no photo": the admin asked for the stored one to go.
+  const [clearPhoto, setClearPhoto] = useState(false);
+  const photoInputRef = useRef(null);
+
+  // What the avatar shows right now — the staged file wins over the stored
+  // one, and a pending removal shows initials.
+  const shownPhoto = pendingPhoto?.dataUrl ||
+    (clearPhoto ? "" : profile?.photoUrl || "");
+
+  const handlePickPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    // Cleared immediately, or re-picking the same file fires no change event.
+    e.target.value = "";
+    if (!file) return;
+
+    setIsReadingPhoto(true);
+    try {
+      setPendingPhoto(
+          await readImageForUpload(file, { maxEdge: AVATAR_MAX_EDGE }),
+      );
+      setClearPhoto(false);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsReadingPhoto(false);
+    }
+  };
+
+  /** Stages removal of the stored picture; applied on Save Changes. */
+  const handleRemovePhoto = () => {
+    setPendingPhoto(null);
+    setClearPhoto(true);
+  };
 
   // Seed the form from Firestore once the profile lands. Adjusting state during
   // render rather than in an effect avoids a cascading second render, and the
@@ -58,6 +98,8 @@ export default function ProfileSettingsTab() {
   const saveProfile = useMutation({
     mutationFn: updateAdminProfile,
     onSuccess: () => {
+      setPendingPhoto(null);
+      setClearPhoto(false);
       queryClient.invalidateQueries({ queryKey: ["adminProfile"] });
       // The admin list shows the same name, so refresh it too.
       queryClient.invalidateQueries({ queryKey: ["admins"] });
@@ -85,6 +127,9 @@ export default function ProfileSettingsTab() {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phoneNumber: phone.trim(),
+      photoBase64: pendingPhoto?.dataUrl,
+      photoContentType: pendingPhoto?.contentType,
+      removePhoto: clearPhoto && !pendingPhoto,
     });
   };
 
@@ -112,11 +157,86 @@ export default function ProfileSettingsTab() {
       <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-4 relative">
         <h3 className="text-sm font-semibold text-text-primary">Profile Settings</h3>
 
-        {/* Avatar block */}
-        <div className="relative w-14 h-14 text-white rounded-full flex items-center justify-center font-medium text-lg bg-primary-bg-muted select-none hover:opacity-95 cursor-pointer">
-          {(firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "—"}
-          <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-border-main rounded-full flex items-center justify-center text-text-muted hover:text-text-primary transition shadow-2xs">
-            <Edit2 size={9} />
+        {/* Avatar block. The pencil was decorative markup with no handler
+            behind it — picking a file now stages the picture, and it is
+            written by the same Save Changes that writes the rest of the
+            form, so one action commits the whole profile. */}
+        <div className="flex items-center gap-3">
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={handlePickPhoto}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => photoInputRef.current?.click()}
+            disabled={isReadingPhoto || saveProfile.isPending}
+            title="Change profile picture"
+            className="relative w-14 h-14 rounded-full overflow-hidden text-white flex items-center justify-center font-medium text-lg bg-primary-bg-muted select-none hover:opacity-95 cursor-pointer disabled:cursor-not-allowed shrink-0"
+          >
+            {shownPhoto ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={shownPhoto}
+                alt="Your profile picture"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              (firstName.charAt(0) + lastName.charAt(0)).toUpperCase() || "—"
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-white border border-border-main rounded-full flex items-center justify-center text-text-muted shadow-2xs">
+              {isReadingPhoto ? (
+                <Loader2 size={9} className="animate-spin" />
+              ) : (
+                <Edit2 size={9} />
+              )}
+            </span>
+          </button>
+
+          {/* Both staging states say so plainly and offer a way back —
+              nothing here reaches Firestore until Save Changes. */}
+          <div className="text-[10px] space-y-0.5">
+            {pendingPhoto ? (
+              <p className="text-amber-600">
+                New picture selected — press Save Changes to apply it.
+              </p>
+            ) : clearPhoto ? (
+              <p className="text-amber-600">
+                Picture will be removed when you save.
+              </p>
+            ) : (
+              <p className="text-text-muted font-light">
+                JPEG, PNG, WebP or GIF.
+              </p>
+            )}
+
+            {pendingPhoto ? (
+              <button
+                type="button"
+                onClick={() => setPendingPhoto(null)}
+                className="text-text-muted hover:underline cursor-pointer"
+              >
+                Discard selection
+              </button>
+            ) : clearPhoto ? (
+              <button
+                type="button"
+                onClick={() => setClearPhoto(false)}
+                className="text-text-muted hover:underline cursor-pointer"
+              >
+                Keep current picture
+              </button>
+            ) : profile?.photoUrl ? (
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="text-red-500 hover:underline cursor-pointer"
+              >
+                Remove picture
+              </button>
+            ) : null}
           </div>
         </div>
 

@@ -39,9 +39,28 @@ export const updateAdminRole = ({ uid, role }) =>
 export const revokeAdminAccess = ({ uid, reason }) =>
   callFunction("revokeAdminAccess", { uid, reason });
 
-/** Updates the calling admin's own profile. Fields are all optional. */
-export const updateAdminProfile = ({ firstName, lastName, phoneNumber }) =>
-  callFunction("updateAdminProfile", { firstName, lastName, phoneNumber });
+/**
+ * Updates the calling admin's own profile.
+ *
+ * photoBase64 replaces the picture, removePhoto clears it; omitting both
+ * leaves whatever is already stored.
+ */
+export const updateAdminProfile = ({
+  firstName,
+  lastName,
+  phoneNumber,
+  photoBase64,
+  photoContentType,
+  removePhoto
+}) =>
+  callFunction("updateAdminProfile", {
+    firstName,
+    lastName,
+    phoneNumber,
+    photoBase64,
+    photoContentType,
+    removePhoto
+  });
 
 /** Changes the calling admin's password; requires the current one. */
 export const adminChangePassword = ({ currentPassword, newPassword }) =>

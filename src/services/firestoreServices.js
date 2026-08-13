@@ -2092,6 +2092,9 @@ export async function fetchAdminProfileFromFirestore(uid) {
       phoneNumber: d.phoneNumber || d.phone || "",
       role: d.role || d.adminRole || "",
       status: titleCase(d.status, "Active"),
+      // Same field clients and providers use, so one convention covers every
+      // account type.
+      photoUrl: d.photoUrl || "",
       createdAtRaw: d.createdAt || null,
       lastLoginRaw: d.lastLoginAt || null,
     };
