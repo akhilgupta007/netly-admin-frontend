@@ -102,9 +102,19 @@ export default function Header({ setSidebarOpen, title: propTitle, subtitle: pro
           href="/platform/settings"
           className="flex items-center gap-2 sm:gap-3 py-1.5 pl-2 pr-2 sm:pr-4 rounded-xl border border-primary-bg/40 bg-page-bg hover:bg-primary-bg/5 transition shrink-0 cursor-pointer"
         >
-          {/* Avatar Icon Wrapper */}
-          <div className="flex p-1 items-center justify-center rounded-lg border border-primary-bg/50 bg-primary-bg/10 text-primary-bg shrink-0">
-            <User size={18} fill="var(--color-primary-bg)" />
+          {/* The admin's profile picture, falling back to the generic icon
+              only while none is set. */}
+          <div className="w-8 h-8 flex items-center justify-center overflow-hidden rounded-lg border border-primary-bg/50 bg-primary-bg/10 text-primary-bg shrink-0 select-none">
+            {profile?.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.photoUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User size={18} fill="var(--color-primary-bg)" />
+            )}
           </div>
           {/* User details text */}
           <div className="hidden sm:flex flex-col text-left">
