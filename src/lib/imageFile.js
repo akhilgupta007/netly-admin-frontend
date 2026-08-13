@@ -9,8 +9,11 @@
  * constraint worth caring about, which is what the downscale below is for.
  */
 
-/** Longest edge kept. A chat photo is looked at, not printed. */
+/** Longest edge kept by default. A chat photo is looked at, not printed. */
 const MAX_EDGE = 1600;
+
+/** Avatars are rendered at 56px; anything past this is pure payload. */
+export const AVATAR_MAX_EDGE = 512;
 
 /** Matches MAX_IMAGE_BYTES in postDisputeMessage — reject before uploading. */
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -44,11 +47,13 @@ function readAsDataUrl(file) {
  * change to what the admin thinks they are sending.
  *
  * @param {File} file - The picked file.
+ * @param {object} options - Options.
+ * @param {number} options.maxEdge - Longest edge to keep.
  * @return {Promise<{dataUrl: string, contentType: string, name: string}>}
- *   The image, ready to hand to postDisputeMessage.
+ *   The image, ready to hand to a callable.
  * @throws {Error} When the file is not a supported image, or is too large.
  */
-export async function readImageForUpload(file) {
+export async function readImageForUpload(file, { maxEdge = MAX_EDGE } = {}) {
   const type = String(file?.type || "").toLowerCase();
 
   if (!ACCEPTED.includes(type)) {
@@ -62,7 +67,12 @@ export async function readImageForUpload(file) {
 
   const original = await readAsDataUrl(file);
 
-  if (type === "image/gif" || file.size <= REENCODE_ABOVE_BYTES) {
+  // A GIF is never re-encoded; a small file is left alone unless the caller
+  // wants a tighter bound than it already meets.
+  if (
+    type === "image/gif" ||
+    (file.size <= REENCODE_ABOVE_BYTES && maxEdge >= MAX_EDGE)
+  ) {
     return { dataUrl: original, contentType: type, name: file.name };
   }
 
@@ -72,7 +82,7 @@ export async function readImageForUpload(file) {
     await img.decode();
 
     const longest = Math.max(img.naturalWidth, img.naturalHeight);
-    const scale = longest > MAX_EDGE ? MAX_EDGE / longest : 1;
+    const scale = longest > maxEdge ? maxEdge / longest : 1;
 
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(img.naturalWidth * scale);
