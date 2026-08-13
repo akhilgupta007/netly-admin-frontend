@@ -2307,6 +2307,10 @@ export async function fetchFinanceReportsFromFirestore({
 export async function fetchMonthlyAccountingFromFirestore(params = {}) {
   const {
     searchTerm = "",
+    // Applied before pagination. The tab held both of these in state and never
+    // sent them, so the Status and Category dropdowns changed nothing.
+    filterStatus = "All",
+    filterCategory = "All",
     year = new Date().getFullYear(),
     page = 1,
     limit = 10,
@@ -2329,7 +2333,7 @@ export async function fetchMonthlyAccountingFromFirestore(params = {}) {
     );
     const num = (v) => Number(v) || 0;
 
-    const items = paid
+    let items = paid
       .map((b) => {
         const ts = b.confirmedAt || b.createdAt;
         return {
@@ -2381,15 +2385,31 @@ export async function fetchMonthlyAccountingFromFirestore(params = {}) {
       });
     });
 
+    // Every category and status present, so the filters offer what the data
+    // contains rather than a hardcoded guess.
+    const categories = [
+      ...new Set(items.map((i) => i.category).filter((c) => c && c !== "—")),
+    ].sort();
+    const statuses = [
+      ...new Set(items.map((i) => i.status).filter((v) => v && v !== "—")),
+    ].sort();
+
+    if (filterCategory !== "All") {
+      items = items.filter((i) => i.category === filterCategory);
+    }
+
     return {
       ...filterAndPaginate(items, {
         searchTerm,
         searchFields: ["id", "client", "provider", "category"],
-        filterStatus: "All",
+        filterStatus,
+        statusField: "status",
         page,
         limit,
       }),
       months,
+      categories,
+      statuses,
       year: Number(year),
     };
   } catch (error) {

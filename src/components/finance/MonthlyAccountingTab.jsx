@@ -56,11 +56,18 @@ export default function MonthlyAccountingTab() {
   const {
     transactions,
     months,
+    categories,
+    statuses,
     totalCount,
     isLoading,
     isError,
   } = useMonthlyAccounting({
     searchTerm,
+    // Both were held in state and never sent, so neither dropdown did
+    // anything. Filtering has to happen before pagination, which is why it
+    // goes to the read layer rather than being applied to the current page.
+    filterStatus,
+    filterCategory,
     year,
     page: currentPage,
     limit: itemsPerPage,
@@ -76,6 +83,34 @@ export default function MonthlyAccountingTab() {
       }),
       { volume: 0, amount: 0, revenue: 0, payout: 0 },
   );
+
+  /**
+   * The month with the largest value for a metric.
+   *
+   * These four cards were hardcoded ("$52,450 · June"), so they read as real
+   * figures while being unrelated to anything in the account.
+   *
+   * @param {string} key - A field on the month rows.
+   * @return {{value: number, month: string}|null} Peak, or null if all zero.
+   */
+  const peakMonth = (key) => {
+    let best = null;
+    months.forEach((m) => {
+      const value = Number(m[key]) || 0;
+      if (value > 0 && (!best || value > best.value)) {
+        best = { value, month: m.month };
+      }
+    });
+    return best;
+  };
+
+  const peakRevenue = peakMonth("amount");
+  const peakVolume = peakMonth("volume");
+  const peakCommission = peakMonth("commission");
+  // There is no tip anywhere in the schema, so the fourth card showed a number
+  // nothing could ever produce. Provider payout is the meaningful counterpart
+  // to the three above.
+  const peakPayout = peakMonth("payout");
   const handleExportCSV = () => {
     const headers = ["Transaction ID", "Date", "Time", "Client", "Provider", "Category", "Amount ($)", "Client Fee ($)", "Commission ($)", "Provider Payout ($)", "Status"];
     const rows = transactions.map(item => `"${item.id}","${item.date}","${item.time}","${item.client}","${item.provider}","${item.category}",${item.gross},${item.fee},${item.commission},${item.providerPayout},"${item.status}"`);
@@ -341,23 +376,23 @@ export default function MonthlyAccountingTab() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <CardWrapper
           name="HIGHEST REVENUE"
-          value="$52,450"
-          subtext="June"
+          value={peakRevenue ? currency(peakRevenue.value) : "—"}
+          subtext={peakRevenue ? peakRevenue.month : `No activity in ${year}`}
         />
         <CardWrapper
           name="HIGHEST COUNT"
-          value="1,684"
-          subtext="August"
+          value={peakVolume ? peakVolume.value.toLocaleString() : "—"}
+          subtext={peakVolume ? peakVolume.month : `No activity in ${year}`}
         />
         <CardWrapper
           name="HIGHEST COMMISSION"
-          value="$4,820"
-          subtext="July"
+          value={peakCommission ? currency(peakCommission.value) : "—"}
+          subtext={peakCommission ? peakCommission.month : `No activity in ${year}`}
         />
         <CardWrapper
-          name="HIGHEST TIPS"
-          value="$2,140"
-          subtext="December"
+          name="HIGHEST PROVIDER PAYOUT"
+          value={peakPayout ? currency(peakPayout.value) : "—"}
+          subtext={peakPayout ? peakPayout.month : `No activity in ${year}`}
         />
       </div>
 
@@ -393,10 +428,11 @@ export default function MonthlyAccountingTab() {
                 className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Status</option>
-                <option value="Completed">Completed</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Refund Requested">Refund Requested</option>
-                <option value="Dispute">Dispute</option>
+                {statuses.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
             </div>
@@ -412,11 +448,13 @@ export default function MonthlyAccountingTab() {
                 className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
               >
                 <option value="All">Category</option>
-                <option value="Post-Construction Cleaning">Post-Construction</option>
-                <option value="Window Cleaning">Window Cleaning</option>
-                <option value="Sanitization Services">Sanitization Services</option>
-                <option value="Commercial Cleaning">Commercial Cleaning</option>
-                <option value="Deep Cleaning">Deep Cleaning</option>
+                {/* Built from the transactions, so it lists what is actually
+                    there instead of a hardcoded guess. */}
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
                 <option value="Pressure Washing">Pressure Washing</option>
                 <option value="Floor Waxing">Floor Waxing</option>
               </select>

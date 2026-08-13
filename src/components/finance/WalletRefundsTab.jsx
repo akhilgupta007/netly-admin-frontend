@@ -32,7 +32,7 @@ export default function WalletRefundsTab() {
   );
   const [hoveredValue, setHoveredValue] = useState(null);
 
-  const { funding, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
+  const { refunds, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
 
   // The cards used to be labelled "Jun 18-24" regardless of what was selected.
   const rangeLabel = `${startDate.toLocaleDateString("en-CA", {
@@ -43,23 +43,75 @@ export default function WalletRefundsTab() {
     day: "numeric",
   })}`;
 
-  // wallet = credit applied at checkout, card = the rest charged to the card.
-  const chartData = funding.map((r) => ({
+  // The refunds series, which is what the title, the legend and the four
+  // cards above all describe.
+  //
+  // This charted the *funding* series instead — how bookings were paid for,
+  // wallet credit versus card. That is a different quantity entirely, which is
+  // why bars appeared for days the cards reported $0.00 refunded: those bars
+  // were card payments taken, not money given back.
+  //
+  // toWallet / toCard are renamed to wallet / card so the drawing code below
+  // is unchanged.
+  const chartData = refunds.map((r) => ({
     ...r,
+    wallet: r.toWallet,
+    card: r.toCard,
     dayName: r.day,
-    fullDate: new Date(r.date).toLocaleDateString("en-US", {
+    fullDate: new Date(`${r.date}T00:00:00`).toLocaleDateString("en-US", {
       month: "short", day: "numeric", year: "numeric",
     }),
   }));
 
+  // A week with no refunds is the normal case, not a broken chart.
+  const hasRefunds = chartData.some((d) => d.wallet > 0 || d.card > 0);
+
+  /**
+   * Rounds a maximum up to a readable axis top (480 → 500, 3200 → 5000).
+   *
+   * Both series were divided by a hardcoded 10000, so anything under a few
+   * thousand dollars drew as a sliver at the baseline and the chart looked
+   * empty regardless of the data.
+   *
+   * @param {number} value - Largest value across the series.
+   * @return {number} Axis maximum, never zero.
+   */
+  const axisMax = (value) => {
+    if (!value || value <= 0) return 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+    const normalised = value / magnitude;
+    const step =
+      normalised <= 1 ? 1 : normalised <= 2 ? 2 : normalised <= 5 ? 5 : 10;
+    return step * magnitude;
+  };
+
+  // Both series are money on the same scale, so they share one maximum —
+  // otherwise the two are not visually comparable.
+  const valueMax = axisMax(
+    Math.max(0, ...chartData.flatMap((d) => [d.wallet, d.card])),
+  );
+
+  const axisTicks = [1, 0.75, 0.5, 0.25, 0];
+
+  /**
+   * Formats a currency axis tick, using thousands only when it helps.
+   *
+   * @param {number} value - Dollar amount.
+   * @return {string} e.g. "$500" or "$2.5k".
+   */
+  const moneyTick = (value) =>
+    valueMax >= 1000
+      ? `$${(value / 1000).toFixed(1)}k`
+      : `$${Math.round(value)}`;
+
   const handleExportCSV = () => {
-    const headers = ["Day", "Wallet Funding ($)", "Card Payments ($)"];
+    const headers = ["Day", "Kept as wallet credit ($)", "Refunded to card ($)"];
     const rows = chartData.map(item => `"${item.day}",${item.wallet},${item.card}`);
     exportCSV(headers, rows, `wallet_refunds_${Date.now()}.csv`);
   };
 
   const handleExportPDF = () => {
-    const headers = ["Day", "Wallet Funding ($)", "Card Payments ($)"];
+    const headers = ["Day", "Kept as wallet credit ($)", "Refunded to card ($)"];
     const rows = chartData.map(item => [item.day, `$${item.wallet.toFixed(2)}`, `$${item.card.toFixed(2)}`]);
     exportPDF("Wallet & Refunds Report", headers, rows, `wallet_refunds_${Date.now()}.pdf`);
   };
@@ -143,9 +195,16 @@ export default function WalletRefundsTab() {
       {/* Chart Section */}
       <div className="bg-white rounded-3xl p-4 hover:shadow-xs transition-shadow space-y-4 mt-4">
         <div className="flex justify-between items-center pb-3">
-          <h3 className="text-xs font-semibold text-text-primary">Wallet Credits Retained vs Refunded to Card</h3>
+          <div>
+            <h3 className="text-xs font-semibold text-text-primary">Wallet Credits Retained vs Refunded to Card</h3>
+            {!hasRefunds && (
+              <span className="text-[10px] text-text-muted font-light">
+                No refunds were issued in this range.
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-text-muted block">This week · USD</span>
+            <span className="text-[9px] text-text-muted block">Selected range · CAD</span>
             <div className="flex md:flex-row flex-col bg-primary-bg-muted/20 rounded-lg p-0.5 text-[10px]">
               <button
                 onClick={() => setChartType("Bar")}
@@ -169,11 +228,9 @@ export default function WalletRefundsTab() {
             <div className="flex items-stretch h-64 relative">
               {/* Left Y Axis column */}
               <div className="w-12 flex flex-col justify-between md:text-sm text-xs text-text-muted pb-1 select-none">
-                <span>$10.0k</span>
-                <span>$7.5k</span>
-                <span>$5.0k</span>
-                <span>$2.5k</span>
-                <span>$0.0k</span>
+                {axisTicks.map((t) => (
+                  <span key={t}>{moneyTick(valueMax * t)}</span>
+                ))}
               </div>
 
               {/* Middle Graph Area */}
@@ -189,8 +246,8 @@ export default function WalletRefundsTab() {
                 {chartType === "Bar" ? (
                   <div className="w-full h-full flex justify-between items-end pb-1 relative z-10" style={{ paddingLeft: "7.1428%", paddingRight: "7.1428%" }}>
                     {chartData.map((d, index) => {
-                      const walletHeight = `${(d.wallet / 10000) * 100}%`;
-                      const cardHeight = `${(d.card / 10000) * 100}%`;
+                      const walletHeight = `${(d.wallet / valueMax) * 100}%`;
+                      const cardHeight = `${(d.card / valueMax) * 100}%`;
                       return (
                         <div key={index} className="w-0 overflow-visible flex justify-center items-end h-full">
                           <div className="flex items-end justify-center gap-1 sm:gap-1.5 shrink-0 h-full">
@@ -199,7 +256,7 @@ export default function WalletRefundsTab() {
                               className="sm:w-12 w-6 bg-primary-bg rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
-                                y: `${100 - (d.wallet / 10000) * 100}%`,
+                                y: `${100 - (d.wallet / valueMax) * 100}%`,
                                 value: `$${d.wallet.toLocaleString()}`,
                                 label: `Wallet (${d.dayName}, ${d.fullDate})`
                               })}
@@ -210,7 +267,7 @@ export default function WalletRefundsTab() {
                               className="sm:w-12 w-6 bg-text-primary rounded-t-md cursor-pointer transition-all duration-200 hover:opacity-90"
                               onMouseEnter={() => setHoveredValue({
                                 x: `${7.1428 + index * 14.2857}%`,
-                                y: `${100 - (d.card / 10000) * 100}%`,
+                                y: `${100 - (d.card / valueMax) * 100}%`,
                                 value: `$${d.card.toLocaleString()}`,
                                 label: `Card (${d.dayName}, ${d.fullDate})`
                               })}
@@ -227,11 +284,11 @@ export default function WalletRefundsTab() {
                       {(() => {
                         const walletPoints = chartData.map((d, index) => ({
                           x: `${7.1428 + index * 14.2857}%`,
-                          y: `${(1 - d.wallet / 10000) * 100}%`
+                          y: `${(1 - d.wallet / valueMax) * 100}%`
                         }));
                         const cardPoints = chartData.map((d, index) => ({
                           x: `${7.1428 + index * 14.2857}%`,
-                          y: `${(1 - d.card / 10000) * 100}%`
+                          y: `${(1 - d.card / valueMax) * 100}%`
                         }));
                         return (
                           <g>

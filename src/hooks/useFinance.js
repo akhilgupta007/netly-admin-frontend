@@ -101,6 +101,8 @@ export function useMonthlyAccounting(params = {}, options = {}) {
     totalCount: query.data?.totalCount ?? 0,
     totalPages: query.data?.totalPages ?? 1,
     months: query.data?.months ?? [],
+    categories: query.data?.categories ?? [],
+    statuses: query.data?.statuses ?? [],
   };
 }
 
