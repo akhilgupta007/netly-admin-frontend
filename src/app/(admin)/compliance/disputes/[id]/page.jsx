@@ -12,14 +12,15 @@ import {
   AlertTriangle,
   X,
   Eye,
-  Download,
   User,
   FileText,
   ShieldAlert,
   Clock,
   ArrowLeftRight,
+  Loader2,
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
+import { readImageForUpload } from "@/lib/imageFile";
 import ImagePreviewModal from "@/components/platform/ImagePreviewModal";
 
 /**
@@ -42,6 +43,45 @@ function formatBytes(bytes) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
   return `${Math.round((n / 1024 / 1024) * 10) / 10} MB`;
+}
+
+/**
+ * The photo attached to a chat message.
+ *
+ * Disputes are argued with photographs — the damaged chair, the unfinished
+ * job — so these are evidence, not decoration, and they are shown inline
+ * rather than as a filename an admin has to click to believe. Clicking opens
+ * the same preview dialog the Evidence tab uses.
+ *
+ * Rendered with a plain <img>: these are Firebase Storage URLs whose token
+ * lives in the query string, which next/image would need every bucket host
+ * whitelisted for and could not usefully cache anyway.
+ *
+ * @param {object} props - Options.
+ * @param {string} props.src - Storage URL of the image.
+ * @param {Function} props.onOpen - Opens the full-size preview.
+ * @param {boolean} props.onDark - True inside the provider's dark bubble.
+ * @return {JSX.Element|null} The thumbnail, or nothing when there is no image.
+ */
+function MessageImage({ src, onOpen, onDark }) {
+  if (!src) return null;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title="View full size"
+      className={`block overflow-hidden rounded-xl border transition hover:opacity-90 cursor-pointer ${
+        onDark ? "border-white/20" : "border-border-main/50"
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="Attachment sent in this conversation"
+        className="max-h-56 w-auto max-w-full object-cover"
+      />
+    </button>
+  );
 }
 
 function getStatusClass(status) {
@@ -97,6 +137,29 @@ export default function DisputeDetailPage() {
   const [chatMessage, setChatMessage] = useState("");
   const chatContainerRef = useRef(null);
 
+  // A photo staged for the next send. Held until the message goes out so the
+  // admin can add a caption to it, and so picking the wrong file is
+  // recoverable without sending it.
+  const [pendingImage, setPendingImage] = useState(null);
+  const [isReadingImage, setIsReadingImage] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handlePickImage = async (e) => {
+    const file = e.target.files?.[0];
+    // Clear immediately, or picking the same file twice fires no change event.
+    e.target.value = "";
+    if (!file) return;
+
+    setIsReadingImage(true);
+    try {
+      setPendingImage(await readImageForUpload(file));
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsReadingImage(false);
+    }
+  };
+
   // Resolution form states
   const [decision, setDecision] = useState("Favor Client");
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
@@ -113,6 +176,7 @@ export default function DisputeDetailPage() {
     mutationFn: postDisputeMessage,
     onSuccess: () => {
       setChatMessage("");
+      setPendingImage(null);
       queryClient.invalidateQueries({
         queryKey: ["disputeThread", dispute?.id],
       });
@@ -172,11 +236,15 @@ export default function DisputeDetailPage() {
     const text = chatMessage.trim();
     // Only the dispute thread is writable; the booking chat is a record of a
     // conversation between two other people.
-    if (!text || !dispute?.id || isBookingView) return;
+    if (!dispute?.id || isBookingView) return;
+    // A photo on its own is a complete message, so either half will do.
+    if (!text && !pendingImage) return;
     messageMutation.mutate({
       disputeId: dispute.id,
       message: text,
       bookingId: dispute.bookingId,
+      imageBase64: pendingImage?.dataUrl,
+      imageContentType: pendingImage?.contentType,
     });
   };
 
@@ -789,34 +857,24 @@ export default function DisputeDetailPage() {
                             <span className="font-light opacity-80">(You)</span>
                           </span>
 
-                          <div className="p-3 rounded-2xl rounded-tr-none leading-relaxed text-xs shadow-3xs bg-primary-bg-muted text-text-primary border border-border-main/20 text-left">
-                            <p className="whitespace-pre-line">{msg.text}</p>
-
-                            {/* Attached mock file preview box */}
-                            {msg.file && (
-                              <div className="mt-2.5 p-2.5 rounded-xl flex items-center justify-between text-[10px] bg-page-bg text-text-primary border border-border-main/50">
-                                <div className="flex items-center gap-2 truncate">
-                                  <FileText
-                                    size={13}
-                                    className="text-blue-500"
-                                  />
-                                  <span className="font-medium truncate">
-                                    {msg.file}
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    toast.info(
-                                      `Downloading file ${msg.file}...`,
-                                    )
-                                  }
-                                  className="p-1 hover:opacity-80 transition cursor-pointer text-text-primary"
-                                >
-                                  <Download size={11} />
-                                </button>
-                              </div>
+                          <div className="p-3 space-y-2 rounded-2xl rounded-tr-none leading-relaxed text-xs shadow-3xs bg-primary-bg-muted text-text-primary border border-border-main/20 text-left">
+                            {/* An image-only message carries no text, and an
+                                empty <p> would leave a blank padded bubble. */}
+                            {msg.text && (
+                              <p className="whitespace-pre-line">{msg.text}</p>
                             )}
+
+                            <MessageImage
+                              src={msg.image}
+                              onOpen={() =>
+                                setEvidence({
+                                  url: msg.image,
+                                  name: `Photo from ${msg.sender}`,
+                                  subtitle: msg.time,
+                                  contentType: "image/*",
+                                })
+                              }
+                            />
                           </div>
 
                           <span className="text-[8px] text-text-muted block mt-0.5 font-light">
@@ -856,43 +914,24 @@ export default function DisputeDetailPage() {
                         </span>
 
                         <div
-                          className={`p-3 rounded-2xl rounded-tl-none leading-relaxed text-xs shadow-3xs ${bubbleClass}`}
+                          className={`p-3 space-y-2 rounded-2xl rounded-tl-none leading-relaxed text-xs shadow-3xs ${bubbleClass}`}
                         >
-                          <p className="whitespace-pre-line">{msg.text}</p>
-
-                          {/* Attached mock file preview box */}
-                          {msg.file && (
-                            <div
-                              className={`mt-2.5 p-2.5 rounded-xl flex items-center justify-between text-[10px] ${
-                                isProvider
-                                  ? "bg-white/10 text-white"
-                                  : "bg-page-bg text-text-primary border border-border-main/50"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                <FileText
-                                  size={13}
-                                  className={
-                                    isProvider
-                                      ? "text-blue-300"
-                                      : "text-blue-500"
-                                  }
-                                />
-                                <span className="font-medium truncate">
-                                  {msg.file}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  toast.info(`Downloading file ${msg.file}...`)
-                                }
-                                className="p-1 hover:opacity-80 transition cursor-pointer text-text-primary"
-                              >
-                                <Download size={11} />
-                              </button>
-                            </div>
+                          {msg.text && (
+                            <p className="whitespace-pre-line">{msg.text}</p>
                           )}
+
+                          <MessageImage
+                            src={msg.image}
+                            onDark={isProvider}
+                            onOpen={() =>
+                              setEvidence({
+                                url: msg.image,
+                                name: `Photo from ${msg.sender}`,
+                                subtitle: msg.time,
+                                contentType: "image/*",
+                              })
+                            }
+                          />
                         </div>
 
                         <span className="text-[8px] text-text-muted block mt-0.5 font-light">
@@ -936,33 +975,88 @@ export default function DisputeDetailPage() {
                 to reply.
               </div>
             ) : !dispute.isClosed ? (
-              <form
-                onSubmit={handleSendChatSubmit}
-                className="flex items-center gap-2 border border-border-main rounded-2xl p-1 bg-white focus-within:ring-1 focus-within:ring-primary-bg/20 transition"
-              >
-                <button
-                  type="button"
-                  onClick={() =>
-                    toast.info("Opening file upload attachment manager...")
-                  }
-                  className="p-2 text-text-muted hover:text-text-primary transition cursor-pointer"
-                >
-                  <Paperclip size={15} />
-                </button>
-                <input
-                  type="text"
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
-                  className="flex-1 bg-transparent text-xs p-2 focus:outline-none text-text-primary placeholder:text-text-muted"
-                />
-                <button
-                  type="submit"
-                  disabled={messageMutation.isPending || !chatMessage.trim()}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-primary-bg text-white hover:opacity-90 transition cursor-pointer shrink-0 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send size={13} />
-                </button>
+              <form onSubmit={handleSendChatSubmit} className="space-y-2">
+                {/* Staged photo. Shown before sending so the admin can see
+                    what they picked and back out of the wrong file. */}
+                {pendingImage && (
+                  <div className="flex items-center gap-2.5 p-2 rounded-xl border border-border-main bg-page-bg/50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={pendingImage.dataUrl}
+                      alt=""
+                      className="w-11 h-11 rounded-lg object-cover border border-border-main shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-[11px] font-medium text-text-primary truncate">
+                        {pendingImage.name}
+                      </span>
+                      <span className="block text-[9px] text-text-muted font-light">
+                        Sends with your next message
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPendingImage(null)}
+                      title="Remove attachment"
+                      className="p-1 text-text-muted hover:text-red-500 transition cursor-pointer shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 border border-border-main rounded-2xl p-1 bg-white focus-within:ring-1 focus-within:ring-primary-bg/20 transition">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    onChange={handlePickImage}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isReadingImage || messageMutation.isPending}
+                    title="Attach an image"
+                    className={`p-2 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
+                      pendingImage ?
+                        "text-primary-bg" :
+                        "text-text-muted hover:text-text-primary"
+                    }`}
+                  >
+                    {isReadingImage ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Paperclip size={15} />
+                    )}
+                  </button>
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder={
+                      pendingImage ?
+                        "Add a caption (optional)…" :
+                        "Type a message… (Enter to send)"
+                    }
+                    className="flex-1 bg-transparent text-xs p-2 focus:outline-none text-text-primary placeholder:text-text-muted"
+                  />
+                  <button
+                    type="submit"
+                    disabled={
+                      messageMutation.isPending ||
+                      isReadingImage ||
+                      (!chatMessage.trim() && !pendingImage)
+                    }
+                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-primary-bg text-white hover:opacity-90 transition cursor-pointer shrink-0 shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {messageMutation.isPending ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <Send size={13} />
+                    )}
+                  </button>
+                </div>
               </form>
             ) : (
               <div className="bg-page-bg/50 border border-border-main/30 text-center text-text-muted font-light py-2 text-xs rounded-xl italic select-none">
@@ -1175,7 +1269,10 @@ export default function DisputeDetailPage() {
         onClose={() => setEvidence(null)}
         src={evidence?.url}
         title={evidence?.name}
-        subtitle={evidence?.contentType}
+        // Evidence-tab files have no better second line than their MIME type;
+        // a chat photo has when it was sent, which is what an admin is
+        // actually placing it against.
+        subtitle={evidence?.subtitle || evidence?.contentType}
         contentType={evidence?.contentType}
       />
     </div>
