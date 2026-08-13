@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useTransaction } from "@/hooks/useTransactions";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +21,37 @@ import {
   Zap,
   MessageSquare
 } from "lucide-react";
+
+/**
+ * One labelled value in the info grids.
+ *
+ * An absent value renders an em dash rather than being hidden, so the grid
+ * keeps its shape and a missing figure reads as missing — these cards were
+ * previously filled with invented dates and a stock service name, which looked
+ * authoritative on every booking while describing none of them.
+ *
+ * @param {object} props - Options.
+ * @param {string} props.label - Field name.
+ * @param {string} props.value - Field value; blank renders an em dash.
+ * @param {boolean} props.mono - Render the value monospaced, for ids.
+ * @return {JSX.Element} The field.
+ */
+function Field({ label, value, mono }) {
+  return (
+    <div>
+      <span className="text-text-muted block font-light mb-0.5">{label}</span>
+      <div
+        className={`text-text-primary break-words ${mono ? "font-mono text-[10px]" : ""}`}
+      >
+        {value || <span className="text-text-muted font-light">—</span>}
+      </div>
+    </div>
+  );
+}
+
+/** "hourly" → "Hourly". */
+const titleCase = (s) =>
+  String(s || "").charAt(0).toUpperCase() + String(s || "").slice(1);
 
 export default function TransactionDetailPage() {
   const params = useParams();
@@ -115,11 +145,6 @@ export default function TransactionDetailPage() {
 
   const currentStatus = tx.status;
 
-  // Basic calculations
-  const getCommission = (amount) => amount * 0.15;
-  const getFee = (amount) => amount * 0.05;
-  const getTotalCharged = (amount, tip = 0) => amount + getFee(amount) + tip;
-
   // Helper to copy text to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -160,6 +185,13 @@ export default function TransactionDetailPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+
+  /**
+   * A stored timestamp as Toronto date and time, or blank when unset.
+   * @param {*} ts - Any Firestore timestamp representation.
+   * @return {string} Formatted, or "" so Field shows an em dash.
+   */
+  const when = (ts) => (ts ? formatFirestoreDateTime(ts) : "");
 
   /**
    * The rate label for a fee box.
@@ -435,44 +467,35 @@ export default function TransactionDetailPage() {
                   {currentStatus}
                 </span>
               </div>
-              <div>
-                {["Completed", "Refunded", "Refund Requested"].includes(currentStatus) ? (
-                  <>
-                    <span className="text-text-muted block font-light mb-0.5">Completed On</span>
-                    <div className="text-text-primary">Jun 24, 2027 • 08:30 AM</div>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-text-muted block font-light mb-0.5">Created On</span>
-                    <div className="text-text-primary">Jun 24, 2027 • 08:30 AM</div>
-                  </>
-                )}
-              </div>
-              {currentStatus === "Completed" && (
-                <div>
-                  <span className="text-text-muted block font-light mb-0.5">Service Started</span>
-                  <div className="text-text-primary">Jun 24, 2027 • 09:05 AM</div>
-                </div>
+              <Field label="Created On" value={when(tx.timeline?.createdAt)} />
+
+              {tx.timeline?.confirmedAt && (
+                <Field label="Paid On" value={when(tx.paidAt || tx.timeline.confirmedAt)} />
+              )}
+              {tx.timeline?.startedAt && (
+                <Field label="Service Started" value={when(tx.timeline.startedAt)} />
+              )}
+              {tx.timeline?.completedAt && (
+                <Field label="Completed On" value={when(tx.timeline.completedAt)} />
               )}
               {showRefundInfo && (
                 <>
-                  <div>
-                    <span className="text-text-muted block font-light mb-0.5">Cancelled On</span>
-                    <div className="text-text-primary">Jun 24, 2027 • 09:45 AM</div>
-                  </div>
-                  <div>
-                    <span className="text-text-muted block font-light mb-0.5">Refund Processed On</span>
-                    <div className="text-text-primary">
-                      {currentStatus === "Refund Requested" ? "Awaiting" : "Jun 24, 2027 • 11:10 AM"}
-                    </div>
-                  </div>
+                  <Field label="Cancelled On" value={when(tx.timeline?.cancelledAt)} />
+                  <Field
+                    label="Refund Processed On"
+                    value={
+                      tx.timeline?.refundedToCardAt || tx.timeline?.refundedAt ?
+                        when(tx.timeline.refundedToCardAt || tx.timeline.refundedAt) :
+                        "Awaiting"
+                    }
+                  />
                 </>
               )}
-              {currentStatus === "Dispute" && (
-                <div>
-                  <span className="text-text-muted block font-light mb-0.5">Dispute opened on</span>
-                  <div className="text-text-primary">Jun 24, 2027 • 09:45 AM</div>
-                </div>
+              {tx.timeline?.payoutReleasedAt && (
+                <Field label="Payout Released" value={when(tx.timeline.payoutReleasedAt)} />
+              )}
+              {tx.stripePaymentIntentId && (
+                <Field label="Stripe Payment Intent" value={tx.stripePaymentIntentId} mono />
               )}
             </div>
           </div>
@@ -481,52 +504,80 @@ export default function TransactionDetailPage() {
           <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4">
             <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider block">Service Information</span>
             <div className="grid grid-cols-2 gap-4 text-xs border-b border-border-main pb-4">
-              <div>
-                <span className="text-text-muted block font-light mb-0.5">Service</span>
-                <div className="text-text-primary">Office Daily Cleaning</div>
-              </div>
-              <div>
-                <span className="text-text-muted block font-light mb-0.5">Category</span>
-                <div className="text-text-primary">Cleaning Services</div>
-              </div>
-              <div>
-                <span className="text-text-muted block font-light mb-0.5">Sub Category</span>
-                <div className="text-text-primary">Office Cleaning</div>
-              </div>
-              <div>
-                <span className="text-text-muted block font-light mb-0.5">Pricing Model</span>
-                <div className="text-text-primaryd">Hourly</div>
-              </div>
-              <div>
-                <span className="text-text-muted block font-light mb-0.5">Scheduled Date & Time</span>
-                <div className="text-text-primary">Jun 24, 2027 • 08:30 AM</div>
-              </div>
-              <div>
-                {currentStatus === "Completed" ? (
-                  <>
-                    <span className="text-text-muted block font-light mb-0.5">Completed At</span>
-                    <div className="text-text-primary">Jun 24, 2027 • 12:35 PM</div>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-text-muted block font-light mb-0.5">Estimated Duration</span>
-                    <div className="text-text-primary">4 Hours</div>
-                  </>
-                )}
-              </div>
+              <Field label="Service" value={tx.serviceName} />
+              <Field label="Category" value={tx.categoryName} />
+              <Field label="Sub Category" value={tx.subCategoryName} />
+              {/* The per-hour rate only means anything on an hourly service.
+                  Fixed-price listings still carry an hourlyRate field, and
+                  showing it as "$80.00/hr" misstates what the client agreed
+                  to pay. */}
+              <Field
+                label="Pricing Model"
+                value={
+                  tx.pricingType ?
+                    `${titleCase(tx.pricingType)}${
+                      tx.pricingType.toLowerCase() === "hourly" && tx.hourlyRate ?
+                        ` · ${money(tx.hourlyRate)}/hr` :
+                        ""
+                    }` :
+                    ""
+                }
+              />
+              <Field
+                label="Scheduled Date & Time"
+                value={when(tx.timeline?.serviceDateAndTime)}
+              />
+              <Field
+                label="Booked Duration"
+                value={
+                  tx.totalServiceTime ?
+                    `${tx.totalServiceTime} ${tx.totalServiceTime === 1 ? "hour" : "hours"}` :
+                    ""
+                }
+              />
             </div>
             <div className="space-y-3 pt-1 text-xs">
+              {tx.addressLines?.length > 0 && (
+                <div>
+                  <span className="text-text-muted block font-light mb-1">Service address</span>
+                  <p className="text-text-primary leading-relaxed">
+                    {tx.addressLines.join(", ")}
+                  </p>
+                </div>
+              )}
+
+              {/* The questions the provider set on the listing, as the client
+                  answered them. They are the job's actual specification. */}
+              {tx.serviceAnswers && Object.keys(tx.serviceAnswers).length > 0 && (
+                <div>
+                  <span className="text-text-muted block font-light mb-1">Service details</span>
+                  <div className="space-y-0.5">
+                    {Object.entries(tx.serviceAnswers).map(([q, a]) => (
+                      <div key={q} className="flex gap-2 text-text-primary">
+                        <span className="text-text-muted font-light">{q}</span>
+                        <span className="font-medium">
+                          {Array.isArray(a) ? a.join(", ") : String(a)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <span className="text-text-muted block font-light mb-1">Booking notes</span>
                 <p className="text-text-primary">
-                  3-bedroom flat. Kitchen requires priority cleaning.
+                  {tx.description || <span className="text-text-muted font-light">None given.</span>}
                 </p>
               </div>
+
               {showRefundInfo && (
                 <div>
                   <span className="text-text-muted block font-light mb-1">Cancellation Reason</span>
                   <p className="text-text-primary">
-                    Client cancelled before the scheduled service.
+                    {tx.cancellationReason || (
+                      <span className="text-text-muted font-light">Not recorded.</span>
+                    )}
                   </p>
                 </div>
               )}
@@ -777,7 +828,7 @@ export default function TransactionDetailPage() {
                   <span className="text-[10px] text-text-muted block">Wallet Credit Issued</span>
                   <strong className="text-sm text-text-primary font-bold block mt-0.5">{money(tx.refundAmount)}</strong>
                   <span className="text-[8px] text-text-muted font-light leading-tight mt-0.5">
-                    (Service amount credited to the client's Netly Wallet.)
+                    (Service amount credited to the client&apos;s Netly Wallet.)
                   </span>
                 </div>
               ) : (
@@ -840,24 +891,34 @@ export default function TransactionDetailPage() {
           {showPhotos && (
             <div className="bg-white rounded-3xl p-5 border border-border-main space-y-4 animate-fade-in">
               <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider block">Completion Photos</span>
-              <div className="grid grid-cols-2 gap-3.5">
-                <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-border-main">
-                  <Image
-                    src="/kitchen_completed.png"
-                    alt="Kitchen Completed Photos"
-                    fill
-                    className="object-cover hover:scale-105 transition duration-300"
-                  />
+              {tx.workPhotos.length === 0 ? (
+                <p className="text-[10px] text-text-muted font-light">
+                  The provider did not upload any photos for this job.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3.5">
+                  {tx.workPhotos.map((src, idx) => (
+                    <a
+                      key={src}
+                      href={src}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open full size"
+                      className="relative rounded-2xl overflow-hidden aspect-4/3 border border-border-main block"
+                    >
+                      {/* Storage URLs carry a token in the query string, so
+                          next/image would need every bucket host whitelisted
+                          and could not cache them usefully anyway. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Work photo ${idx + 1} uploaded on completion`}
+                        className="w-full h-full object-cover hover:scale-105 transition duration-300"
+                      />
+                    </a>
+                  ))}
                 </div>
-                <div className="relative rounded-2xl overflow-hidden aspect-4/3 border border-border-main">
-                  <Image
-                    src="/bathroom_completed.png"
-                    alt="Bathroom Completed Photos"
-                    fill
-                    className="object-cover hover:scale-105 transition duration-300"
-                  />
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -882,21 +943,17 @@ export default function TransactionDetailPage() {
                   </strong>
                 </div>
                 <div>
-                  <span className="text-text-muted block font-light mb-0.5">Processed By</span>
-                  <strong className="text-text-primary font-semibold">John Smith (Support Admin)</strong>
+                  <span className="text-text-muted block font-light mb-0.5">Refund Amount</span>
+                  <strong className="text-text-primary font-semibold">
+                    {money(tx.refundAmount)}
+                  </strong>
                 </div>
                 <div>
                   <span className="text-text-muted block font-light mb-0.5">
-                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus)
-                      ? "Wallet Transaction ID"
-                      : "Transaction ID"
-                    }
+                    {tx.refundedToCard ? "Stripe Payment Intent" : "Booking Reference"}
                   </span>
-                  <strong className="text-text-primary font-semibold font-mono">
-                    {["Wallet Credited — Client Fault", "Wallet Credited — Provider Fault", "Cancelled – Wallet Credited"].includes(currentStatus)
-                      ? "WLT-002184"
-                      : "TXN-002184"
-                    }
+                  <strong className="text-text-primary font-semibold font-mono text-[10px] break-all">
+                    {tx.stripePaymentIntentId || tx.id}
                   </strong>
                 </div>
               </div>

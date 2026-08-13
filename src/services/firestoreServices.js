@@ -18,6 +18,7 @@ import {
 import {
   formatFirestoreDate,
   formatFirestoreDateTime,
+  formatFirestoreTime,
   loadUsersByType,
   loadProfileMap,
   loadAddressMap,
@@ -27,7 +28,7 @@ import {
   toDate,
 } from "@/services/firestoreReads";
 
-export { formatFirestoreDate, formatFirestoreDateTime };
+export { formatFirestoreDate, formatFirestoreDateTime, formatFirestoreTime };
 
 /** Human labels for the `type` values written into the wallet ledgers. */
 const WALLET_TX_LABELS = {
@@ -1281,7 +1282,22 @@ function transactionStatus(booking) {
  * @param {Map<string, object>} users - uid → user data.
  * @return {object} Transaction row.
  */
-function toTransaction(id, b, users) {
+/**
+ * A stored string, or "" when it holds nothing worth showing.
+ *
+ * Some service documents carry the literal strings "null" and "undefined" —
+ * written by an app that stringified a missing value — which would otherwise
+ * render as a category named "null".
+ *
+ * @param {*} value - Stored value.
+ * @return {string} Trimmed value, or "".
+ */
+function cleanString(value) {
+  const s = String(value ?? "").trim();
+  return s === "null" || s === "undefined" ? "" : s;
+}
+
+function toTransaction(id, b, users, service = null) {
   const client = users.get(b.clientId) || null;
   const provider = users.get(b.providerId || b.professionalId) || null;
   const when = b.serviceDateAndTime || b.scheduledAt || b.createdAt;
@@ -1305,9 +1321,14 @@ function toTransaction(id, b, users) {
     },
     category: b.serviceTitle || b.categoryId || "—",
     date: formatFirestoreDate(when),
-    time: at
-      ? at.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-      : "",
+    // Toronto, not the browser's zone — see DISPLAY_TIME_ZONE. This column
+    // reads as the booking's scheduled time, and a booking is scheduled
+    // against the platform's clock, not the reader's.
+    time: formatFirestoreTime(when),
+    // The raw instant, so filtering and sorting do not go through the
+    // formatted string and back.
+    scheduledAtRaw: when || null,
+    scheduledAtMs: at ? at.getTime() : null,
     createdAtRaw: b.createdAt || when || null,
     serviceAmount,
     totalPaid: Number(b.totalChargedToClient) || serviceAmount,
@@ -1319,7 +1340,25 @@ function toTransaction(id, b, users) {
     appliedRates: b.appliedRates || null,
     taxAmount: Number(b.taxAmount) || 0,
     tip: Number(b.tip) || 0,
-    pricingType: b.pricingType || "—",
+    // Bookings carry no pricingType of their own — it lives on the service
+    // being booked, which is why this read "—" on every booking.
+    pricingType: cleanString(service?.pricingType || b.pricingType),
+    serviceName: cleanString(service?.serviceName || b.serviceTitle),
+    categoryName: cleanString(service?.categoryName) ||
+      cleanString(b.categoryId),
+    subCategoryName: cleanString(service?.subcategoryName),
+    hourlyRate: Number(b.hourlyRate) || 0,
+    // Hours the job was booked for. serviceEndTime is the scheduled finish,
+    // which is not the same as when it was actually completed.
+    totalServiceTime: Number(b.totalServiceTime) || 0,
+    serviceEndTime: b.serviceEndTime || null,
+    paidAt: b.paidAt || null,
+    // Photos the provider uploaded on completion.
+    workPhotos: Array.isArray(b.workPhotos) ? b.workPhotos.filter(Boolean) : [],
+    cancellationReason: b.cancellationReason || b.cancelReason || "",
+    cancellationPolicy: b.cancellationPolicy || "",
+    refundStatus: b.refundStatus || "",
+    serviceAnswers: b.serviceAnswers || null,
     description: b.notes || "",
     payoutReleased: Boolean(b.payoutReleased),
     refundAmount: Number(b.refundAmount) || 0,
@@ -1463,7 +1502,22 @@ export async function fetchTransactionByIdFromFirestore(id) {
       ).filter(Boolean),
     );
 
-    return toTransaction(snap.id, b, users);
+    // The category, sub-category and pricing model belong to the service, not
+    // the booking, so the detail screen cannot show them without this read.
+    // Only the detail screen needs it — the list does not, and one extra read
+    // per row there would not be worth it.
+    let service = null;
+    if (b.serviceId) {
+      try {
+        const s = await getDoc(doc(db, "services", b.serviceId));
+        if (s.exists()) service = s.data();
+      } catch {
+        // A deleted or unreadable service must not take the booking down with
+        // it; the fields it would have filled fall back to the booking's own.
+      }
+    }
+
+    return toTransaction(snap.id, b, users, service);
   } catch (error) {
     console.error("Firestore fetchTransactionById error:", error);
     throw error;
