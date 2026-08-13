@@ -1830,7 +1830,10 @@ export async function fetchDisputeChatFromFirestore({
               ? chat.clientName || "Client"
               : chat.professionalName || "Provider",
         text,
-        image: msg.image || "",
+        // The two threads disagree on the field name: booking messages carry
+        // `image`, dispute messages carry `imageUrl`. Read both so neither
+        // thread silently drops its attachments.
+        image: msg.imageUrl || msg.image || "",
         messageType: msg.messageType || "text",
         time: formatFirestoreDateTime(msg.createdAt),
         createdAtRaw: msg.createdAt || null,
@@ -3968,7 +3971,10 @@ export async function fetchDisputeThreadFromFirestore({
             ? m.senderName || "NETLY Support"
             : m.senderName || (role === "client" ? "Client" : "Provider"),
         text: m.message || "",
-        image: m.image || "",
+        // The apps write dispute attachments as `imageUrl`; `image` is the
+        // booking thread's spelling. Accepting both means a change on either
+        // side does not blank the evidence an admin is judging on.
+        image: m.imageUrl || m.image || "",
         messageType: m.messageType || "text",
         time: formatFirestoreDateTime(m.createdAt),
         createdAtRaw: m.createdAt || null,

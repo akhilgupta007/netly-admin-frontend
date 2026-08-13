@@ -136,8 +136,24 @@ export const resolveDispute = ({
     adminNotes
   });
 
-export const postDisputeMessage = ({ bookingId, message, disputeId }) =>
-  callFunction("postDisputeMessage", { bookingId, message, disputeId });
+/**
+ * Posts into a dispute's group chat. Either message or image is enough.
+ * The image travels as base64 and is uploaded to Storage by the callable.
+ */
+export const postDisputeMessage = ({
+  bookingId,
+  message,
+  disputeId,
+  imageBase64,
+  imageContentType
+}) =>
+  callFunction("postDisputeMessage", {
+    bookingId,
+    message,
+    disputeId,
+    imageBase64,
+    imageContentType
+  });
 
 /* ── Service catalogue ─────────────────────────────────────────── */
 
