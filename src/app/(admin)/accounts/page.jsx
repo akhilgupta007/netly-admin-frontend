@@ -16,6 +16,8 @@ import ClientDetailModal from "@/components/accounts/ClientDetailModal";
 import ProviderDetailModal from "@/components/accounts/ProviderDetailModal";
 import InviteClientModal from "@/components/accounts/InviteClientModal";
 import InviteProviderModal from "@/components/accounts/InviteProviderModal";
+import ProviderKycModal from "@/components/accounts/ProviderKycModal";
+import ProviderPayoutModal from "@/components/accounts/ProviderPayoutModal";
 
 // Import custom Firestore React Query hooks
 import { useClients } from "@/hooks/useClients";
@@ -51,6 +53,10 @@ export default function AccountsPage() {
   );
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+
+  // The provider whose KYC documents or payout history is open, if any.
+  const [kycProvider, setKycProvider] = useState(null);
+  const [payoutProvider, setPayoutProvider] = useState(null);
 
   // Pagination states
   const [clientPage, setClientPage] = useState(1);
@@ -302,11 +308,25 @@ export default function AccountsPage() {
             setSelectedAccount(provider);
             setModalType("viewProvider");
           }}
+          // Both of these used to be a toast and nothing else. The screens
+          // that hold this data already exist, so they open there with the
+          // provider preselected rather than being rebuilt here.
+          // Opens here rather than navigating away: checking an ID is a
+          // glance, and bouncing the admin onto the KYC queue loses the place
+          // they had in the provider list.
           onKYCDocuments={(provider) => {
-            toast.success(`Viewing verification documents for ${provider.name}!`);
+            if (!provider.uid) {
+              toast.error("This provider has no account id on record.");
+              return;
+            }
+            setKycProvider(provider);
           }}
           onPayouts={(provider) => {
-            toast.info(`Viewing Payout reports for ${provider.name}...`);
+            if (!provider.uid) {
+              toast.error("This provider has no account id on record.");
+              return;
+            }
+            setPayoutProvider(provider);
           }}
           onSuspendBan={(provider) => {
             setSelectedAccount(provider);
@@ -317,6 +337,21 @@ export default function AccountsPage() {
       )}
 
       {/* OVERLAY MODAL CONTAINERS */}
+
+      {/* 0. A provider's KYC documents and payout history, from their action
+             menu. Both open here rather than navigating away, so the admin
+             keeps their place in the provider list. */}
+      <ProviderKycModal
+        isOpen={Boolean(kycProvider)}
+        provider={kycProvider}
+        onClose={() => setKycProvider(null)}
+      />
+
+      <ProviderPayoutModal
+        isOpen={Boolean(payoutProvider)}
+        provider={payoutProvider}
+        onClose={() => setPayoutProvider(null)}
+      />
 
       {/* 1. Suspend/Ban Modal */}
       {modalType === "suspendBan" && (
@@ -338,6 +373,7 @@ export default function AccountsPage() {
           onClose={() => { setModalType(null); setSelectedAccount(null); }}
           onSuspendBanTrigger={(client) => { setSelectedAccount(client); setModalType("suspendBan"); }}
           onReactivateTrigger={handleReactivateSubmit}
+          isReactivating={statusMutation.isPending}
           onResetPassword={handleResetPassword}
           isResettingPassword={resetPasswordMutation.isPending}
           onMergeTrigger={(client) => { setSelectedAccount(client); setModalType("merge"); }}
@@ -352,6 +388,7 @@ export default function AccountsPage() {
           onClose={() => { setModalType(null); setSelectedAccount(null); }}
           onSuspendBanTrigger={(provider) => { setSelectedAccount(provider); setModalType("suspendBan"); }}
           onReactivateTrigger={handleReactivateSubmit}
+          isReactivating={statusMutation.isPending}
           onResetPassword={handleResetPassword}
           isResettingPassword={resetPasswordMutation.isPending}
         />

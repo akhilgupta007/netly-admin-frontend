@@ -29,8 +29,24 @@ function nextFriday() {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export default function PayoutQueueTab() {
-  const [searchTerm, setSearchTerm] = useState("");
+/**
+ * The Friday payout queue.
+ *
+ * @param {object} props - Options.
+ * @param {string} props.focusUid - A provider deep-linked from Accounts, whose
+ *   detail dialog should open once the queue has loaded.
+ * @param {string} props.focusQuery - That provider's email, used to seed the
+ *   search so their row is on the first page.
+ * @param {Function} props.onFocusHandled - Clears that link, so switching tabs
+ *   by hand does not reopen the dialog.
+ * @return {JSX.Element} The tab.
+ */
+export default function PayoutQueueTab({
+  focusUid,
+  focusQuery,
+  onFocusHandled,
+}) {
+  const [searchTerm, setSearchTerm] = useState(focusQuery || "");
   const [filterStatus, setFilterStatus] = useState("All");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
@@ -73,6 +89,20 @@ export default function PayoutQueueTab() {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  // Open the deep-linked provider's detail once the queue has loaded.
+  // Adjusted during render rather than in an effect to avoid a cascading
+  // re-render, and handed back immediately so it fires only once.
+  if (focusUid && !isLoading) {
+    const match = payouts.find((p) => p.uid === focusUid);
+    onFocusHandled?.();
+    if (match) {
+      setSelectedPayout(match);
+      setIsViewModalOpen(true);
+    } else {
+      toast.info("That provider has no payout record yet.");
+    }
+  }
 
   const handleActionClick = (item) => {
     setSelectedPayout(item);

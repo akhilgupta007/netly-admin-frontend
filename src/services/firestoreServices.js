@@ -1252,6 +1252,11 @@ function transactionStatus(booking) {
     case "draft":
       return "Quote Pending";
     case "pending":
+    // Stamped once the client has a PaymentIntent but the money has not
+    // arrived. Shares the "Pending Payment" label deliberately: the admin
+    // actions are the same, and the panel already has a banner, a pill colour
+    // and a reminder button keyed to that name.
+    case "awaitingpayment":
       return "Pending Payment";
     case "requests":
       return "Pending Provider Acceptance";
@@ -1344,8 +1349,8 @@ function toTransaction(id, b, users, service = null) {
     // being booked, which is why this read "—" on every booking.
     pricingType: cleanString(service?.pricingType || b.pricingType),
     serviceName: cleanString(service?.serviceName || b.serviceTitle),
-    categoryName: cleanString(service?.categoryName) ||
-      cleanString(b.categoryId),
+    categoryName:
+      cleanString(service?.categoryName) || cleanString(b.categoryId),
     subCategoryName: cleanString(service?.subcategoryName),
     hourlyRate: Number(b.hourlyRate) || 0,
     // Hours the job was booked for. serviceEndTime is the scheduled finish,
@@ -2255,22 +2260,44 @@ export async function fetchPayoutQueueFromFirestore(params = {}) {
 export async function fetchFinanceReportsFromFirestore({
   startDate,
   endDate,
+  category = "All",
 } = {}) {
   const { from, to, inRange } = rangeTest(startDate, endDate);
 
   try {
-    const [bookings, creditRequests, withdrawals] = await Promise.all([
+    const [bookings, creditRequests, withdrawals, services] = await Promise.all([
       safeCollection("bookings"),
       safeCollection("wallet_credit_requests"),
       safeCollection("withdrawal_requests"),
+      safeCollection("services"),
     ]);
 
-    const paid = bookings.filter(
+    // A booking stores only a coarse categoryId ("home"); the category a
+    // reader would recognise ("Furniture") lives on the service it points at.
+    const categoryByService = new Map(
+      services.map((s) => [s.id, cleanString(s.categoryName)]),
+    );
+    const categoryOf = (b) =>
+      categoryByService.get(b.serviceId) || cleanString(b.categoryId) || "—";
+
+    const inWindow = bookings.filter(
       (b) =>
         isPaidBooking(b) &&
         !isFullyRefunded(b) &&
         inRange(b.confirmedAt || b.createdAt),
     );
+
+    // Offered by the dropdown. Built from everything in the window, before the
+    // category filter is applied — otherwise choosing one category would leave
+    // it as the only option and the filter could never be changed back.
+    const categories = [
+      ...new Set(inWindow.map(categoryOf).filter((c) => c && c !== "—")),
+    ].sort();
+
+    const paid =
+      category && category !== "All" ?
+        inWindow.filter((b) => categoryOf(b) === category) :
+        inWindow;
     const at = (b) => toMillis(b.confirmedAt || b.createdAt);
     const num = (v) => Number(v) || 0;
 
@@ -2336,6 +2363,9 @@ export async function fetchFinanceReportsFromFirestore({
       revenue,
       funding,
       refunds,
+      // Drives the Category dropdown, so it can only ever offer values that
+      // exist in the data.
+      categories,
       totals: {
         bookings: paid.length,
         gmv: sum("gmv")(volume),
@@ -3563,6 +3593,26 @@ export async function fetchUserStatsFromFirestore() {
  * @param {number} params.limit - Page size.
  * @return {Promise<object>} Paginated rows plus queue counts.
  */
+/**
+ * Turns a stored report reason into something readable.
+ *
+ * The apps write camelCase slugs — "offensiveLanguage", "spam" — which read
+ * as code on a screen an admin uses to judge a complaint.
+ *
+ * @param {string} slug - Stored reason.
+ * @return {string} e.g. "Offensive language", or "" when unset.
+ */
+function humanReason(slug) {
+  const s = String(slug || "").trim();
+  if (!s) return "";
+  return titleCase(
+    s
+      .replace(/[_-]+/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .toLowerCase(),
+  );
+}
+
 export async function fetchFlaggedContentFromFirestore(params = {}) {
   const {
     searchTerm = "",
@@ -3584,6 +3634,10 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
     const uids = new Set();
     reports.forEach((r) => {
       if (r.reportedBy) uids.add(r.reportedBy);
+      // The person being complained about is `reportedUserId`. Only
+      // `targetUserId` was read before — a field the apps never write — so the
+      // subject was never fetched and their email came out blank on every row.
+      if (r.reportedUserId) uids.add(r.reportedUserId);
       if (r.targetUserId) uids.add(r.targetUserId);
     });
     reviews
@@ -3619,8 +3673,19 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
         targetId: r.targetId || null,
         reportedBy: nameOf(r.reportedBy, "Reporter"),
         email: users.get(r.reportedBy)?.email || "",
-        subjectEmail: users.get(r.targetUserId)?.email || "",
-        content: r.reason || r.description || "No detail provided.",
+        subjectEmail:
+          users.get(r.reportedUserId)?.email ||
+          users.get(r.targetUserId)?.email ||
+          "",
+        // The offending text itself, which the apps snapshot onto the report
+        // as targetSummary. This used to show r.reason — the category the
+        // reporter picked, "offensiveLanguage" — so an admin judging a
+        // complaint never saw the thing being complained about. `description`
+        // was a guess at a field that does not exist; the free-text one the
+        // apps write is `details`.
+        content: r.targetSummary || r.details || "",
+        reason: humanReason(r.reason),
+        reporterNote: r.details || "",
         status: titleCase(r.status, "Pending"),
         isPending: String(r.status || "pending").toLowerCase() === "pending",
         date: formatFirestoreDate(r.createdAt),
@@ -3643,10 +3708,15 @@ export async function fetchFlaggedContentFromFirestore(params = {}) {
             ? nameOf(r.flaggedBy, "Reporter")
             : "Automatic filter",
           email: users.get(r.flaggedBy)?.email || "",
-          subjectEmail: users.get(r.providerId)?.email || "",
-          content: r.flagReason
-            ? `${r.flagReason} — “${r.comment || "(no comment)"}”`
-            : `“${r.comment || "(no comment)"}”`,
+          // The client wrote the review, so the client is the subject of a
+          // complaint about it. This pointed at the provider — the person the
+          // review is *about*, and usually the one who reported it, so the
+          // column showed the complainant's own address back to them.
+          subjectEmail: users.get(r.clientId)?.email || "",
+          // The comment alone. The reason now has its own field rather than
+          // being prefixed onto the text an admin is trying to read.
+          content: r.comment || "",
+          reason: humanReason(r.flagReason),
           rating: Number(r.rating) || 0,
           status: titleCase(r.flagStatus, "Pending"),
           isPending:

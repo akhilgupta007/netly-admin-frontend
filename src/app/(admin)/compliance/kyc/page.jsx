@@ -21,6 +21,7 @@ import CardWrapper from "@/components/ui/CardWrapper";
 
 // Import custom Firestore React Query hook
 import { useKyc } from "@/hooks/useKyc";
+import { toKycSubmissionRow } from "@/lib/kycRow";
 import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
 export default function KYCVerificationPage() {
@@ -33,6 +34,15 @@ export default function KYCVerificationPage() {
   // Modal actions states
   const [selectedItem, setSelectedItem] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Deep link from a provider's action menu on Accounts. Read straight from
+  // the URL rather than through useSearchParams, which would force this page
+  // behind a Suspense boundary — the same approach the Accounts page takes.
+  const [pendingUid, setPendingUid] = useState(() =>
+    typeof window === "undefined" ?
+      null :
+      new URLSearchParams(window.location.search).get("uid"),
+  );
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
@@ -55,43 +65,12 @@ export default function KYCVerificationPage() {
   const { kycList, total: totalKyc, isLoading, isFetching } = useKyc(kycParams);
   const queryClient = useQueryClient();
 
-  // Map query items to submission row format
-  const submissions = useMemo(() => {
-    return kycList.map((item) => ({
-      id: item.id,
-      // The callable needs the real uid; item.id is a display code (PR-xxxxxx).
-      uid: item.uid,
-      name: item.providerName || "Provider",
-      // Readable label, not the raw slug. The column rendered "governmentId"
-      // and the filter compared that slug against labels like "Proof of
-      // Address", so nothing ever matched.
-      // A submission can carry more than one document, so show them all — the
-      // column previously showed only the first, which read as though the
-      // other had not been submitted.
-      docType: (item.documentLabels || []).join(", ") || "Not specified",
-      documentLabels: item.documentLabels || [],
-      docFile:
-        item.verificationDocuments?.[0]?.name ||
-        `${item.documents?.[0] || "ID"}_Document.pdf`,
-      submittedDate: item.submittedAt,
-      status:
-        item.status === "Approved"
-          ? "Approved"
-          : item.status === "Rejected"
-            ? "Rejected"
-            : "In Review",
-      email: item.email || "",
-      phone: item.phoneNumber || "—",
-      // Account creation date, not the KYC submission date.
-      joined: item.joinedAt,
-      reviewedAt: item.reviewedAt,
-      verificationDocuments: item.verificationDocuments,
-      // Raw slug (notSubmitted/pending/verified/rejected) — sent as
-      // expectedStatus so a concurrent decision is detected server-side.
-      kycStatus: item.kycStatus,
-      rejectionReason: item.rejectionReason,
-    }));
-  }, [kycList]);
+  // Map query items to submission row format. Shared with the provider action
+  // menu on Accounts, which opens the same review modal.
+  const submissions = useMemo(
+      () => kycList.map(toKycSubmissionRow),
+      [kycList],
+  );
 
   // Status statistics card counts
   // Built from what the submissions actually contain, so the filter cannot
@@ -120,6 +99,25 @@ export default function KYCVerificationPage() {
     });
     return res;
   }, [submissions]);
+
+  // Open the deep-linked provider's submission once the list has loaded.
+  // Adjusted during render rather than in an effect to avoid a cascading
+  // re-render, and cleared immediately so it fires only once.
+  //
+  // A provider with nothing submitted has no row here at all, so say so
+  // rather than landing the admin on an unchanged list with no explanation.
+  if (pendingUid && !isLoading) {
+    const match = submissions.find(
+        (s) => s.uid === pendingUid || s.id === pendingUid,
+    );
+    setPendingUid(null);
+    if (match) {
+      setSelectedItem(match);
+      setIsModalOpen(true);
+    } else {
+      toast.info("That provider has not submitted any KYC documents yet.");
+    }
+  }
 
   // Filter Submissions
   const filteredSubmissions = useMemo(() => {

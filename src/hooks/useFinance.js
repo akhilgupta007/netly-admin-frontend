@@ -77,6 +77,7 @@ export function useFinanceReports(params = {}, options = {}) {
     revenue: query.data?.revenue ?? [],
     funding: query.data?.funding ?? [],
     refunds: query.data?.refunds ?? [],
+    categories: query.data?.categories ?? [],
     totals: query.data?.totals ?? null,
   };
 }

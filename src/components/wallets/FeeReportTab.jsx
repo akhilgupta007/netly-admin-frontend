@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import DateRangePicker from "@/components/ui/DateRangePicker";
+import DateRangePicker, {
+  getMondayAndSunday,
+} from "@/components/ui/DateRangePicker";
 import CardWrapper from "@/components/ui/CardWrapper";
 import { useFeeReport } from "@/hooks/useFinance";
 
@@ -29,7 +31,27 @@ export default function FeeReportTab({
 }) {
   const [hoveredBarIndex, setHoveredBarIndex] = useState(null);
 
-  const { series, totals, isLoading, isError } = useFeeReport({ startDate, endDate });
+  // The range this tab actually queries.
+  //
+  // The Wallets page opens with startDate and endDate null, shared across all
+  // four of its tabs. Passed through unchanged, the read layer's dailySeries
+  // returns nothing at all for a null bound — and the totals are summed from
+  // that series — so every figure came out $0.00 and the chart was empty,
+  // while the header above it displayed the current week. The page was showing
+  // one range and querying another.
+  //
+  // Defaulted here rather than on the page, because the other three tabs treat
+  // "no range" as "everything" and would start filtering if it changed there.
+  const { monday: defaultMon, sunday: defaultSun } = getMondayAndSunday(
+      new Date(),
+  );
+  const displayStart = startDate || defaultMon;
+  const displayEnd = endDate || defaultSun;
+
+  const { series, totals, isLoading, isError } = useFeeReport({
+    startDate: displayStart,
+    endDate: displayEnd,
+  });
 
   // The axis was fixed at $0–$10k, which would clip any larger day. It now
   // scales to the range actually returned.
@@ -58,20 +80,6 @@ export default function FeeReportTab({
       </div>
     );
   }
-
-  const getMondayAndSunday = (date) => {
-    const day = date.getDay();
-    const diffToMonday = day === 0 ? -6 : 1 - day;
-    const monday = new Date(date);
-    monday.setDate(date.getDate() + diffToMonday);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    return { monday, sunday };
-  };
-
-  const { monday: defaultMon, sunday: defaultSun } = getMondayAndSunday(new Date());
-  const displayStart = startDate || defaultMon;
-  const displayEnd = endDate || defaultSun;
 
   return (
     <div className="space-y-4 animate-scale-up">

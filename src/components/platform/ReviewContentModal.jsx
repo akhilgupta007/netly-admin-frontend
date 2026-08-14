@@ -26,24 +26,64 @@ export default function ReviewContentModal({ flag, isOpen, onClose, onAction }) 
         <div className="p-4 space-y-4 text-xs">
           {/* reported preview details card */}
           <div className="space-y-3">
-            <div className="space-y-1">
-              <span className="text-[10px] text-text-muted font-medium block">Type</span>
-              <span className="font-semibold text-text-primary block">{flag.type}</span>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-[10px] text-text-muted font-medium block">Type</span>
+                <span className="font-semibold text-text-primary block">{flag.type}</span>
+              </div>
+              {/* Why it was reported. This used to be prepended to the content
+                  itself, which made the quoted text harder to read and left
+                  the category looking like part of what the user wrote. */}
+              {flag.reason && (
+                <div className="space-y-1 text-right">
+                  <span className="text-[10px] text-text-muted font-medium block">Reason</span>
+                  <span className="font-semibold text-text-primary block">{flag.reason}</span>
+                </div>
+              )}
             </div>
 
             <div className="bg-page-bg rounded-2xl p-3 space-y-1.5 border border-border-main/50">
               <span className="text-[10px] text-text-muted block">Reported content preview</span>
-              <p className="text-xs text-text-primary leading-normal font-light">
-                {flag.content}
-              </p>
+              {flag.content ? (
+                <p className="text-xs text-text-primary leading-normal font-light whitespace-pre-line break-words">
+                  {flag.content}
+                </p>
+              ) : (
+                // An empty box reads as a rendering failure. Say which it is:
+                // the report carries no snapshot of the content.
+                <p className="text-xs text-text-muted leading-normal font-light italic">
+                  No copy of the reported content was captured with this report.
+                </p>
+              )}
             </div>
+
+            {/* What the reporter typed, when they added anything. */}
+            {flag.reporterNote && (
+              <div className="space-y-1">
+                <span className="text-[10px] text-text-muted font-medium block">Reporter&apos;s note</span>
+                <p className="text-xs text-text-primary leading-normal font-light whitespace-pre-line break-words">
+                  {flag.reporterNote}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Split grid details row */}
           <div className="grid sm:grid-cols-3 sm:justify-between justify-center gap-2 border-t border-b border-border-main py-4 text-xs text-text-muted font-light">
             <div className="space-y-1">
               <span className="block text-[10px] text-text-muted">Reported by</span>
-              <span className="block font-medium text-text-primary truncate">{flag.email || "reporter@clean.io"}</span>
+              {/* No invented address here: a review raised by the app's own
+                  filters has no human reporter, and a fake one sends an admin
+                  looking for a person who does not exist. */}
+              {/* Wraps rather than truncating: a half-shown address is no use
+                  to an admin who needs to identify the person. */}
+              <span className="block font-medium text-text-primary break-all">
+                {flag.email || (
+                  <span className="text-text-muted font-light break-normal">
+                    {flag.reportedBy || "Not on record"}
+                  </span>
+                )}
+              </span>
             </div>
             <div className="space-y-1 sm:border-l border-border-main sm:pl-3">
               <span className="block text-[10px] text-text-muted">Date reported</span>
@@ -51,7 +91,13 @@ export default function ReviewContentModal({ flag, isOpen, onClose, onAction }) 
             </div>
             <div className="space-y-1 sm:border-l border-border-main sm:pl-3">
               <span className="block text-[10px] text-text-muted">Subject email</span>
-              <span className="block font-medium text-text-primary truncate">{flag.subjectEmail}</span>
+              <span className="block font-medium text-text-primary break-all">
+                {flag.subjectEmail || (
+                  <span className="text-text-muted font-light break-normal">
+                    Not on record
+                  </span>
+                )}
+              </span>
             </div>
           </div>
 
