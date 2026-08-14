@@ -876,6 +876,21 @@ export async function fetchPayoutLogsFromFirestore(params = {}) {
  * @param {number} params.max - Hard cap on documents fetched (default 500).
  * @return {Promise<Array<object>>} Entries, newest first.
  */
+/**
+ * Target types whose targetId is a uid, and so can be named.
+ *
+ * "users" is in here as well as "user": both spellings are written by
+ * different callables, and omitting the plural would leave a third of the
+ * account-related entries unresolved.
+ */
+const USER_TARGET_TYPES = new Set([
+  "user",
+  "users",
+  "client",
+  "provider",
+  "admin",
+]);
+
 export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
   try {
     const snapshot = await getDocs(
@@ -886,8 +901,43 @@ export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
       ),
     );
 
+    // Resolve the affected accounts. A raw uid identifies nobody — an auditor
+    // reading "suspend / mOfhyW3AVQRRtnbdOUN0GjAK" cannot tell whose account
+    // was suspended without going and looking it up by hand.
+    //
+    // One read per distinct uid, not per entry: the same account usually
+    // appears across many entries, and non-user targets (a dispute, a
+    // category, a tax year) are skipped entirely.
+    const uids = [
+      ...new Set(
+        snapshot.docs
+          .map((d) => d.data())
+          .filter((d) => USER_TARGET_TYPES.has(String(d.targetType || "")))
+          .map((d) => d.targetId)
+          .filter(Boolean),
+      ),
+    ];
+
+    const targets = new Map(
+      (
+        await Promise.all(
+          uids.map(async (uid) => {
+            try {
+              const snap = await getDoc(doc(db, "users", String(uid)));
+              return snap.exists() ? [uid, snap.data()] : null;
+            } catch {
+              // A deleted account must not hide the record of what was done
+              // to it — that is precisely what an audit log is for.
+              return null;
+            }
+          }),
+        )
+      ).filter(Boolean),
+    );
+
     return snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
+      const target = targets.get(data.targetId) || null;
       return {
         id: docSnap.id,
         action: data.action || "",
@@ -896,6 +946,10 @@ export async function fetchAuditLogsFromFirestore({ max = 500 } = {}) {
         actorRole: data.actorRole || null,
         targetType: data.targetType || "—",
         targetId: data.targetId || "—",
+        // Blank rather than a placeholder when the target is not an account,
+        // or the account has since been deleted.
+        targetName: target ? displayName(target, "") : "",
+        targetEmail: target?.email || "",
         reason: data.reason || "",
         before: data.before || null,
         after: data.after || null,
