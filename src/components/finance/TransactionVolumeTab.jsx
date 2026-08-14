@@ -30,7 +30,13 @@ export default function TransactionVolumeTab() {
   );
   const [hoveredValue, setHoveredValue] = useState(null);
 
-  const { volume, totals, isLoading, isError } = useFinanceReports({ startDate, endDate });
+  // category is part of the query, not just local state. It used to be held
+  // here and never sent, so the dropdown changed nothing.
+  const { volume, totals, categories, isLoading, isError } = useFinanceReports({
+    startDate,
+    endDate,
+    category,
+  });
 
   // The chart reads dayName/fullDate; the read layer returns day/label.
   const chartData = volume.map((r) => ({
@@ -129,11 +135,16 @@ export default function TransactionVolumeTab() {
               onChange={(e) => setCategory(e.target.value)}
               className="appearance-none bg-white border border-border-main text-xs rounded-full pl-3 pr-8 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-28"
             >
-              <option value="All">Category</option>
-              <option value="Post-Construction Cleaning">Post-Construction</option>
-              <option value="Window Cleaning">Window Cleaning</option>
-              <option value="Sanitization Services">Sanitization</option>
-              <option value="Commercial Cleaning">Commercial</option>
+              {/* Built from the categories present in the range, not a fixed
+                  list. The hardcoded options ("Post-Construction Cleaning",
+                  "Window Cleaning"…) matched nothing in this project's data,
+                  so every one of them filtered the report down to nothing. */}
+              <option value="All">All categories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>

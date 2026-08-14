@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { X, ShieldAlert, Key, GitMerge } from "lucide-react";
+import { X, ShieldAlert, Key, GitMerge, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { logDataAccess } from "@/lib/callables";
 import { getInitials } from "@/lib/utils";
 import Link from "next/link";
 import { useAccountActivity } from "@/hooks/useUsers";
 
-export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBanTrigger, onReactivateTrigger, onResetPassword, isResettingPassword, onMergeTrigger }) {
+export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBanTrigger, onReactivateTrigger, isReactivating, onResetPassword, isResettingPassword, onMergeTrigger }) {
   const { activity, isLoading: activityLoading } = useAccountActivity({
     uid: client?.uid,
     accountType: "client",
@@ -161,11 +161,22 @@ export default function ClientDetailModal({ client, isOpen, onClose, onSuspendBa
           {/* Moderate stacked action controls */}
           <div className="space-y-2 pt-2">
             {["Suspended", "Banned"].includes(client.status) ? (
+              // Disabled while in flight: reactivating writes an audit entry
+              // and lifts the ban, and a second click fires a second request
+              // for an account that is already being reactivated.
               <button
                 onClick={() => onReactivateTrigger(client)}
-                className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                disabled={isReactivating}
+                className="w-full bg-primary-bg hover:opacity-90 text-white font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                ✓ Reactivate Account
+                {isReactivating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Reactivating…
+                  </>
+                ) : (
+                  <>✓ Reactivate Account</>
+                )}
               </button>
             ) : (
               <button

@@ -5,6 +5,8 @@ import { Search, ChevronDown, MoreVertical, Eye, FileText, CreditCard, Ban, Plus
 import DateRangePicker from "@/components/ui/DateRangePicker";
 import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
+import { canAccessRoute } from "@/lib/adminRoles";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function ProvidersTab({
   providers,
@@ -29,6 +31,8 @@ export default function ProvidersTab({
   totalItems,
   isLoading,
 }) {
+  const role = useAuthStore((state) => state.role);
+
   const getKycClass = (kyc) => {
     switch (kyc) {
       case "Verified":
@@ -241,24 +245,31 @@ export default function ProvidersTab({
                         >
                           <Eye size={13} /> View
                         </button>
-                        <button
-                          onClick={() => {
-                            onKYCDocuments(provider);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
-                        >
-                          <FileText size={13} /> KYC
-                        </button>
-                        <button
-                          onClick={() => {
-                            onPayouts(provider);
-                            setOpenMenuId(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
-                        >
-                          <CreditCard size={13} /> Payouts
-                        </button>
+                        {/* Both open another screen, so they are only offered
+                            to roles that can actually reach it — otherwise the
+                            menu item leads to a page the router turns away. */}
+                        {canAccessRoute(role, "/compliance/kyc") && (
+                          <button
+                            onClick={() => {
+                              onKYCDocuments(provider);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <FileText size={13} /> KYC
+                          </button>
+                        )}
+                        {canAccessRoute(role, "/finance/commissions") && (
+                          <button
+                            onClick={() => {
+                              onPayouts(provider);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-page-bg text-xs text-text-primary font-medium flex items-center gap-2 cursor-pointer"
+                          >
+                            <CreditCard size={13} /> Payouts
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             onSuspendBan(provider);

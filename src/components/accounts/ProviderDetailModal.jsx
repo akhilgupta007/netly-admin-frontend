@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Award,
   Star,
+  Loader2,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { logDataAccess } from "@/lib/callables";
@@ -21,6 +22,7 @@ export default function ProviderDetailModal({
   onClose,
   onSuspendBanTrigger,
   onReactivateTrigger,
+  isReactivating,
   onResetPassword,
   isResettingPassword,
 }) {
@@ -300,11 +302,22 @@ export default function ProviderDetailModal({
             </button>
 
             {["Suspended", "Banned"].includes(provider.status) ? (
+              // Disabled while in flight: reactivating writes an audit entry
+              // and lifts the ban, and a second click fires a second request
+              // for an account that is already being reactivated.
               <button
                 onClick={() => onReactivateTrigger(provider)}
-                className="w-full bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-semibold text-xs py-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                disabled={isReactivating}
+                className="w-full bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50 font-semibold text-xs py-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                ✓ Reactivate Account
+                {isReactivating ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Reactivating…
+                  </>
+                ) : (
+                  <>✓ Reactivate Account</>
+                )}
               </button>
             ) : (
               <button

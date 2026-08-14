@@ -41,8 +41,8 @@ export default function ProfileSettingsTab() {
 
   // What the avatar shows right now — the staged file wins over the stored
   // one, and a pending removal shows initials.
-  const shownPhoto = pendingPhoto?.dataUrl ||
-    (clearPhoto ? "" : profile?.photoUrl || "");
+  const shownPhoto =
+    pendingPhoto?.dataUrl || (clearPhoto ? "" : profile?.photoUrl || "");
 
   const handlePickPhoto = async (e) => {
     const file = e.target.files?.[0];
@@ -53,7 +53,7 @@ export default function ProfileSettingsTab() {
     setIsReadingPhoto(true);
     try {
       setPendingPhoto(
-          await readImageForUpload(file, { maxEdge: AVATAR_MAX_EDGE }),
+        await readImageForUpload(file, { maxEdge: AVATAR_MAX_EDGE }),
       );
       setClearPhoto(false);
     } catch (err) {
@@ -91,7 +91,7 @@ export default function ProfileSettingsTab() {
         const parsed = JSON.parse(storedSecurity);
         setSessionTimeout(parsed.sessionTimeout || 30);
         setForce2FA(parsed.force2FA !== undefined ? parsed.force2FA : true);
-      } catch (e) { }
+      } catch (e) {}
     }
   }, []);
 
@@ -137,7 +137,9 @@ export default function ProfileSettingsTab() {
     e.preventDefault();
     const timeout = parseInt(sessionTimeout);
     if (isNaN(timeout) || timeout < 5 || timeout > 120) {
-      toast.error("Session timeout must be a valid number between 5 and 120 minutes.");
+      toast.error(
+        "Session timeout must be a valid number between 5 and 120 minutes.",
+      );
       return;
     }
 
@@ -152,10 +154,14 @@ export default function ProfileSettingsTab() {
 
   return (
     <div className="space-y-4 animate-scale-up text-xs text-text-primary font-onest">
-
       {/* Profile Settings Card */}
-      <form onSubmit={handleSaveProfile} className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-4 relative">
-        <h3 className="text-sm font-semibold text-text-primary">Profile Settings</h3>
+      <form
+        onSubmit={handleSaveProfile}
+        className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-4 relative"
+      >
+        <h3 className="text-sm font-semibold text-text-primary">
+          Profile Settings
+        </h3>
 
         {/* Avatar block. The pencil was decorative markup with no handler
             behind it — picking a file now stages the picture, and it is
@@ -244,7 +250,9 @@ export default function ProfileSettingsTab() {
         <div className="space-y-4 max-w-4xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-text-muted block">First Name</label>
+              <label className="text-xs text-text-muted block">
+                First Name
+              </label>
               <input
                 type="text"
                 required
@@ -277,7 +285,9 @@ export default function ProfileSettingsTab() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-text-muted block">Email Address</label>
+              <label className="text-xs text-text-muted block">
+                Email Address
+              </label>
               <input
                 type="email"
                 disabled
@@ -287,7 +297,9 @@ export default function ProfileSettingsTab() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs text-text-muted block">Phone Number</label>
+              <label className="text-xs text-text-muted block">
+                Phone Number
+              </label>
               <input
                 type="text"
                 required
@@ -333,12 +345,12 @@ export default function ProfileSettingsTab() {
           Platform-wide policy — session timeout and forced 2FA apply to every
           admin, not to the person editing their own profile — so it belongs to
           the super admin alone. */}
-      {isSuperAdmin && (
+      {/* {isSuperAdmin && (
       <form onSubmit={handleSaveSecurity} className="bg-white rounded-3xl border border-border-main hover:shadow-xs p-4 space-y-5 relative">
-        <h3 className="text-sm font-semibold text-text-primary">Security configuration</h3>
+        <h3 className="text-sm font-semibold text-text-primary">Security configuration</h3> */}
 
-        {/* Session Timeout */}
-        <div className="space-y-1.5 p-3 border border-border-main rounded-xl w-full">
+      {/* Session Timeout */}
+      {/* <div className="space-y-1.5 p-3 border border-border-main rounded-xl w-full">
           <label className="text-xs text-text-primary block">Session timeout (minutes)</label>
           <div className="flex items-center">
             <input
@@ -355,10 +367,10 @@ export default function ProfileSettingsTab() {
           <span className="text-[10px] text-text-muted block mt-0.5">
             Range: 5-120 minutes. Users are logged out after inactivity.
           </span>
-        </div>
+        </div> */}
 
-        {/* 2FA switch toggle */}
-        <div className="flex items-center justify-between p-3 border border-border-main rounded-xl w-full gap-4">
+      {/* 2FA switch toggle */}
+      {/* <div className="flex items-center justify-between p-3 border border-border-main rounded-xl w-full gap-4">
           <div className="space-y-0.5">
             <div className="text-xs text-text-primary block">Force 2FA for all admin users</div>
             <span className="text-[10px] mt-2 text-text-muted font-light block">
@@ -381,18 +393,18 @@ export default function ProfileSettingsTab() {
               />
             </button>
           </div>
-        </div>
+        </div> */}
 
-        {/* Warn banner block */}
-        <div className="bg-amber-50/45 border border-amber-200/50 rounded-xl p-4 flex items-start gap-2.5 w-full text-[10px] text-amber-800 font-light">
+      {/* Warn banner block */}
+      {/* <div className="bg-amber-50/45 border border-amber-200/50 rounded-xl p-4 flex items-start gap-2.5 w-full text-[10px] text-amber-800 font-light">
           <AlertCircle size={15} className="text-amber-600/80 shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             All admin actions are logged to audit_logs. IP addresses are captured per session. Logs are immutable.
           </p>
-        </div>
+        </div> */}
 
-        {/* Submit action */}
-        <div className="flex justify-end pt-2">
+      {/* Submit action */}
+      {/* <div className="flex justify-end pt-2">
           <button
             type="submit"
             className="bg-primary-bg hover:bg-primary-bg-muted text-white font-semibold text-xs py-3 px-5 rounded-lg transition cursor-pointer"
@@ -400,8 +412,8 @@ export default function ProfileSettingsTab() {
             Save Settings
           </button>
         </div>
-      </form>
-      )}
+      </form> */}
+      {/* )} */}
 
       {/* Change password modal overlay */}
       <ChangePasswordModal
@@ -409,7 +421,6 @@ export default function ProfileSettingsTab() {
         onClose={() => setPasswordModalOpen(false)}
         onUpdate={handleUpdatePassword}
       />
-
     </div>
   );
 }

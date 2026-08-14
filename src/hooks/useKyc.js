@@ -5,11 +5,21 @@ import { fetchKycSubmissionsFromFirestore } from "@/services/firestoreServices";
 
 const EMPTY_RESULT = { items: [], total: 0, totalPages: 1 };
 
-export function useKyc(params = {}) {
+/**
+ * KYC submissions.
+ *
+ * @param {object} params - Search / filter / pagination options.
+ * @param {object} options - Extra react-query options, e.g. `enabled` — the
+ *   provider dialog on Accounts mounts before it is opened and must not scan
+ *   every provider until it is.
+ * @return {object} Submissions and query state.
+ */
+export function useKyc(params = {}, options = {}) {
   const query = useQuery({
     queryKey: ["kycSubmissions", params],
     queryFn: () => fetchKycSubmissionsFromFirestore(params),
     staleTime: 1000 * 60 * 5, // 5 minutes cache
+    ...options,
   });
 
   const result = query.data || EMPTY_RESULT;
