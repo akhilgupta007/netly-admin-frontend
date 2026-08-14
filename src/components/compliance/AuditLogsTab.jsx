@@ -32,7 +32,16 @@ export default function AuditLogsTab() {
     return logs.filter((log) => {
       const matchSearch =
         !term ||
-        [log.actorEmail, log.targetId, log.reason, log.targetType].some((field) =>
+        // Searchable by who was affected, not only by their uid — an auditor
+        // looking for what was done to an account has their email, not an id.
+        [
+          log.actorEmail,
+          log.targetId,
+          log.targetName,
+          log.targetEmail,
+          log.reason,
+          log.targetType,
+        ].some((field) =>
           String(field || "").toLowerCase().includes(term)
         );
 
@@ -60,7 +69,7 @@ export default function AuditLogsTab() {
   }, [filteredLogs, currentPage]);
 
   const handleExportCSV = () => {
-    const headers = ["Timestamp", "Admin", "Role", "Action", "Target Entity", "Target ID", "Justification", "IP Address"];
+    const headers = ["Timestamp", "Admin", "Role", "Action", "Target Entity", "Affected Account", "Affected Email", "Target ID", "Justification", "IP Address"];
     const escape = (v) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ")}"`;
     const rows = filteredLogs.map((log) =>
       [
@@ -69,6 +78,8 @@ export default function AuditLogsTab() {
         log.actorRole || "",
         auditActionLabel(log.action),
         log.targetType,
+        log.targetName,
+        log.targetEmail,
         log.targetId,
         log.reason,
         log.ipAddress,
@@ -163,7 +174,7 @@ export default function AuditLogsTab() {
                 <th className="px-4 py-3 font-semibold">Role</th>
                 <th className="px-4 py-3 font-semibold">Action</th>
                 <th className="px-4 py-3 font-semibold">Target Entity</th>
-                <th className="px-4 py-3 font-semibold">Target ID</th>
+                <th className="px-4 py-3 font-semibold">Affected Account</th>
                 <th className="px-4 py-3 font-semibold">Justification</th>
                 <th className="px-4 py-3 font-semibold">IP Address</th>
               </tr>
@@ -180,7 +191,33 @@ export default function AuditLogsTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3 capitalize">{log.targetType}</td>
-                  <td className="px-4 py-3 font-mono text-[10px]">{log.targetId}</td>
+                  {/* Who the action was taken against. The uid alone named
+                      nobody, so identifying an affected account meant looking
+                      it up by hand; it stays underneath, since it is the only
+                      thing that survives the account being deleted. */}
+                  <td className="px-4 py-3">
+                    {log.targetName || log.targetEmail ? (
+                      <>
+                        {log.targetName && (
+                          <span className="block font-medium text-text-primary">
+                            {log.targetName}
+                          </span>
+                        )}
+                        {log.targetEmail && (
+                          <span className="block text-text-muted break-all">
+                            {log.targetEmail}
+                          </span>
+                        )}
+                        <span className="block font-mono text-[9px] text-text-muted/70 break-all">
+                          {log.targetId}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-mono text-[10px] break-all">
+                        {log.targetId}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 max-w-xs">{log.reason || "—"}</td>
                   <td className="px-4 py-3">{log.ipAddress}</td>
                 </tr>
