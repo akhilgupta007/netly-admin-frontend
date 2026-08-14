@@ -1249,15 +1249,27 @@ export default function DisputeDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsResolveModalOpen(false)}
-                className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
+                disabled={resolveMutation.isPending}
+                className="flex-1 bg-white border border-border-main text-text-primary hover:bg-page-bg font-semibold text-xs py-2.5 rounded-lg transition cursor-pointer text-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
+              {/* Resolving moves money — a Stripe refund, a wallet credit and
+                  a payout clawback — so it is slow enough that an un-disabled
+                  button invites a second click and a second resolution. */}
               <button
                 type="submit"
-                className="flex-1 bg-[#93D6DB] text-text-primary hover:bg-[#82c5cb] font-bold text-xs py-2.5 rounded-lg transition cursor-pointer text-center"
+                disabled={resolveMutation.isPending}
+                className="flex-1 bg-[#93D6DB] text-text-primary hover:bg-[#82c5cb] font-bold text-xs py-2.5 rounded-lg transition cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                Confirm Resolution
+                {resolveMutation.isPending ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    Resolving…
+                  </>
+                ) : (
+                  "Confirm Resolution"
+                )}
               </button>
             </div>
           </form>
