@@ -16,21 +16,26 @@ import {
   Clock,
   ArrowRight,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
 } from "lucide-react";
 
 export default function DashboardPage() {
-
   // Banner visibility state
   const [showBanner, setShowBanner] = useState(true);
   const [hoveredValue, setHoveredValue] = useState(null);
 
   // Time filter state
-  const [timeFilter, setTimeFilter] = useState("This week");
+  const [timeFilter, setTimeFilter] = useState("Last 7 days");
 
-  // Custom date range state
-  const [startDate, setStartDate] = useState(new Date(2026, 6, 1));
-  const [endDate, setEndDate] = useState(new Date(2026, 6, 7));
+  // Custom date range state. Seeded to the last seven days rather than a
+  // hardcoded 1–7 July 2026, so switching to Custom opens on a window that
+  // has data in it instead of one fixed in the past.
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d;
+  });
+  const [endDate, setEndDate] = useState(() => new Date());
 
   // Chart type state (Bar or Line)
   const [chartType, setChartType] = useState("Bar");
@@ -55,16 +60,27 @@ export default function DashboardPage() {
         note: `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
       };
     }
-    // Default: the current week, Monday to today.
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-    return { startDate: monday, endDate: now, note: "This week" };
+    if (timeFilter === "This week") {
+      // Monday to today. Kept because the payout cycle is Monday–Sunday, so
+      // "this week" is the window finance actually reconciles against — but it
+      // is a poor default, since on a Monday it covers a single day.
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      return { startDate: monday, endDate: now, note: "This week" };
+    }
+    // Default: a rolling seven days ending today, which is what the cards
+    // link through to. Anchored to the date rather than to the weekday, so
+    // the figure does not collapse at the start of each week.
+    const weekAgo = new Date(now);
+    weekAgo.setDate(now.getDate() - 7);
+    return { startDate: weekAgo, endDate: now, note: "Last 7 days" };
   }, [timeFilter, startDate, endDate]);
 
-  const { metrics, isLoading, isFetching, isError, error } = useDashboardMetrics({
-    startDate: activeRange.startDate,
-    endDate: activeRange.endDate,
-  });
+  const { metrics, isLoading, isFetching, isError, error } =
+    useDashboardMetrics({
+      startDate: activeRange.startDate,
+      endDate: activeRange.endDate,
+    });
 
   const role = useAuthStore((state) => state.role);
 
@@ -84,9 +100,9 @@ export default function DashboardPage() {
    * @return {object} The card, with href and note removed when not permitted.
    */
   const withAllowedLink = (card) =>
-    card.href && canAccessRoute(role, card.href) ?
-      card :
-      { ...card, href: undefined, note: undefined };
+    card.href && canAccessRoute(role, card.href)
+      ? card
+      : { ...card, href: undefined, note: undefined };
 
   // Only queues with something waiting are shown — a banner listing four
   // zeroes reads as "needs action" when nothing does.
@@ -125,7 +141,6 @@ export default function DashboardPage() {
     isLoading: demandLoading,
   } = useUnmetDemand();
 
-
   const formatDateStr = (dateObj) => {
     if (!dateObj) return "";
     const y = dateObj.getFullYear();
@@ -134,8 +149,8 @@ export default function DashboardPage() {
     return `${y}-${m}-${d}`;
   };
 
-  const startStr = formatDateStr(startDate);
-  const endStr = formatDateStr(endDate);
+  const startStr = formatDateStr(activeRange.startDate);
+  const endStr = formatDateStr(activeRange.endDate);
 
   const getMondayAndSunday = (date) => {
     const day = date.getDay();
@@ -147,7 +162,9 @@ export default function DashboardPage() {
     return { monday, sunday };
   };
 
-  const { monday: thisWeekMonday, sunday: thisWeekSunday } = getMondayAndSunday(new Date());
+  const { monday: thisWeekMonday, sunday: thisWeekSunday } = getMondayAndSunday(
+    new Date(),
+  );
   const thisWeekMondayStr = formatDateStr(thisWeekMonday);
   const thisWeekSundayStr = formatDateStr(thisWeekSunday);
 
@@ -158,7 +175,7 @@ export default function DashboardPage() {
   // range renders a flat baseline instead of dividing by zero.
   const maxVal = Math.max(
     100,
-    ...chartData.map((d) => Math.max(d.outbound || 0, d.retained || 0))
+    ...chartData.map((d) => Math.max(d.outbound || 0, d.retained || 0)),
   );
 
   // Geometry is derived from the number of points, not a fixed 7-day week —
@@ -193,7 +210,6 @@ export default function DashboardPage() {
     unresolvedDisputes: metrics?.unresolvedDisputes ?? EMPTY,
     note: activeRange.note,
   };
-
 
   // Operations metrics data
   // Every item here is purely a link into another page, so one the role
@@ -246,8 +262,6 @@ export default function DashboardPage() {
       href: "/compliance/kyc",
     },
   ];
-
-
 
   // Money info cards data
   const moneyCards = [
@@ -316,7 +330,9 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center select-none bg-white rounded-3xl border border-border-main hover:shadow-xs animate-scale-up">
-        <span className="text-xs text-text-muted animate-pulse font-light">Loading Dashboard Data...</span>
+        <span className="text-xs text-text-muted animate-pulse font-light">
+          Loading Dashboard Data...
+        </span>
       </div>
     );
   }
@@ -324,7 +340,9 @@ export default function DashboardPage() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-120 py-20 px-4 text-center space-y-2 select-none bg-white rounded-3xl border border-border-main">
-        <h3 className="text-sm font-semibold text-red-600">Could not load dashboard data</h3>
+        <h3 className="text-sm font-semibold text-red-600">
+          Could not load dashboard data
+        </h3>
         <p className="text-xs text-text-muted font-light max-w-sm">
           {error?.message || "Check your connection and try again."}
         </p>
@@ -376,19 +394,22 @@ export default function DashboardPage() {
           />
         )}
         {/* Time filters matching mockup selector */}
-        <div className="inline-flex bg-white border border-border-main p-2 rounded-xl self-start gap-2">
-          {["Today", "This week", "This month", "Custom"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setTimeFilter(tab)}
-              className={`px-2 py-2 text-xs rounded-lg transition-all duration-200 cursor-pointer ${timeFilter === tab
-                  ? "bg-primary-bg text-white shadow-sm"
-                  : "text-text-muted hover:text-text-primary"
+        <div className="inline-flex flex-wrap bg-white border border-border-main p-2 rounded-xl self-start gap-2">
+          {["Today", "Last 7 days", "This week", "This month", "Custom"].map(
+            (tab) => (
+              <button
+                key={tab}
+                onClick={() => setTimeFilter(tab)}
+                className={`px-2 py-2 text-xs rounded-lg transition-all duration-200 cursor-pointer ${
+                  timeFilter === tab
+                    ? "bg-primary-bg text-white shadow-sm"
+                    : "text-text-muted hover:text-text-primary"
                 }`}
-            >
-              {tab}
-            </button>
-          ))}
+              >
+                {tab}
+              </button>
+            ),
+          )}
         </div>
       </div>
 
@@ -448,10 +469,11 @@ export default function DashboardPage() {
                       <button
                         key={type}
                         onClick={() => setChartType(type)}
-                        className={`px-3 py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${chartType === type
+                        className={`px-3 py-1 text-[10px] font-semibold rounded-lg transition-all cursor-pointer ${
+                          chartType === type
                             ? "bg-white text-text-primary shadow-xs"
                             : "text-text-muted hover:text-text-primary"
-                          }`}
+                        }`}
                       >
                         {type}
                       </button>
@@ -463,27 +485,102 @@ export default function DashboardPage() {
               {/* Chart visualization */}
               <div className="mt-4 relative w-full overflow-x-auto [ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
                 <div className="min-w-125 sm:min-w-0 relative">
-                  <svg className="w-full" viewBox="0 0 540 180" preserveAspectRatio="none">
+                  <svg
+                    className="w-full"
+                    viewBox="0 0 540 180"
+                    preserveAspectRatio="none"
+                  >
                     {/* Grid Lines */}
-                    <line x1="55" y1="20" x2="520" y2="20" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                    <line x1="55" y1="50" x2="520" y2="50" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                    <line x1="55" y1="80" x2="520" y2="80" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                    <line x1="55" y1="110" x2="520" y2="110" stroke="#EDF3F3" strokeWidth="1" strokeDasharray="3" />
-                    <line x1="55" y1="140" x2="520" y2="140" stroke="#EDF3F3" strokeWidth="1" />
+                    <line
+                      x1="55"
+                      y1="20"
+                      x2="520"
+                      y2="20"
+                      stroke="#EDF3F3"
+                      strokeWidth="1"
+                      strokeDasharray="3"
+                    />
+                    <line
+                      x1="55"
+                      y1="50"
+                      x2="520"
+                      y2="50"
+                      stroke="#EDF3F3"
+                      strokeWidth="1"
+                      strokeDasharray="3"
+                    />
+                    <line
+                      x1="55"
+                      y1="80"
+                      x2="520"
+                      y2="80"
+                      stroke="#EDF3F3"
+                      strokeWidth="1"
+                      strokeDasharray="3"
+                    />
+                    <line
+                      x1="55"
+                      y1="110"
+                      x2="520"
+                      y2="110"
+                      stroke="#EDF3F3"
+                      strokeWidth="1"
+                      strokeDasharray="3"
+                    />
+                    <line
+                      x1="55"
+                      y1="140"
+                      x2="520"
+                      y2="140"
+                      stroke="#EDF3F3"
+                      strokeWidth="1"
+                    />
 
                     {/* Y-Axis Labels */}
-                    <text x="10" y="24" className="text-[10px] text-text-muted fill-current font-medium">$10.0k</text>
-                    <text x="10" y="54" className="text-[10px] text-text-muted fill-current font-medium">$7.5k</text>
-                    <text x="10" y="84" className="text-[10px] text-text-muted fill-current font-medium">$5.0k</text>
-                    <text x="10" y="114" className="text-[10px] text-text-muted fill-current font-medium">$2.5k</text>
-                    <text x="10" y="144" className="text-[10px] text-text-muted fill-current font-medium">$0.0k</text>
+                    <text
+                      x="10"
+                      y="24"
+                      className="text-[10px] text-text-muted fill-current font-medium"
+                    >
+                      $10.0k
+                    </text>
+                    <text
+                      x="10"
+                      y="54"
+                      className="text-[10px] text-text-muted fill-current font-medium"
+                    >
+                      $7.5k
+                    </text>
+                    <text
+                      x="10"
+                      y="84"
+                      className="text-[10px] text-text-muted fill-current font-medium"
+                    >
+                      $5.0k
+                    </text>
+                    <text
+                      x="10"
+                      y="114"
+                      className="text-[10px] text-text-muted fill-current font-medium"
+                    >
+                      $2.5k
+                    </text>
+                    <text
+                      x="10"
+                      y="144"
+                      className="text-[10px] text-text-muted fill-current font-medium"
+                    >
+                      $0.0k
+                    </text>
 
                     {chartType === "Bar" ? (
                       // Bar Chart Option
                       chartData.map((data, index) => {
                         const x_center = pointX(index);
-                        const outboundHeight = ((Number(data.outbound) || 0) / maxVal) * 120;
-                        const retainedHeight = ((Number(data.retained) || 0) / maxVal) * 120;
+                        const outboundHeight =
+                          ((Number(data.outbound) || 0) / maxVal) * 120;
+                        const retainedHeight =
+                          ((Number(data.retained) || 0) / maxVal) * 120;
                         return (
                           <g key={index} className="group">
                             {/* Outbound bar */}
@@ -495,12 +592,14 @@ export default function DashboardPage() {
                               fill="#6FB5BD"
                               rx="3"
                               className="transition-all duration-300 hover:opacity-95 cursor-pointer"
-                              onMouseEnter={() => setHoveredValue({
-                                x: x_center - 8,
-                                y: 140 - outboundHeight,
-                                value: `$${data.outbound.toLocaleString()}`,
-                                label: `Outbound (${data.label})`
-                              })}
+                              onMouseEnter={() =>
+                                setHoveredValue({
+                                  x: x_center - 8,
+                                  y: 140 - outboundHeight,
+                                  value: `$${data.outbound.toLocaleString()}`,
+                                  label: `Outbound (${data.label})`,
+                                })
+                              }
                               onMouseLeave={() => setHoveredValue(null)}
                             />
                             {/* Retained bar */}
@@ -512,12 +611,14 @@ export default function DashboardPage() {
                               fill="#0B163F"
                               rx="3"
                               className="transition-all duration-300 hover:opacity-95 cursor-pointer"
-                              onMouseEnter={() => setHoveredValue({
-                                x: x_center + 18,
-                                y: 140 - retainedHeight,
-                                value: `$${data.retained.toLocaleString()}`,
-                                label: `Retained (${data.label})`
-                              })}
+                              onMouseEnter={() =>
+                                setHoveredValue({
+                                  x: x_center + 18,
+                                  y: 140 - retainedHeight,
+                                  value: `$${data.retained.toLocaleString()}`,
+                                  label: `Retained (${data.label})`,
+                                })
+                              }
                               onMouseLeave={() => setHoveredValue(null)}
                             />
                             {/* X-Axis Label */}
@@ -567,12 +668,14 @@ export default function DashboardPage() {
                                 r="4"
                                 fill="#6FB5BD"
                                 className="cursor-pointer"
-                                onMouseEnter={() => setHoveredValue({
-                                  x: x_center,
-                                  y: cyOut,
-                                  value: `$${data.outbound.toLocaleString()}`,
-                                  label: `Outbound (${data.label})`
-                                })}
+                                onMouseEnter={() =>
+                                  setHoveredValue({
+                                    x: x_center,
+                                    y: cyOut,
+                                    value: `$${data.outbound.toLocaleString()}`,
+                                    label: `Outbound (${data.label})`,
+                                  })
+                                }
                                 onMouseLeave={() => setHoveredValue(null)}
                               />
                               {/* Retained Dot */}
@@ -582,12 +685,14 @@ export default function DashboardPage() {
                                 r="4"
                                 fill="#0B163F"
                                 className="cursor-pointer"
-                                onMouseEnter={() => setHoveredValue({
-                                  x: x_center,
-                                  y: cyRet,
-                                  value: `$${data.retained.toLocaleString()}`,
-                                  label: `Retained (${data.label})`
-                                })}
+                                onMouseEnter={() =>
+                                  setHoveredValue({
+                                    x: x_center,
+                                    y: cyRet,
+                                    value: `$${data.retained.toLocaleString()}`,
+                                    label: `Retained (${data.label})`,
+                                  })
+                                }
                                 onMouseLeave={() => setHoveredValue(null)}
                               />
                               {/* X-Axis Label */}
@@ -610,11 +715,15 @@ export default function DashboardPage() {
                       className="absolute bg-alt-bg/95 backdrop-blur-xs text-white p-2 rounded-lg text-[10px] pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 z-30 transition-all duration-150 shadow-md border border-white/10"
                       style={{
                         left: `${(hoveredValue.x / 540) * 100}%`,
-                        top: `${(hoveredValue.y / 180) * 100}%`
+                        top: `${(hoveredValue.y / 180) * 100}%`,
                       }}
                     >
-                      <div className="font-semibold text-[11px]">{hoveredValue.value}</div>
-                      <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">{hoveredValue.label}</div>
+                      <div className="font-semibold text-[11px]">
+                        {hoveredValue.value}
+                      </div>
+                      <div className="text-white/70 text-[9px] whitespace-nowrap mt-0.5">
+                        {hoveredValue.label}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -669,7 +778,9 @@ export default function DashboardPage() {
                   <div className="p-2 bg-primary-bg/10 rounded-full">
                     <BookOpen size={18} className="text-primary-bg" />
                   </div>
-                  <h3 className="text-sm font-medium text-text-primary">Top cities with unmet demand</h3>
+                  <h3 className="text-sm font-medium text-text-primary">
+                    Top cities with unmet demand
+                  </h3>
                 </div>
                 <Link
                   href="/platform/market-intelligence"
@@ -697,7 +808,9 @@ export default function DashboardPage() {
                         <span className="text-text-primary">
                           {idx + 1}. {item.city}
                           {item.province ? (
-                            <span className="text-text-muted font-light">, {item.province}</span>
+                            <span className="text-text-muted font-light">
+                              , {item.province}
+                            </span>
                           ) : null}
                         </span>
                         <span className="text-red-500">
@@ -725,7 +838,9 @@ export default function DashboardPage() {
                   <div className="p-2 bg-primary-bg/10 rounded-full">
                     <TrendingUp size={18} className="text-primary-bg" />
                   </div>
-                  <h3 className="text-sm font-medium text-text-primary">Trending searches this week</h3>
+                  <h3 className="text-sm font-medium text-text-primary">
+                    Trending searches this week
+                  </h3>
                 </div>
                 <Link
                   href="/platform/market-intelligence"
@@ -745,12 +860,22 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-text-muted font-light py-2.5 block">
                     No searches recorded yet.
                   </span>
-                ) : demandSearches.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center py-2.5 text-[10px] font-medium">
-                    <span className="text-text-muted">{idx + 1} <span className="text-text-primary font-medium ml-2">{item.term}</span></span>
-                    <span className="text-primary-bg">{item.count}</span>
-                  </div>
-                ))}
+                ) : (
+                  demandSearches.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between items-center py-2.5 text-[10px] font-medium"
+                    >
+                      <span className="text-text-muted">
+                        {idx + 1}{" "}
+                        <span className="text-text-primary font-medium ml-2">
+                          {item.term}
+                        </span>
+                      </span>
+                      <span className="text-primary-bg">{item.count}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
