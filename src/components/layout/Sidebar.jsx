@@ -21,45 +21,122 @@ import {
   UserPlus,
   Network,
   Compass,
+  Megaphone,
   Settings,
-  LogOut
+  LogOut,
 } from "lucide-react";
 
 export const navigation = [
   {
     label: "",
     items: [
-      { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, description: "Operational overview and key platform metrics" },
-      { name: "Transactions", href: "/transactions", icon: ArrowLeftRight, description: "Overview across client and provider" },
-      { name: "Wallets & Refunds", href: "/wallets", icon: Wallet, description: "Client wallet balances and fund movements" },
-      { name: "Accounts", href: "/accounts", icon: Users, description: "Client and provider account management" },
-    ]
+      {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: LayoutDashboard,
+        description: "Operational overview and key platform metrics",
+      },
+      {
+        name: "Transactions",
+        href: "/transactions",
+        icon: ArrowLeftRight,
+        description: "Overview across client and provider",
+      },
+      {
+        name: "Wallets & Refunds",
+        href: "/wallets",
+        icon: Wallet,
+        description: "Client wallet balances and fund movements",
+      },
+      {
+        name: "Accounts",
+        href: "/accounts",
+        icon: Users,
+        description: "Client and provider account management",
+      },
+    ],
   },
   {
     label: "Compliance",
     items: [
-      { name: "KYC/ Identity Verification", href: "/compliance/kyc", icon: ShieldCheck, description: "Identity audits and credential updates" },
-      { name: "Disputes", href: "/compliance/disputes", icon: AlertOctagon, description: "Review and resolve user conflict claims" },
-      { name: "Compliance & Audit Logs", href: "/compliance/logs", icon: FileCheck, description: "Audit history and platform access logs" },
-    ]
+      {
+        name: "KYC/ Identity Verification",
+        href: "/compliance/kyc",
+        icon: ShieldCheck,
+        description: "Identity audits and credential updates",
+      },
+      {
+        name: "Disputes",
+        href: "/compliance/disputes",
+        icon: AlertOctagon,
+        description: "Review and resolve user conflict claims",
+      },
+      {
+        name: "Compliance & Audit Logs",
+        href: "/compliance/logs",
+        icon: FileCheck,
+        description: "Audit history and platform access logs",
+      },
+    ],
   },
   {
     label: "Finance",
     items: [
-      { name: "Commission & Payouts", href: "/finance/commissions", icon: Percent, description: "Track and authorize provider payout transfers" },
-      { name: "Reports", href: "/finance/reports", icon: TrendingUp, description: "Generate and schedule financial exports" },
-    ]
+      {
+        name: "Commission & Payouts",
+        href: "/finance/commissions",
+        icon: Percent,
+        description: "Track and authorize provider payout transfers",
+      },
+      {
+        name: "Reports",
+        href: "/finance/reports",
+        icon: TrendingUp,
+        description: "Generate and schedule financial exports",
+      },
+    ],
   },
   {
     label: "Platform",
     items: [
-      { name: "Content Moderation", href: "/platform/moderation", icon: FileText, description: "Flagged profiles, listing approvals, and content audits" },
-      { name: "Founding Partners", href: "/platform/founding-partners", icon: UserPlus, description: "Manage platform equity partner credentials" },
-      { name: "Service Categories", href: "/platform/categories", icon: Network, description: "Manage service catalog definitions" },
-      { name: "Market Intelligence", href: "/platform/market-intelligence", icon: Compass, description: "Geographic demand gaps and trending searches" },
-      { name: "Admin Settings", href: "/platform/settings", icon: Settings, description: "Configure administrative controls and parameters" },
-    ]
-  }
+      {
+        name: "Content Moderation",
+        href: "/platform/moderation",
+        icon: FileText,
+        description: "Flagged profiles, listing approvals, and content audits",
+      },
+      {
+        name: "Founding Partners",
+        href: "/platform/founding-partners",
+        icon: UserPlus,
+        description: "Manage platform equity partner credentials",
+      },
+      {
+        name: "Service Categories",
+        href: "/platform/categories",
+        icon: Network,
+        description: "Manage service catalog definitions",
+      },
+      {
+        name: "Market Intelligence",
+        href: "/platform/market-intelligence",
+        icon: Compass,
+        description: "Geographic demand gaps and trending searches",
+      },
+      {
+        name: "Sponsored Listings",
+        href: "/platform/sponsored",
+        icon: Megaphone,
+        description: "Paid placements for external businesses",
+      },
+      {
+        name: "Admin Settings",
+        href: "/platform/settings",
+        icon: Settings,
+        description: "Configure administrative controls and parameters",
+      },
+    ],
+  },
 ];
 
 export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
@@ -72,11 +149,11 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
   // Only the pages this role can actually use. A group with nothing left in it
   // drops out too, so there are no empty "Finance" headings.
   const visibleNavigation = navigation
-      .map((group) => ({
-        ...group,
-        items: group.items.filter((item) => canAccessRoute(role, item.href)),
-      }))
-      .filter((group) => group.items.length > 0);
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccessRoute(role, item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <>
@@ -90,8 +167,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-68 flex-col border-r border-border-main bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-68 flex-col border-r border-border-main bg-white transition-transform duration-300 lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
         {/* Sidebar Header / Logo */}
         <div className="flex h-16 items-center justify-center px-6 border-b border-border-main w-full">
@@ -120,7 +198,9 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/");
+                  const isActive =
+                    pathname === item.href ||
+                    (pathname.startsWith(item.href) && item.href !== "/");
                   return (
                     <Link
                       key={item.name}
@@ -131,12 +211,20 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
                           setSidebarOpen(false);
                         }
                       }}
-                      className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer ${isActive
-                        ? "bg-primary-bg-muted text-text-primary"
-                        : "text-text-muted hover:bg-page-bg hover:text-text-primary"
-                        }`}
+                      className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? "bg-primary-bg-muted text-text-primary"
+                          : "text-text-muted hover:bg-page-bg hover:text-text-primary"
+                      }`}
                     >
-                      <Icon size={18} className={isActive ? "text-text-primary animate-pulse-once" : "text-text-muted"} />
+                      <Icon
+                        size={18}
+                        className={
+                          isActive
+                            ? "text-text-primary animate-pulse-once"
+                            : "text-text-muted"
+                        }
+                      />
                       <span>{item.name}</span>
                     </Link>
                   );
@@ -169,7 +257,10 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }) {
             const { auth } = await import("@/lib/firebase");
             await signOut(auth);
           } catch (e) {
-            console.warn("Client-side Firebase Auth signout sync warning:", e.message);
+            console.warn(
+              "Client-side Firebase Auth signout sync warning:",
+              e.message,
+            );
           }
           clearAuth();
           setLogoutOpen(false);

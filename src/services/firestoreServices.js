@@ -1127,7 +1127,20 @@ export async function fetchDashboardMetricsFromFirestore({
       ]);
 
     // ── Bookings in range ──────────────────────────────────
-    const ranged = bookings.filter((b) => inRange(b.createdAt || b.created_at));
+    // Dated by the service, not by when the booking was placed — the same
+    // field the Transactions screen shows in its date column and filters on.
+    //
+    // These two disagreed: the card counted bookings *created* in the window
+    // while the screen it links to lists bookings *scheduled* in it. A booking
+    // placed on the 15th for the 18th made the card read 6 and the table
+    // behind it show 5, with no way to tell which row was missing.
+    //
+    // Aligned this way round because every date the table displays then falls
+    // inside the range the picker shows. The cost is that a job booked today
+    // for next month is not counted until the month it happens.
+    const ranged = bookings.filter((b) =>
+      inRange(b.serviceDateAndTime || b.scheduledAt || b.createdAt),
+    );
     const norm = (v) => String(v || "").toLowerCase();
     const completed = ranged.filter(
       (b) => norm(b.status) === "completed",
@@ -4165,6 +4178,156 @@ export async function fetchDisputeThreadFromFirestore({
     return { chatId: disputeId, messages };
   } catch (error) {
     console.error("Firestore fetchDisputeThread error:", error);
+    throw error;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+ * SPONSORED LISTINGS
+ * ════════════════════════════════════════════════════════════════ */
+
+/**
+ * Whether a listing's paid window has already closed.
+ *
+ * Derived here rather than trusted from the stored status. A scheduled Cloud
+ * Function is meant to stamp `expired` once a day; until it runs — or if it
+ * fails — a finished campaign would still read "Active" in the panel and look
+ * like it was being served. The stored value stays the source of truth for
+ * what the apps do; this is only what the admin is shown.
+ *
+ * @param {*} endDate - The listing's end_date.
+ * @return {boolean} True once the end date has passed.
+ */
+function isPastEndDate(endDate) {
+  const at = toMillis(endDate);
+  if (at === null) return false;
+  const endOfDay = new Date(at);
+  endOfDay.setHours(23, 59, 59, 999);
+  return endOfDay.getTime() < Date.now();
+}
+
+/** Display labels for the stored status enum. */
+const SPONSORED_STATUS_LABELS = {
+  active: "Active",
+  inactive: "Inactive",
+  expired: "Expired",
+};
+
+/**
+ * 35. Sponsored listings — admin-created paid placements.
+ *
+ * These are adverts for businesses that do not transact on Netly, so they
+ * carry no provider, no bookings and no wallet. The collection is written
+ * only by admins.
+ *
+ * @param {object} params - Search / filter / pagination options.
+ * @return {Promise<object>} Rows, totals and the derived stat counts.
+ */
+export async function fetchSponsoredListingsFromFirestore(params = {}) {
+  const {
+    searchTerm = "",
+    filterStatus = "All",
+    filterPosition = "All",
+    page = 1,
+    limit = 8,
+  } = params;
+
+  try {
+    const snapshot = await getDocs(collection(db, "sponsored_listings"));
+
+    const items = snapshot.docs.map((docSnap) => {
+      const d = docSnap.data();
+      const stored = String(d.status || "inactive").toLowerCase();
+      // A closed campaign reads as Expired whatever the document says.
+      const effective =
+        stored === "active" && isPastEndDate(d.end_date) ? "expired" : stored;
+
+      return {
+        id: docSnap.id,
+        companyName: d.company_name || "Untitled listing",
+        logoUrl: d.logo_url || "",
+        shortDescription: d.short_description || "",
+        longDescription: d.long_description || "",
+        mainCategory: d.main_category || "",
+        subcategory: d.subcategory || "",
+        websiteUrl: d.website_url || "",
+        phoneNumber: d.phone_number || "",
+        address: d.address || "",
+        city: d.city || "",
+        province: d.province || "",
+        postalCode: d.postal_code || "",
+        billingReference: d.billing_reference || "",
+
+        // Raw values feed the edit form; the formatted ones feed the table.
+        startDateRaw: d.start_date || null,
+        endDateRaw: d.end_date || null,
+        startDate: formatFirestoreDate(d.start_date),
+        endDate: formatFirestoreDate(d.end_date),
+
+        storedStatus: stored,
+        status: SPONSORED_STATUS_LABELS[effective] || titleCase(effective),
+        // True when the panel is showing Expired but the document has not been
+        // stamped yet — the row can then offer Renew rather than Deactivate.
+        isExpired: effective === "expired",
+        displayPosition: titleCase(d.display_position, "Standard"),
+        geoTarget: titleCase(d.geo_target, "City"),
+
+        websiteClicks: Number(d.click_count_website) || 0,
+        callClicks: Number(d.click_count_call) || 0,
+
+        createdAtRaw: d.created_at || d.createdAt || null,
+        updatedAtRaw: d.updated_at || d.updatedAt || null,
+      };
+    });
+
+    // Counted over everything, not the filtered page — the tiles describe the
+    // whole book of business, not the current search.
+    const soon = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const counts = {
+      total: items.length,
+      active: items.filter((i) => i.status === "Active").length,
+      inactive: items.filter((i) => i.status === "Inactive").length,
+      expired: items.filter((i) => i.isExpired).length,
+      websiteClicks: items.reduce((a, i) => a + i.websiteClicks, 0),
+      callClicks: items.reduce((a, i) => a + i.callClicks, 0),
+      // Still running, but not for much longer — the row an admin needs to
+      // chase for a renewal.
+      expiringSoon: items.filter((i) => {
+        if (i.status !== "Active") return false;
+        const at = toMillis(i.endDateRaw);
+        return at !== null && at <= soon;
+      }).length,
+    };
+
+    let rows = items;
+    if (filterPosition !== "All") {
+      rows = rows.filter((i) => i.displayPosition === filterPosition);
+    }
+
+    // Newest first, so a listing just created is the one at the top.
+    rows.sort((a, b) => (toMillis(b.createdAtRaw) || 0) - (toMillis(a.createdAtRaw) || 0));
+
+    return {
+      ...filterAndPaginate(rows, {
+        searchTerm,
+        searchFields: [
+          "companyName",
+          "mainCategory",
+          "city",
+          "province",
+          "billingReference",
+        ],
+        // filterAndPaginate matches on `status`, which is the derived label
+        // above — so Expired filters on what the admin is shown, not on a
+        // stored value a scheduled job may not have written yet.
+        filterStatus,
+        page,
+        limit,
+      }),
+      counts,
+    };
+  } catch (error) {
+    console.error("Firestore fetchSponsoredListings error:", error);
     throw error;
   }
 }

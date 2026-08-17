@@ -267,3 +267,34 @@ export const setFoundingPartnerBadge = ({ providerId, granted, reason }) =>
  */
 export const resendPaymentReminder = ({ bookingId }) =>
   callFunction("resendPaymentReminder", { bookingId });
+
+/* ── Sponsored listings ────────────────────────────────────────── */
+
+/*
+ * All four are super-admin only, enforced by requireSuperAdmin server-side.
+ *
+ * Field names are snake_case to match the Sponsored Listings briefing, which
+ * is what the mobile app reads from `sponsored_listings`. That differs from
+ * the camelCase used elsewhere in this panel, and is deliberate.
+ */
+
+/** Creates a listing. `logoBase64` is uploaded server-side, as elsewhere. */
+export const createSponsoredListing = (payload) =>
+  callFunction("createSponsoredListing", payload);
+
+/** Patches a listing — only the fields supplied are changed. */
+export const updateSponsoredListing = ({ listingId, ...changes }) =>
+  callFunction("updateSponsoredListing", { listingId, ...changes });
+
+/**
+ * Activates or deactivates a listing.
+ *
+ * Reactivating one whose end date has passed is refused unless endDate comes
+ * with it, since it would otherwise be expired again by the next nightly run.
+ */
+export const setSponsoredListingStatus = ({ listingId, status, endDate }) =>
+  callFunction("setSponsoredListingStatus", { listingId, status, endDate });
+
+/** Permanently removes a listing. Its click records are kept for billing. */
+export const deleteSponsoredListing = ({ listingId, reason }) =>
+  callFunction("deleteSponsoredListing", { listingId, reason });
