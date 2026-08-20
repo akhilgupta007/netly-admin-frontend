@@ -1138,8 +1138,13 @@ export async function fetchDashboardMetricsFromFirestore({
     // Aligned this way round because every date the table displays then falls
     // inside the range the picker shows. The cost is that a job booked today
     // for next month is not counted until the month it happens.
-    const ranged = bookings.filter((b) =>
-      inRange(b.serviceDateAndTime || b.scheduledAt || b.createdAt),
+    const ranged = bookings.filter(
+        (b) =>
+          // Simulated bookings never happened — see isPaidBooking. This set
+          // feeds the dashboard's bookings count, completion rate, GMV,
+          // revenue and fees, all of which would climb with each test run.
+          !b.isSimulated &&
+        inRange(b.serviceDateAndTime || b.scheduledAt || b.createdAt),
     );
     const norm = (v) => String(v || "").toLowerCase();
     const completed = ranged.filter(
@@ -1757,6 +1762,15 @@ function toDispute(id, d, users, booking) {
     resolutionNote: d.resolutionNote || "",
     resolvedBy: d.resolvedBy || null,
     resolvedAt: formatFirestoreDateTime(d.resolvedAt),
+    // Fabricated by the dispute simulator. Surfaced so the queue can badge it
+    // — a moderator must never mistake a test scenario for a real customer
+    // complaint, and only these may be deleted.
+    isSimulated: d.isSimulated === true,
+    // Written by claimDispute, but never surfaced — so the detail page showed
+    // a hardcoded "admin@netly.io" as the assignee, and its Claim/Release
+    // toggle read an undefined field and could only ever say "Claim".
+    claimedBy: d.claimedBy || null,
+    claimedByEmail: d.claimedByEmail || null,
     timeline: buildDisputeTimeline(d, booking),
   };
 }
@@ -2048,6 +2062,17 @@ async function safeCollection(name) {
  * @return {boolean} True when money has changed hands.
  */
 function isPaidBooking(b) {
+  // A simulated booking was never charged. It carries realistic figures so the
+  // dispute screens look right, which is exactly what makes it dangerous here:
+  // left in, every run of the dispute simulator would add its value to GMV,
+  // net revenue, the 5% fee report and a provider's payout queue, and the
+  // reports would drift upward each time somebody tested the screen.
+  //
+  // Placed in this predicate rather than at each call site because it already
+  // gates all three money aggregates — the finance reports, the fee report and
+  // the payout queue — so there is one place to get right.
+  if (b.isSimulated) return false;
+
   if (b.stripePaymentIntentId) return true;
   const st = String(b.status || "")
     .toLowerCase()

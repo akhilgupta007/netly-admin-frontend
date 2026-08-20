@@ -20,6 +20,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { readImageForUpload } from "@/lib/imageFile";
 import ImagePreviewModal from "@/components/platform/ImagePreviewModal";
 
@@ -84,6 +85,15 @@ function MessageImage({ src, onOpen, onDark }) {
   );
 }
 
+/**
+ * First name only, for the crowded participants strip in the chat header.
+ * @param {string} name - Full name.
+ * @return {string} The first word, or "".
+ */
+function firstNameOf(name) {
+  return String(name || "").trim().split(/\s+/)[0] || "";
+}
+
 function getStatusClass(status) {
   switch (status) {
     case "Resolved":
@@ -113,6 +123,16 @@ export default function DisputeDetailPage() {
   const id = params.id;
 
   const { dispute, isLoading, isError, error, notFound } = useDispute(id);
+
+  // The third participant in the thread is whoever is reading it. This strip
+  // used to be hardcoded to "AO Amara · BO Blessing · PN You" regardless of
+  // who was in the dispute or who was signed in.
+  const { profile: adminProfile } = useAdminProfile();
+  const adminName =
+    adminProfile?.fullName ||
+    [adminProfile?.firstName, adminProfile?.lastName].filter(Boolean).join(" ") ||
+    "Netly Support";
+  const adminInitials = getInitials(adminName) || "NS";
   const [evidence, setEvidence] = useState(null);
   // Two separate conversations. The dispute thread is the one an admin acts
   // on — client, provider and support together — and is the default. The
@@ -394,7 +414,11 @@ export default function DisputeDetailPage() {
         <div className="flex items-center gap-1.5 text-xs text-text-primary bg-page-bg px-3 py-1.5 rounded-xl border border-border-main/30 select-none">
           <User size={16} className="text-text-muted" />
           <span>
-            Assigned: <span>admin@netly.io</span>
+            {/* Who actually claimed it, not a placeholder address. */}
+            Assigned:{" "}
+            <span className={dispute.claimedByEmail ? "" : "text-text-muted font-light"}>
+              {dispute.claimedByEmail || "Unclaimed"}
+            </span>
           </span>
         </div>
       </div>
@@ -410,14 +434,14 @@ export default function DisputeDetailPage() {
             {/* Client */}
             <div className="flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-[#E5F5F7] text-[#0ea5e9] flex items-center justify-center font-bold text-xs shrink-0 select-none">
-                AO
+                {getInitials(dispute.client)}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs font-medium text-text-primary truncate">
                   {dispute.client}
                 </h4>
                 <span className="text-[9px] text-text-muted block truncate">
-                  {dispute.clientEmail || "amara.osei@gmail.com"}
+                  {dispute.clientEmail || "—"}
                 </span>
                 <span className="inline-block bg-primary-bg-muted/20 text-text-primary text-[8px] font-medium px-1.5 py-1 rounded-xl mt-1">
                   CLIENT
@@ -438,14 +462,14 @@ export default function DisputeDetailPage() {
             {/* Provider */}
             <div className="flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-xs shrink-0 select-none">
-                BO
+                {getInitials(dispute.provider)}
               </div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-xs font-medium text-text-primary truncate">
                   {dispute.provider}
                 </h4>
                 <span className="text-[9px] text-text-muted block truncate">
-                  {dispute.providerEmail || "b.okeke@clearly.ca"}
+                  {dispute.providerEmail || "—"}
                 </span>
                 <span className="inline-block bg-text-primary text-white text-[8px] font-medium px-1.5 py-1 rounded-xl mt-1">
                   PROVIDER
@@ -509,7 +533,7 @@ export default function DisputeDetailPage() {
                       </span>
                     </div>
                     <span className="text-xs text-[#0ea5e9] font-medium">
-                      {dispute.txnId || "TXN-00188"}
+                      {dispute.txnId || "—"}
                     </span>
                   </div>
 
@@ -716,27 +740,33 @@ export default function DisputeDetailPage() {
               <div className="flex items-center gap-2 pl-2 border-l border-border-main text-[10px]">
                 <div className="flex -space-x-1.5 shrink-0 select-none">
                   <div className="w-5 h-5 rounded-full bg-[#E5F5F7] text-[#0ea5e9] border border-white flex items-center justify-center font-bold text-[8px]">
-                    AO
+                    {getInitials(dispute.client)}
                   </div>
                   <div className="w-5 h-5 rounded-full bg-[#0F172A] text-white border border-white flex items-center justify-center font-bold text-[8px]">
-                    BO
+                    {getInitials(dispute.provider)}
                   </div>
                   <div className="w-5 h-5 rounded-full bg-[#93D6DB] text-text-primary border border-white flex items-center justify-center font-bold text-[8px]">
-                    PN
+                    {adminInitials}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-text-muted truncate max-w-64">
-                  <span className="font-semibold text-text-primary">AO</span>{" "}
-                  Amara
+                  <span className="font-semibold text-text-primary">
+                    {getInitials(dispute.client)}
+                  </span>{" "}
+                  {firstNameOf(dispute.client)}
                   <span className="mx-0.5 font-light text-text-muted/65">
                     •
                   </span>
-                  <span className="font-semibold text-text-primary">BO</span>{" "}
-                  Blessing
+                  <span className="font-semibold text-text-primary">
+                    {getInitials(dispute.provider)}
+                  </span>{" "}
+                  {firstNameOf(dispute.provider)}
                   <span className="mx-0.5 font-light text-text-muted/65">
                     •
                   </span>
-                  <span className="font-semibold text-text-primary">PN</span>{" "}
+                  <span className="font-semibold text-text-primary">
+                    {adminInitials}
+                  </span>{" "}
                   You
                 </div>
               </div>
@@ -887,7 +917,9 @@ export default function DisputeDetailPage() {
                 }
 
                 // Client or Provider bubble
-                let avatarText = isProvider ? "BO" : "AO";
+                let avatarText = getInitials(
+                    isProvider ? dispute.provider : dispute.client,
+                );
                 let avatarBgClass = isProvider
                   ? "bg-[#0F172A] text-white"
                   : "bg-[#E5F5F7] text-[#0ea5e9]";
@@ -951,7 +983,7 @@ export default function DisputeDetailPage() {
               <span className="font-medium">
                 Sending as{" "}
                 <span className="text-text-primary font-semibold">
-                  Priya Nair
+                  {adminName}
                 </span>{" "}
                 · Admin
               </span>
