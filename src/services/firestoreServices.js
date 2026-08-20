@@ -1220,7 +1220,7 @@ export async function fetchDashboardMetricsFromFirestore({
         .filter((b) => b.refundedToCard)
         .map((b) => ({
           at: toMillis(b.refundedToCardAt || b.refundedAt),
-          amount: Number(b.refundedToCardAmount) || 0,
+          amount: refundedAmountOf(b),
         })),
       ...withdrawals
         .filter((w) => norm(w.status) === "approved")
@@ -1433,7 +1433,10 @@ function toTransaction(id, b, users, service = null) {
     serviceAnswers: b.serviceAnswers || null,
     description: b.notes || "",
     payoutReleased: Boolean(b.payoutReleased),
-    refundAmount: Number(b.refundAmount) || 0,
+    // Whichever path issued it — see refundedAmountOf. Reading b.refundAmount
+    // alone showed $0.00 on every booking refunded by a dispute resolution or
+    // by the Stripe webhook, while the same row was labelled "Refunded".
+    refundAmount: refundedAmountOf(b),
     refundedToCard: Boolean(b.refundedToCard),
     stripePaymentIntentId: b.stripePaymentIntentId || null,
     // Needed by the detail screen's actions to link to the client's wallet
@@ -2074,11 +2077,43 @@ function isPaidBooking(b) {
  * @param {object} b - Booking document.
  * @return {boolean} True when nothing was retained.
  */
+/**
+ * How much has been refunded on a booking.
+ *
+ * Three code paths each record a refund under a different field name, and
+ * nothing normalises them:
+ *
+ *   processCancellation  → refundAmount
+ *   resolveDispute       → disputeRefundAmount
+ *   onChargeRefunded     → refundedToCardAmount   (the Stripe webhook)
+ *
+ * Reading any single one therefore misses two thirds of the refunds. A booking
+ * refunded through a dispute carried `disputeRefundAmount: 10` and
+ * `refundAmount: 0`, so the panel reported "Refunded — $0.00" for a booking
+ * where $10 had genuinely left the platform.
+ *
+ * The maximum is taken rather than the sum: a booking has one refund, and the
+ * paths overlap — resolveDispute issues the Stripe refund that then fires the
+ * webhook, so both fields describe the same money and adding them would double
+ * it. The webhook's figure comes from Stripe's own `amount_refunded`, which is
+ * why it is allowed to win when the two disagree.
+ *
+ * @param {object} b - Booking document.
+ * @return {number} Amount refunded, in dollars.
+ */
+function refundedAmountOf(b) {
+  return Math.max(
+      Number(b.refundedToCardAmount) || 0,
+      Number(b.disputeRefundAmount) || 0,
+      Number(b.refundAmount) || 0,
+  );
+}
+
 function isFullyRefunded(b) {
   const charged = Number(b.totalChargedToClient) || 0;
   if (charged <= 0) return false;
   // Half a cent of tolerance, so rounding cannot leave a booking half-counted.
-  return (Number(b.refundAmount) || 0) >= charged - 0.005;
+  return refundedAmountOf(b) >= charged - 0.005;
 }
 
 /** Inclusive day-boundary range test built from a start/end pair. */
@@ -2411,10 +2446,24 @@ export async function fetchFinanceReportsFromFirestore({
       from,
       to,
       serieses: {
-        toCard: withdrawals.filter(approved).map((w) => ({
-          at: toMillis(w.resolvedAt),
-          amount: num(w.refundedAmount ?? w.amount),
-        })),
+        // Money leaving on a card comes from two places, and this counted only
+        // one of them: an approved withdrawal. A booking refunded by a dispute
+        // resolution or by the Stripe webhook never creates a withdrawal
+        // request, so those refunds were absent from this chart entirely —
+        // while the dashboard's equivalent series did include them, leaving
+        // the two screens disagreeing about the same week.
+        toCard: [
+          ...bookings
+              .filter((b) => b.refundedToCard)
+              .map((b) => ({
+                at: toMillis(b.refundedToCardAt || b.refundedAt),
+                amount: refundedAmountOf(b),
+              })),
+          ...withdrawals.filter(approved).map((w) => ({
+            at: toMillis(w.resolvedAt),
+            amount: num(w.refundedAmount ?? w.amount),
+          })),
+        ].filter((e) => e.at !== null),
         toWallet: creditRequests.filter(approved).map((r) => ({
           at: toMillis(r.resolvedAt || r.createdAt),
           amount: num(r.amount),

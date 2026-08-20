@@ -7,6 +7,7 @@ import DateRangePicker from "@/components/ui/DateRangePicker";
 import Pagination from "@/components/ui/Pagination";
 import RemoveReviewModal from "@/components/platform/RemoveReviewModal";
 import { useReviews } from "@/hooks/usePlatform";
+import { getInitials } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { moderateReview } from "@/lib/callables";
 import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
@@ -174,7 +175,28 @@ export default function ReviewsTab() {
                 <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                   {paginatedReviews.map((item) => (
                     <tr key={item.id} className="hover:bg-page-bg/50 transition">
-                      <td className="px-4 py-3">{item.client}</td>
+                      {/* The reviewer's photo was already being fetched as
+                          clientPhotoUrl and thrown away — a moderator judging
+                          a review is looking at a person, and a bare name is
+                          harder to hold onto across a list of them. Initials
+                          when the client has no photo; nothing is invented. */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 bg-primary-bg/10 text-primary-bg flex items-center justify-center text-[10px] font-semibold select-none">
+                            {item.clientPhotoUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.clientPhotoUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              getInitials(item.client)
+                            )}
+                          </div>
+                          <span className="truncate max-w-40">{item.client}</span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3">{item.provider}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1">
