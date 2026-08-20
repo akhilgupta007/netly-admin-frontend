@@ -298,3 +298,19 @@ export const setSponsoredListingStatus = ({ listingId, status, endDate }) =>
 /** Permanently removes a listing. Its click records are kept for billing. */
 export const deleteSponsoredListing = ({ listingId, reason }) =>
   callFunction("deleteSponsoredListing", { listingId, reason });
+
+/* ── Simulation (testing aids) ─────────────────────────────────── */
+
+/*
+ * Super-admin only. These fabricate and remove test data in the live project,
+ * so everything they write is flagged `isSimulated` — the queue badges those
+ * rows, and the finance read paths exclude them.
+ */
+
+/** Builds a complete test dispute: booking, dispute and chat. */
+export const simulateDispute = ({ scenario } = {}) =>
+  callFunction("simulateDispute", { scenario });
+
+/** Removes a simulated dispute with its chat and booking. Refuses real ones. */
+export const deleteSimulatedDispute = ({ disputeId }) =>
+  callFunction("deleteSimulatedDispute", { disputeId });
