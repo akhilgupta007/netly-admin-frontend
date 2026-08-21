@@ -3,12 +3,14 @@
 import React, { useState, useRef } from "react";
 import { X, Upload, FileImage, ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
+import { readImageForUpload } from "@/lib/imageFile";
 
 export default function AddSubServiceModal({ parentCategories, isOpen, onClose, onAdd }) {
   const [parentName, setParentName] = useState("");
   const [subServiceName, setSubServiceName] = useState("");
   const [frenchName, setFrenchName] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isReadingFile, setIsReadingFile] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -29,24 +31,45 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
     }
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith("image/")) {
-        setSelectedFile(file);
-      } else {
-        toast.error("Please drop an image file (.jpg, .png).");
-      }
+  /**
+   * Reads a picked file into base64, resized.
+   *
+   * Done here rather than at submit time so a rejected file is reported while
+   * the user is still looking at the picker. The submit used to send only
+   * `fileName`, so the image was collected and then silently thrown away —
+   * which is why no sub-service created through this panel has ever had one.
+   *
+   * @param {File} file - The chosen file.
+   * @return {Promise<void>}
+   */
+  const acceptFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file (.jpg, .png).");
+      return;
+    }
+    setIsReadingFile(true);
+    try {
+      const prepared = await readImageForUpload(file, { maxEdge: 800 });
+      setSelectedFile({ name: file.name, size: file.size, ...prepared });
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsReadingFile(false);
     }
   };
 
-  const handleFileSelect = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    await acceptFile(e.dataTransfer.files?.[0]);
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    await acceptFile(file);
   };
 
   const triggerBrowse = () => {
@@ -74,8 +97,9 @@ export default function AddSubServiceModal({ parentCategories, isOpen, onClose, 
       parentName,
       name: subServiceName.trim(),
       frenchName: frenchName.trim(),
-      hasPhoto: !!selectedFile,
-      fileName: selectedFile ? selectedFile.name : null
+      // The bytes, not the filename. createSubCategory uploads these.
+      imageBase64: selectedFile?.dataUrl,
+      imageContentType: selectedFile?.contentType,
     });
 
     setSubServiceName("");

@@ -3,12 +3,14 @@
 import React, { useState, useRef } from "react";
 import { X, Upload, FileImage } from "lucide-react";
 import { toast } from "react-toastify";
+import { readImageForUpload } from "@/lib/imageFile";
 
 export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
   const [categoryName, setCategoryName] = useState("");
   const [frenchName, setFrenchName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isReadingFile, setIsReadingFile] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -24,24 +26,44 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
     }
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith("image/")) {
-        setSelectedFile(file);
-      } else {
-        toast.error("Please drop an image file (.jpg, .png).");
-      }
+  /**
+   * Reads a picked file into base64, resized.
+   *
+   * The submit used to send only `fileName`, so the file was collected and
+   * then discarded — which is why no category created here has ever carried
+   * an image.
+   *
+   * @param {File} file - The chosen file.
+   * @return {Promise<void>}
+   */
+  const acceptFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file (.jpg, .png).");
+      return;
+    }
+    setIsReadingFile(true);
+    try {
+      const prepared = await readImageForUpload(file, { maxEdge: 800 });
+      setSelectedFile({ name: file.name, size: file.size, ...prepared });
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsReadingFile(false);
     }
   };
 
-  const handleFileSelect = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    await acceptFile(e.dataTransfer.files?.[0]);
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    await acceptFile(file);
   };
 
   const triggerBrowse = () => {
@@ -69,8 +91,8 @@ export default function AddCategoryModal({ isOpen, onClose, onAdd }) {
       name: categoryName.trim(),
       frenchName: frenchName.trim(),
       description: description.trim(),
-      hasPhoto: !!selectedFile,
-      fileName: selectedFile ? selectedFile.name : null
+      imageBase64: selectedFile?.dataUrl,
+      imageContentType: selectedFile?.contentType,
     });
 
     setCategoryName("");

@@ -11,7 +11,7 @@ import {
   updateSubCategory,
 } from "@/lib/callables";
 import { ListSkeleton, RefreshingBar } from "@/components/ui/Skeleton";
-import ImagePreviewModal from "@/components/platform/ImagePreviewModal";
+import CategoryImageModal from "@/components/platform/CategoryImageModal";
 import {
   Image as ImageIcon,
   ChevronRight,
@@ -63,19 +63,6 @@ export default function ServiceCategoriesPage() {
     ...afterWrite("Sub-service updated."),
   });
 
-  const [preview, setPreview] = useState(null);
-
-  /**
-   * Opens the image preview.
-   * @param {string} src - Image URL.
-   * @param {string} name - Category or sub-service name.
-   * @param {string} parent - Owning category, for sub-services.
-   */
-  const openPreview = (src, name, parent) => {
-    if (!src) return;
-    setPreview({ src, title: name, subtitle: parent ? `in ${parent}` : "" });
-  };
-
   const busy =
     addCategory.isPending ||
     editCategory.isPending ||
@@ -111,7 +98,11 @@ export default function ServiceCategoriesPage() {
       {
         name: data.name,
         frenchName: data.frenchName,
-        image: data.image || undefined,
+        // The picked file, which the modal now sends as base64. It previously
+        // read data.image — a field the modal never set — so image was always
+        // undefined and no created category had one.
+        imageBase64: data.imageBase64,
+        imageContentType: data.imageContentType,
       },
       { onSuccess: () => setCategoryModalOpen(false) },
     );
@@ -130,9 +121,52 @@ export default function ServiceCategoriesPage() {
         name: data.name,
         frenchName: data.frenchName,
         message: data.message || undefined,
-        image: data.image || undefined,
+        imageBase64: data.imageBase64,
+        imageContentType: data.imageContentType,
       },
       { onSuccess: () => setSubServiceModalOpen(false) },
+    );
+  };
+
+  // The row whose picture is being changed, if any.
+  const [imageTarget, setImageTarget] = useState(null);
+
+  const openImageEditor = (item, isParent, parentId, parentName) =>
+    setImageTarget({
+      name: item.name,
+      image: item.image || "",
+      isSub: !isParent,
+      parentId: isParent ? item.id : parentId,
+      parentName: isParent ? null : parentName,
+    });
+
+  /**
+   * Saves a new picture, or clears the current one.
+   *
+   * Routed through the same update callables as a rename, so the change lands
+   * in the audit log alongside every other edit to the row rather than in a
+   * separate path of its own.
+   *
+   * @param {object} payload - {imageBase64, imageContentType} or {image: ""}.
+   */
+  const handleSaveImage = (payload) => {
+    if (!imageTarget) return;
+    const done = { onSuccess: () => setImageTarget(null) };
+
+    if (imageTarget.isSub) {
+      editSubService.mutate(
+          {
+            categoryId: imageTarget.parentId,
+            subCategoryName: imageTarget.name,
+            ...payload,
+          },
+          done,
+      );
+      return;
+    }
+    editCategory.mutate(
+        { categoryId: imageTarget.parentId, ...payload },
+        done,
     );
   };
 
@@ -331,13 +365,21 @@ export default function ServiceCategoriesPage() {
                             <span className="font-semibold">{cat.name}</span>
                           )}
                         </td>
+                        {/* Display only. Images belong to sub-services — no
+                            top-level category has ever carried one, in this
+                            panel or in the CMS export that seeded the rest, so
+                            offering to set one here would invite filling in a
+                            field nothing reads. The thumbnail still renders if
+                            a category somehow acquires an image, rather than
+                            hiding it. */}
                         <td className="px-4 py-3 text-center">
-                          <button
-                            type="button"
-                            onClick={() => openPreview(cat.image, cat.name)}
-                            disabled={!cat.image}
-                            title={cat.image ? "View image" : "No image uploaded"}
-                            className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center hover:border-primary-bg transition disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                          <span
+                            className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center"
+                            title={
+                              cat.image ?
+                                cat.name :
+                                "Images are set on sub-services"
+                            }
                           >
                             {cat.image ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -347,9 +389,9 @@ export default function ServiceCategoriesPage() {
                                 className="w-6 h-6 object-cover rounded"
                               />
                             ) : (
-                              <ImageIcon size={18} className="text-text-muted" />
+                              <ImageIcon size={18} className="text-text-muted/50" />
                             )}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {/* Switch toggle slider */}
@@ -449,9 +491,10 @@ export default function ServiceCategoriesPage() {
                               <td className="px-4 py-3 text-center">
                                 <button
                                   type="button"
-                                  onClick={() => openPreview(sub.image, sub.name, cat.name)}
-                                  disabled={!sub.image}
-                                  title={sub.image ? "View image" : "No image uploaded"}
+                                  onClick={() =>
+                                    openImageEditor(sub, false, cat.id, cat.name)
+                                  }
+                                  title={sub.image ? "Change image" : "Add an image"}
                                   className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center hover:border-primary-bg transition disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
                                 >
                                   {sub.image ? (
@@ -536,12 +579,12 @@ export default function ServiceCategoriesPage() {
         onAdd={handleAddSubService}
       />
 
-      <ImagePreviewModal
-        isOpen={Boolean(preview)}
-        onClose={() => setPreview(null)}
-        src={preview?.src}
-        title={preview?.title}
-        subtitle={preview?.subtitle}
+      <CategoryImageModal
+        isOpen={Boolean(imageTarget)}
+        target={imageTarget}
+        onClose={() => setImageTarget(null)}
+        onSave={handleSaveImage}
+        isPending={editCategory.isPending || editSubService.isPending}
       />
 
       {pendingDeactivation && (

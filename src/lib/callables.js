@@ -177,12 +177,24 @@ export const postDisputeMessage = ({
 /* ── Service catalogue ─────────────────────────────────────────── */
 
 /** French name is required — the apps are bilingual. */
-export const createCategory = ({ name, frenchName, image, isActive }) =>
-  callFunction("createCategory", { name, frenchName, image, isActive });
+export const createCategory = ({
+  name, frenchName, image, isActive, imageBase64, imageContentType,
+}) =>
+  callFunction("createCategory", {
+    name, frenchName, image, isActive, imageBase64, imageContentType,
+  });
 
 /** Renaming also rewrites categoryName on every affected listing. */
-export const updateCategory = ({ categoryId, name, frenchName, image, isActive }) =>
-  callFunction("updateCategory", { categoryId, name, frenchName, image, isActive });
+/**
+ * Renaming also rewrites categoryName on every affected listing.
+ * imageBase64 uploads a new picture; image: "" clears it.
+ */
+export const updateCategory = ({
+  categoryId, name, frenchName, image, isActive, imageBase64, imageContentType,
+}) =>
+  callFunction("updateCategory", {
+    categoryId, name, frenchName, image, isActive, imageBase64, imageContentType,
+  });
 
 /** Refused while any provider listing still references the category. */
 export const deleteCategory = ({ categoryId, reason }) =>
@@ -190,17 +202,21 @@ export const deleteCategory = ({ categoryId, reason }) =>
 
 export const createSubCategory = ({
   categoryId, name, frenchName, message, frenchMessage, image, isActive,
+  imageBase64, imageContentType,
 }) =>
   callFunction("createSubCategory", {
     categoryId, name, frenchName, message, frenchMessage, image, isActive,
+    imageBase64, imageContentType,
   });
 
 /** subCategoryName selects which one; name renames it. */
 export const updateSubCategory = ({
-  categoryId, subCategoryName, name, frenchName, message, frenchMessage, image, isActive,
+  categoryId, subCategoryName, name, frenchName, message, frenchMessage, image,
+  isActive, imageBase64, imageContentType,
 }) =>
   callFunction("updateSubCategory", {
-    categoryId, subCategoryName, name, frenchName, message, frenchMessage, image, isActive,
+    categoryId, subCategoryName, name, frenchName, message, frenchMessage, image,
+    isActive, imageBase64, imageContentType,
   });
 
 export const deleteSubCategory = ({ categoryId, subCategoryName, reason }) =>
