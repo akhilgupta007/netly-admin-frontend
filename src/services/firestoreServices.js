@@ -1463,6 +1463,35 @@ function toTransaction(id, b, users, service = null) {
       createdAt: b.createdAt || null,
       offerSentAt: b.offerSentAt || null,
       confirmedAt: b.confirmedAt || null,
+      // When the money actually arrived, and whether it did at all.
+      //
+      // confirmedAt cannot answer that: the apps stamp it when a provider
+      // accepts an offer, well before any payment, so three unpaid bookings
+      // currently carry one. The timeline read it as proof of payment and
+      // showed "Payment Completed" on bookings Stripe reports as
+      // amount_received: 0.
+      //
+      // paidAt and stripePaymentStatus are written by the apps, not by
+      // onPaymentSucceeded, so they are absent on any booking the app did not
+      // settle itself — an end-to-end test payment reached Confirmed with
+      // neither field set. Relying on them alone inverted the bug: genuinely
+      // paid bookings read as "Awaiting Payment".
+      //
+      // The backend-owned signals are the status itself and the receipt URL,
+      // which onPaymentSucceeded is the only writer of. The receipt clause
+      // matters for a booking cancelled after payment, whose status has since
+      // left the paid set but which still needs to show as paid.
+      //
+      // Deliberately not stripePaymentIntentId: createBookingPayment stamps
+      // that when the client is *asked* to pay, so the three bookings sitting
+      // at awaiting_payment all carry one against amount_received: 0. That is
+      // the field the timeline used to trust.
+      paidAt: b.paidAt || null,
+      isPaid:
+        Boolean(b.paidAt) ||
+        String(b.stripePaymentStatus || "").toLowerCase() === "succeeded" ||
+        Boolean(b.stripeInvoicePdfUrl) ||
+        hasReachedPaidStatus(b),
       startedAt: b.startedAt || null,
       reachedAt: b.reachedAt || null,
       completedAt: b.completedAt || null,
@@ -2051,6 +2080,31 @@ async function safeCollection(name) {
 }
 
 /**
+ * Has this booking's status moved past the point where payment was required?
+ *
+ * This is the one payment signal the backend fully owns. Only two functions
+ * ever write Confirmed — onPaymentSucceeded and confirmRecurringBooking — and
+ * both run after the money has arrived. Every other candidate field is written
+ * by the apps: `confirmedAt` lands when a provider accepts an offer, and
+ * `paidAt`/`stripePaymentStatus` are set client-side after the payment sheet
+ * closes, so they are absent on any booking the app did not settle itself.
+ *
+ * @param {object} b - Booking document.
+ * @return {boolean} True once the booking is Confirmed or later.
+ */
+function hasReachedPaidStatus(b) {
+  const st = String(b.status || "")
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+  return [
+    "confirmed",
+    "inprogress",
+    "completedbyprovider",
+    "completed",
+  ].includes(st);
+}
+
+/**
  * Has this booking been paid for?
  *
  * A PaymentIntent alone is not sufficient: a booking fully covered by wallet
@@ -2074,15 +2128,7 @@ function isPaidBooking(b) {
   if (b.isSimulated) return false;
 
   if (b.stripePaymentIntentId) return true;
-  const st = String(b.status || "")
-    .toLowerCase()
-    .replace(/[\s_-]/g, "");
-  return [
-    "confirmed",
-    "inprogress",
-    "completedbyprovider",
-    "completed",
-  ].includes(st);
+  return hasReachedPaidStatus(b);
 }
 
 /**

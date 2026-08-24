@@ -257,9 +257,13 @@ export default function TransactionDetailPage() {
     // has priced the job.
     if (t.offerSentAt) step("Custom Offer Sent", t.offerSentAt);
 
-    if (t.confirmedAt) {
-      step("Payment Completed", t.confirmedAt);
-      step("Booking Confirmed", t.confirmedAt);
+    // Gated on the payment, not on confirmedAt. The apps stamp confirmedAt
+    // when a provider accepts an offer — before any money moves — so keying
+    // off it put "Payment Completed" on the timeline of bookings Stripe
+    // reports as never charged.
+    if (t.isPaid) {
+      step("Payment Completed", t.paidAt || t.confirmedAt);
+      step("Booking Confirmed", t.confirmedAt || t.paidAt);
     } else if (!/cancel/i.test(status)) {
       step("Awaiting Payment", null);
     }
@@ -288,7 +292,8 @@ export default function TransactionDetailPage() {
       } else {
         step("Awaiting Client Confirmation", null);
       }
-    } else if (t.confirmedAt) {
+    } else if (t.isPaid) {
+      // Same reason: a job is only "scheduled" once it has been paid for.
       step("Service Scheduled", t.serviceDateAndTime, { isPending: true });
     }
 
@@ -469,8 +474,13 @@ export default function TransactionDetailPage() {
               </div>
               <Field label="Created On" value={when(tx.timeline?.createdAt)} />
 
-              {tx.timeline?.confirmedAt && (
-                <Field label="Paid On" value={when(tx.paidAt || tx.timeline.confirmedAt)} />
+              {/* Shown only when payment actually landed — confirmedAt alone
+                  is set by the apps on offer acceptance. */}
+              {tx.timeline?.isPaid && (
+                <Field
+                  label="Paid On"
+                  value={when(tx.paidAt || tx.timeline.confirmedAt)}
+                />
               )}
               {tx.timeline?.startedAt && (
                 <Field label="Service Started" value={when(tx.timeline.startedAt)} />
