@@ -1764,6 +1764,38 @@ function toDispute(id, d, users, booking) {
   const provider = users.get(d.providerId) || null;
   const { label, outcome, isClosed } = disputeStatus(d.status, d.resolution);
 
+  // The money breakdown lives on the booking, not on the dispute.
+  //
+  // A dispute document stores only bookingAmount — what the client paid in
+  // total. How that splits into the platform's cut and the provider's share is
+  // never copied across, so the detail page was reading clientFee, commission,
+  // totalCharged and providerPayout off a mapper that returned none of them
+  // and rendering a bare "$" for each. Both real disputes carry the figures on
+  // their booking, so this was never a quirk of the simulator.
+  //
+  // platformRevenue is the platform's whole take, client fee included, which
+  // is why the commission is the remainder rather than the field itself —
+  // the same subtraction the finance reports already do.
+  const b = booking || {};
+  const paidByClient = Number(d.bookingAmount) || 0;
+  const clientFee = Number(b.clientServiceFee) || 0;
+  const commission = Math.max(
+    0,
+    (Number(b.platformRevenue) || 0) - clientFee,
+  );
+  // Fall back to backing the fee out of the total, so a dispute whose booking
+  // has been deleted still shows a coherent breakdown instead of zeroes.
+  const baseAmount =
+    Number(b.transactionAmount) ||
+    Number(b.price) ||
+    Math.max(0, Math.round((paidByClient - clientFee) * 100) / 100);
+
+  // Read the rates off the figures rather than hardcoding "5%" and "15%" in
+  // the labels: both are configurable in platform settings, so a fixed label
+  // would quietly start lying the first time somebody changes one.
+  const rate = (part) =>
+    baseAmount > 0 ? `${Math.round((part / baseAmount) * 1000) / 10}%` : "—";
+
   return {
     id,
     txnId: d.bookingId || "—",
@@ -1784,13 +1816,34 @@ function toDispute(id, d, users, booking) {
     raisedBy: d.raisedBy || null,
     reason: d.reason || "—",
     description: d.description || "",
-    serviceAmount: Number(d.bookingAmount) || 0,
+    // Kept as the full amount the client paid — the resolution form defaults a
+    // full refund to it and validates a split against it, so it must stay the
+    // figure that can actually be returned.
+    serviceAmount: paidByClient,
+    // The breakdown the detail page renders.
+    baseAmount,
+    clientFee,
+    clientFeeRate: rate(clientFee),
+    commission,
+    commissionRate: rate(commission),
+    providerPayout: Number(b.providerPayout) || 0,
+    totalCharged: Number(b.totalChargedToClient) || paidByClient,
     refundAmount: Number(d.refundAmount) || 0,
     creditAmount: Number(d.creditAmount) || 0,
     attachments: d.attachments || [],
     resolutionNote: d.resolutionNote || "",
     resolvedBy: d.resolvedBy || null,
     resolvedAt: formatFirestoreDateTime(d.resolvedAt),
+    // The Resolution Decision panel reads these three names. It was blank on
+    // every closed dispute because the mapper only ever exposed them as
+    // outcome / resolvedAt / resolutionNote.
+    //
+    // Notes prefers adminNotes: resolveDispute writes the moderator's
+    // reasoning there and leaves resolutionNote empty, so both resolved
+    // disputes in production have the text in adminNotes and "" in the other.
+    decision: outcome || label,
+    resolvedDate: formatFirestoreDateTime(d.resolvedAt),
+    notes: d.adminNotes || d.resolutionNote || "No notes recorded.",
     // Fabricated by the dispute simulator. Surfaced so the queue can badge it
     // — a moderator must never mistake a test scenario for a real customer
     // complaint, and only these may be deleted.

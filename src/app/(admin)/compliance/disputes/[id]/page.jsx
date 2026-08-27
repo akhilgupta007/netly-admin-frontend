@@ -553,33 +553,50 @@ export default function DisputeDetailPage() {
                       </span>
                     </div>
 
+                    {/*
+                      Two groups, because these figures do not all add up in
+                      one column: the client fee sits on top of the service
+                      amount to make the total, while the commission comes out
+                      of it to make the provider's payout. Listing all four
+                      under a single "Total charged" implied a sum that was
+                      never true.
+                    */}
                     <div className="border-t border-border-main/50 pt-2 flex justify-between">
                       <span className="text-text-muted font-light">
                         Service amount
                       </span>
                       <span className="text-text-primary font-medium">
-                        ${dispute.serviceAmount?.toFixed(2)}
+                        ${dispute.baseAmount?.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-text-muted font-light">
-                        Client fee (5%)
+                        Client fee ({dispute.clientFeeRate})
                       </span>
                       <span className="text-text-primary font-medium">
-                        ${dispute.clientFee?.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-text-muted font-light">
-                        Commission (15%)
-                      </span>
-                      <span className="text-text-primary font-medium">
-                        ${dispute.commission?.toFixed(2)}
+                        +${dispute.clientFee?.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between font-semibold pt-1 border-t border-border-main/30 text-text-primary">
                       <span>Total charged</span>
                       <span>${dispute.totalCharged?.toFixed(2)}</span>
+                    </div>
+
+                    <div className="border-t border-border-main/50 pt-2 flex justify-between">
+                      <span className="text-text-muted font-light">
+                        Commission ({dispute.commissionRate})
+                      </span>
+                      <span className="text-text-primary font-medium">
+                        −${dispute.commission?.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-text-muted font-light">
+                        Provider payout
+                      </span>
+                      <span className="text-text-primary font-medium">
+                        ${dispute.providerPayout?.toFixed(2)}
+                      </span>
                     </div>
                   </div>
                 </div>
