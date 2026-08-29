@@ -174,6 +174,64 @@ export const postDisputeMessage = ({
     imageContentType
   });
 
+/* ── Market intelligence ───────────────────────────────────────── */
+
+/**
+ * Tells the clients behind an unmet-demand row that the service has arrived.
+ *
+ * Takes the alert ids the row was built from rather than its city and
+ * category, so the grouping rule stays defined in one place — see
+ * fetchUnmetDemandFromFirestore.
+ *
+ * The four copy fields are what the admin approved in the confirm dialog. They
+ * are always sent, even when untouched, so the message that goes out is the
+ * one that was on screen rather than whatever the backend would regenerate.
+ */
+export const notifyUnmetDemand = ({
+  alertIds,
+  title,
+  body,
+  frenchTitle,
+  frenchBody,
+}) =>
+  callFunction("notifyUnmetDemand", {
+    alertIds,
+    title,
+    body,
+    frenchTitle,
+    frenchBody,
+  });
+
+/**
+ * The default wording for an unmet-demand notification.
+ *
+ * Mirrors buildCopy in notifyUnmetDemand so the form opens showing exactly
+ * what the backend would send if nothing were edited. The backend keeps its
+ * own copy as the authority — this one only has to prefill the boxes, and the
+ * fields are transmitted verbatim, so a drift between the two would show up in
+ * the dialog rather than silently changing what recipients get.
+ *
+ * @param {object} row - An unmet-demand row: { city, category }.
+ * @return {{title: string, body: string, frenchTitle: string,
+ *   frenchBody: string}} Default copy.
+ */
+export function defaultDemandCopy({ city, category }) {
+  const service = category || "A service you searched for";
+  const frenchService = category || "Un service que vous avez recherché";
+  return {
+    title: "Now available near you",
+    frenchTitle: "Maintenant disponible près de chez vous",
+    body: city ?
+      `${service} is now available in ${city}. Tap to browse providers.` :
+      `${service} is now available. Tap to browse providers.`,
+    frenchBody: city ?
+      `${frenchService} est maintenant disponible à ${city}. ` +
+        "Touchez pour voir les prestataires." :
+      `${frenchService} est maintenant disponible. ` +
+        "Touchez pour voir les prestataires.",
+  };
+}
+
 /* ── Service catalogue ─────────────────────────────────────────── */
 
 /** French name is required — the apps are bilingual. */

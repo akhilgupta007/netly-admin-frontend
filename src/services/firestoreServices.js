@@ -3104,9 +3104,21 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
         count: 0,
         pending: 0,
         lastAt: null,
+        // Notify Users sends against these ids rather than a city and category
+        // pair, so the grouping rule above stays the single definition of what
+        // belongs in a row. Passing the pair instead would mean the callable
+        // re-deriving it, and a drifted copy would notify the wrong people.
+        alertIds: [],
+        // Distinct people, not searches — one client who searched four times
+        // is one push, so the button must not promise four.
+        recipients: new Set(),
       };
       row.count += 1;
-      if (unresolved(a)) row.pending += 1;
+      if (unresolved(a)) {
+        row.pending += 1;
+        if (a.id) row.alertIds.push(a.id);
+        if (a.userId) row.recipients.add(a.userId);
+      }
       // "Last search" is the most recent alert in this city/category pair.
       if (at !== null && (row.lastAt === null || at > row.lastAt))
         row.lastAt = at;
@@ -3116,6 +3128,9 @@ export async function fetchUnmetDemandFromFirestore(max = 5) {
     const rows = [...byPair.values()]
       .map((r) => ({
         ...r,
+        // A Set does not survive the trip through React Query's cache in any
+        // useful form, so it is counted here and dropped.
+        recipients: r.recipients.size,
         date: r.lastAt ? formatFirestoreDate(new Date(r.lastAt)) : "N/A",
         dateTime: r.lastAt ? new Date(r.lastAt) : null,
       }))
