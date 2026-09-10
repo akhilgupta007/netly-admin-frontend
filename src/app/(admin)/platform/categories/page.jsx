@@ -365,21 +365,16 @@ export default function ServiceCategoriesPage() {
                             <span className="font-semibold">{cat.name}</span>
                           )}
                         </td>
-                        {/* Display only. Images belong to sub-services — no
-                            top-level category has ever carried one, in this
-                            panel or in the CMS export that seeded the rest, so
-                            offering to set one here would invite filling in a
-                            field nothing reads. The thumbnail still renders if
-                            a category somehow acquires an image, rather than
-                            hiding it. */}
+                        {/* Editable, same as a sub-service. No top-level
+                            category carries an image today — every one stores
+                            an empty field — so this is the only way one ever
+                            gets set. */}
                         <td className="px-4 py-3 text-center">
-                          <span
-                            className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center"
-                            title={
-                              cat.image ?
-                                cat.name :
-                                "Images are set on sub-services"
-                            }
+                          <button
+                            type="button"
+                            onClick={() => openImageEditor(cat, true, null, null)}
+                            title={cat.image ? "Change image" : "Add an image"}
+                            className="inline-flex p-1 border border-border-main rounded-lg items-center justify-center hover:border-primary-bg transition cursor-pointer"
                           >
                             {cat.image ? (
                               // eslint-disable-next-line @next/next/no-img-element
@@ -389,9 +384,9 @@ export default function ServiceCategoriesPage() {
                                 className="w-6 h-6 object-cover rounded"
                               />
                             ) : (
-                              <ImageIcon size={18} className="text-text-muted/50" />
+                              <ImageIcon size={18} className="text-text-muted" />
                             )}
-                          </span>
+                          </button>
                         </td>
                         <td className="px-4 py-3 text-center">
                           {/* Switch toggle slider */}
