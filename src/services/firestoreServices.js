@@ -1519,7 +1519,12 @@ export async function fetchTransactionsFromFirestore(params = {}) {
     startDate = null,
     endDate = null,
     page = 1,
-    limit = 8,
+    // The transactions screen runs its own search, status, category and date
+    // filtering and paginates the result itself, so it needs every booking
+    // rather than a page of them. Defaulting to 8 here capped that screen at
+    // 8 rows out of 100: its own pagination never had a second page to show.
+    // A caller that does want a page can still ask for one.
+    limit = Infinity,
   } = params;
 
   try {
