@@ -35,43 +35,18 @@ const parseTxDate = (dateStr) => {
   return new Date(cleanStr);
 }
 
-/**
- * Monday of the current week, at 00:00 local time.
- *
- * Weeks run Monday–Sunday to match the provider payout cycle, so a default
- * range here lines up with how the money is actually accounted for.
- *
- * @return {Date} The week's start.
- */
-function startOfThisWeek() {
-  const d = new Date();
-  // getDay() is 0 for Sunday, which belongs to the week that began 6 days ago.
-  const offset = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - offset);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-/**
- * Sunday of the current week, at 23:59:59 local time.
- * @return {Date} The week's end.
- */
-function endOfThisWeek() {
-  const d = startOfThisWeek();
-  d.setDate(d.getDate() + 6);
-  d.setHours(23, 59, 59, 999);
-  return d;
-};
-
 export default function TransactionsPage() {
   // Filters & Page state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
-  // Default to the current Monday–Sunday week, matching the payout cycle the
-  // rest of the platform runs on. URL params still override this below.
-  const [startDate, setStartDate] = useState(() => startOfThisWeek());
-  const [endDate, setEndDate] = useState(() => endOfThisWeek());
+  // No range by default. The table has to open on every transaction, not on
+  // the current week — an admin looking for an older booking should not have
+  // to discover that a filter they never set is hiding it. The picker narrows
+  // it, and the dashboard's cards still deep-link a week through the URL
+  // params read below.
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   const router = useRouter();
@@ -107,7 +82,6 @@ export default function TransactionsPage() {
     { value: "Pending Payment", label: "Pending Payment" }
   ];
 
-  // 16 Mock Transactions matching exact layout from mockup (Screenshot 4)
   const { transactions, isLoading, isFetching, isError, error } = useTransactions();
 
   // Read filters out of the URL so dashboard cards can deep-link in.
@@ -231,10 +205,10 @@ export default function TransactionsPage() {
     }
   };
 
-  // Static pricing multipliers
-  const getFee = (amount) => amount * 0.05;
-  const getCommission = (amount) => amount * 0.15;
-  const getTotalCharged = (amount, tip = 0) => amount + getFee(amount) + tip;
+  // Money comes off the booking itself. Fee rates are editable per service and
+  // are stamped onto each booking when the offer is sent, so a fixed
+  // multiplier here would disagree with what was actually charged and paid.
+  const money = (n) => `$${(Number(n) || 0).toFixed(2)}`;
 
   // Search filter
   const filteredTxs = useMemo(() => {
@@ -407,9 +381,9 @@ export default function TransactionsPage() {
                     <td className="px-4 py-3">{tx.client.name}</td>
                     <td className="px-4 py-3">{tx.provider.name}</td>
                     <td className="px-4 py-3">{tx.category}</td>
-                    <td className="px-4 py-3">${tx.serviceAmount.toFixed(2)}</td>
-                    <td className="px-4 py-3">${getFee(tx.serviceAmount).toFixed(2)}</td>
-                    <td className="px-4 py-3">${getCommission(tx.serviceAmount).toFixed(2)}</td>
+                    <td className="px-4 py-3">{money(tx.totalPaid)}</td>
+                    <td className="px-4 py-3">{money(tx.providerPayout)}</td>
+                    <td className="px-4 py-3">{money(tx.commission)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full md:text-xs text-[10px] font-semibold w-fit ${colorBadge}`}>
