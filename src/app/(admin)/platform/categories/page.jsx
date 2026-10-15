@@ -24,6 +24,7 @@ import { toast } from "react-toastify";
 import AddCategoryModal from "@/components/platform/AddCategoryModal";
 import AddSubServiceModal from "@/components/platform/AddSubServiceModal";
 import ConfirmDeactivationModal from "@/components/platform/ConfirmDeactivationModal";
+import EditCatalogueModal from "@/components/platform/EditCatalogueModal";
 
 // Initial Mock Categories matching Screenshot 4
 
@@ -81,9 +82,9 @@ export default function ServiceCategoriesPage() {
   // Pending deactivation entity state
   const [pendingDeactivation, setPendingDeactivation] = useState(null);
 
-  // Inline editing row state
-  const [editingRowId, setEditingRowId] = useState(null);
-  const [editingName, setEditingName] = useState("");
+  // The row being edited, if any. Held as the row itself rather than an id so
+  // the dialog can seed every field from it.
+  const [editTarget, setEditTarget] = useState(null);
 
   const handleToggleExpand = (catId) => {
     setExpandedCats((prev) => ({
@@ -209,34 +210,35 @@ export default function ServiceCategoriesPage() {
     setPendingDeactivation(null);
   };
 
-  // Inline rename editors
-  const startEditing = (item) => {
-    setEditingRowId(item.id);
-    setEditingName(item.name);
-  };
+  const startEditing = (item, isSub, parentId) =>
+    setEditTarget({ ...item, isSub, parentId });
 
-  const handleSaveRename = (item, isParent, parentId) => {
-    const name = editingName.trim();
-    if (!name) {
-      toast.error("Name cannot be empty.");
-      return;
-    }
-    if (name === item.name) {
-      setEditingRowId(null);
-      return;
-    }
+  /**
+   * Saves the fields the dialog reports as changed.
+   *
+   * A rename also rewrites the denormalised name on every listing that points
+   * here, which the backend handles and reports back.
+   *
+   * @param {object} changed - Any of name, frenchName, message, frenchMessage.
+   */
+  const handleSaveEdit = (changed) => {
+    if (!editTarget) return;
+    const done = { onSuccess: () => setEditTarget(null) };
 
-    // A rename also rewrites the denormalised name on every listing that
-    // points here, which the backend handles and reports back.
-    const done = { onSuccess: () => setEditingRowId(null) };
-    if (isParent) {
-      editCategory.mutate({ categoryId: item.id, name }, done);
-    } else {
+    if (editTarget.isSub) {
       editSubService.mutate(
-        { categoryId: parentId, subCategoryName: item.name, name },
+        {
+          categoryId: editTarget.parentId,
+          // Sub-services are addressed by their current name, so this must be
+          // the name as stored, not the new one being written.
+          subCategoryName: editTarget.name,
+          ...changed,
+        },
         done,
       );
+      return;
     }
+    editCategory.mutate({ categoryId: editTarget.id, ...changed }, done);
   };
 
   return (
@@ -317,8 +319,6 @@ export default function ServiceCategoriesPage() {
               <tbody className="bg-white divide-y divide-secondary-bg md:text-sm text-xs text-text-primary">
                 {categories.map((cat) => {
                   const isExpanded = !!expandedCats[cat.id];
-                  const isCatEditing = editingRowId === cat.id;
-
                   return (
                     <React.Fragment key={cat.id}>
                       {/* Parent Category Row */}
@@ -337,33 +337,18 @@ export default function ServiceCategoriesPage() {
                             )}
                           </button>
 
-                          {isCatEditing ? (
-                            <div className="flex items-center gap-2 animate-scale-up">
-                              <input
-                                type="text"
-                                value={editingName}
-                                onChange={(e) => setEditingName(e.target.value)}
-                                className="border border-border-main rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-bg text-xs text-text-primary"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() =>
-                                  handleSaveRename(cat, true, null)
-                                }
-                                className="text-primary-bg font-semibold cursor-pointer"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={() => setEditingRowId(null)}
-                                className="text-text-muted font-semibold cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="font-semibold">{cat.name}</span>
-                          )}
+                          <div className="min-w-0">
+                            <span className="font-semibold block truncate">
+                              {cat.name}
+                            </span>
+                            {/* The French name is what every French user sees,
+                                so it is shown here rather than only inside the
+                                dialog — a wrong one is otherwise invisible
+                                from this screen. */}
+                            <span className="block text-[10px] text-text-muted font-light truncate">
+                              {cat.frenchName || "No French name"}
+                            </span>
+                          </div>
                         </td>
                         {/* Editable, same as a sub-service. No top-level
                             category carries an image today — every one stores
@@ -420,19 +405,13 @@ export default function ServiceCategoriesPage() {
                           {cat.listingsCount}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {isCatEditing ? (
-                            <button className="border border-text-primary text-text-primary font-medium py-1.25 px-3.5 rounded-xl select-none bg-white">
-                              Edit
-                            </button>
-                          ) : (
-                            <button
-                              disabled={!cat.active}
-                              onClick={() => startEditing(cat)}
-                              className="border border-primary-bg hover:bg-primary-bg-muted/20 text-primary-bg font-medium py-1.25 px-3.5 rounded-xl transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
-                            >
-                              Edit
-                            </button>
-                          )}
+                          <button
+                            disabled={!cat.active}
+                            onClick={() => startEditing(cat, false, null)}
+                            className="border border-primary-bg hover:bg-primary-bg-muted/20 text-primary-bg font-medium py-1.25 px-3.5 rounded-xl transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
+                          >
+                            Edit
+                          </button>
                         </td>
                       </tr>
 
@@ -440,8 +419,6 @@ export default function ServiceCategoriesPage() {
                       {isExpanded &&
                         cat.subServices &&
                         cat.subServices.map((sub) => {
-                          const isSubEditing = editingRowId === sub.id;
-
                           return (
                             <tr
                               key={sub.id}
@@ -453,35 +430,12 @@ export default function ServiceCategoriesPage() {
                                 <span className="font-light select-none mr-1">
                                   —
                                 </span>
-                                {isSubEditing ? (
-                                  <div className="flex items-center gap-2 animate-scale-up">
-                                    <input
-                                      type="text"
-                                      value={editingName}
-                                      onChange={(e) =>
-                                        setEditingName(e.target.value)
-                                      }
-                                      className="border border-border-main rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-bg text-xs text-text-primary bg-white"
-                                      autoFocus
-                                    />
-                                    <button
-                                      onClick={() =>
-                                        handleSaveRename(sub, false, cat.id)
-                                      }
-                                      className="text-primary-bg font-semibold cursor-pointer"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      onClick={() => setEditingRowId(null)}
-                                      className="text-text-muted font-semibold cursor-pointer"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span>{sub.name}</span>
-                                )}
+                                <div className="min-w-0">
+                                  <span className="block truncate">{sub.name}</span>
+                                  <span className="block text-[10px] text-text-muted font-light truncate">
+                                    {sub.frenchName || "No French name"}
+                                  </span>
+                                </div>
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <button
@@ -534,19 +488,13 @@ export default function ServiceCategoriesPage() {
                                 {sub.listingsCount}
                               </td>
                               <td className="px-4 py-3 text-right">
-                                {isSubEditing ? (
-                                  <button className="border border-text-primary text-text-primary font-medium py-1.25 px-3.5 rounded-xl select-none bg-white">
-                                    Edit
-                                  </button>
-                                ) : (
-                                  <button
-                                    disabled={!cat.active}
-                                    onClick={() => startEditing(sub)}
-                                    className="border border-primary-bg hover:bg-primary-bg-muted/20 text-primary-bg font-medium py-1.25 px-3.5 rounded-xl transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
+                                <button
+                                  disabled={!cat.active}
+                                  onClick={() => startEditing(sub, true, cat.id)}
+                                  className="border border-primary-bg hover:bg-primary-bg-muted/20 text-primary-bg font-medium py-1.25 px-3.5 rounded-xl transition select-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white"
+                                >
+                                  Edit
+                                </button>
                               </td>
                             </tr>
                           );
@@ -572,6 +520,16 @@ export default function ServiceCategoriesPage() {
         isOpen={subServiceModalOpen}
         onClose={() => setSubServiceModalOpen(false)}
         onAdd={handleAddSubService}
+      />
+
+      <EditCatalogueModal
+        // Remounts per row, so each dialog opens seeded from its own values.
+        key={editTarget ? `${editTarget.parentId || "cat"}:${editTarget.id}` : "none"}
+        isOpen={Boolean(editTarget)}
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSave={handleSaveEdit}
+        isPending={editCategory.isPending || editSubService.isPending}
       />
 
       <CategoryImageModal
