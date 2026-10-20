@@ -38,12 +38,16 @@ export default function FoundingPartnersPage() {
 
   // Firestore React Query hook. isLoading/isFetching come from the query
   // itself — a timer would clear before the data arrived.
+  // Every provider, not the first page of them. Founding partners are picked
+  // out of this list below, so a paginated fetch would hide any partner who
+  // happened to fall outside it — with the service defaulting to 8 and 16
+  // providers on the platform, half of them could never appear here at all.
   const {
     providers: queryProviders,
     isLoading,
     isFetching,
     isError,
-  } = useProviders();
+  } = useProviders({ limit: Infinity });
   const queryClient = useQueryClient();
 
   // Derived, not copied into state. Copying via an effect meant the first paint
