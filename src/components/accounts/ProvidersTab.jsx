@@ -7,6 +7,7 @@ import { getInitials } from "@/lib/utils";
 import Pagination from "@/components/ui/Pagination";
 import { canAccessRoute } from "@/lib/adminRoles";
 import { useAuthStore } from "@/store/useAuthStore";
+import { ACCOUNT_STATUS_FILTERS } from "@/services/firestoreServices";
 
 export default function ProvidersTab({
   providers,
@@ -92,10 +93,9 @@ export default function ProvidersTab({
               className="appearance-none bg-white border border-border-main md:text-xs text-[10px] rounded-full px-3 py-2 focus:outline-none text-text-muted hover:bg-page-bg/50 cursor-pointer min-w-22.5"
             >
               <option value="All">Status</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Banned">Banned</option>
-              <option value="Pending Verification">Pending Verification</option>
+              {ACCOUNT_STATUS_FILTERS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
             <ChevronDown className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-text-muted pointer-events-none" />
           </div>

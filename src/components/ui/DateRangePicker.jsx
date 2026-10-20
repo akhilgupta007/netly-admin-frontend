@@ -28,8 +28,11 @@ export default function DateRangePicker({ startDate, endDate, onChange, isWeekVi
   const [tempEndDate, setTempEndDate] = useState(endDate);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showMonthYearSelector, setShowMonthYearSelector] = useState(false);
+  // Opens on the month being filtered, or on this one. It used to open on a
+  // hardcoded July 2026, so every picker on every screen started three months
+  // in the past and an admin had to page forward to reach today.
   const [currentCalendarDate, setCurrentCalendarDate] = useState(
-    startDate ? new Date(startDate) : new Date(2026, 6, 1)
+    startDate ? new Date(startDate) : new Date()
   );
 
   useEffect(() => {

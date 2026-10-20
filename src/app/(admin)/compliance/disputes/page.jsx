@@ -63,12 +63,18 @@ export default function DisputesPage() {
 
   // Sync state with localStorage
   // Statistics counters cards
+  // Counted by the label each dispute actually carries. Rejected and
+  // Withdrawn were missing here and from the tabs below, so a dispute in
+  // either state was counted nowhere and shown nowhere — four rejected
+  // disputes were invisible on this screen with no way to reach them.
   const counts = useMemo(() => {
-    const res = { Open: 0, UnderReview: 0, Resolved: 0 };
+    const res = { Open: 0, UnderReview: 0, Resolved: 0, Rejected: 0, Withdrawn: 0 };
     disputes.forEach((d) => {
       if (d.status === "Open") res.Open++;
       else if (d.status === "Under Review") res.UnderReview++;
       else if (d.status === "Resolved") res.Resolved++;
+      else if (d.status === "Rejected") res.Rejected++;
+      else if (d.status === "Withdrawn") res.Withdrawn++;
     });
     return res;
   }, [disputes]);
@@ -124,6 +130,8 @@ export default function DisputesPage() {
     { id: "Open", label: "Open" },
     { id: "Under Review", label: "Under Review" },
     { id: "Resolved", label: "Resolved" },
+    { id: "Rejected", label: "Rejected" },
+    { id: "Withdrawn", label: "Withdrawn" },
   ];
 
   // Dashboard list layout (default state)
@@ -166,6 +174,7 @@ export default function DisputesPage() {
           { label: "Open", count: counts.Open },
           { label: "Under Review", count: counts.UnderReview },
           { label: "Resolved", count: counts.Resolved },
+          { label: "Rejected", count: counts.Rejected },
         ].map((card, idx) => (
           <CardWrapper key={idx} name={card.label} value={card.count} />
         ))}

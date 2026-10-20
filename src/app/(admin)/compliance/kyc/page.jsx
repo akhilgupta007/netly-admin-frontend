@@ -22,6 +22,7 @@ import CardWrapper from "@/components/ui/CardWrapper";
 // Import custom Firestore React Query hook
 import { useKyc } from "@/hooks/useKyc";
 import { toKycSubmissionRow } from "@/lib/kycRow";
+import { KYC_DOC_TYPE_FILTERS } from "@/services/firestoreServices";
 import { RefreshingBar, TableSkeleton } from "@/components/ui/Skeleton";
 
 export default function KYCVerificationPage() {
@@ -72,12 +73,16 @@ export default function KYCVerificationPage() {
       [kycList],
   );
 
-  // Status statistics card counts
-  // Built from what the submissions actually contain, so the filter cannot
-  // drift from the document types the apps submit.
+  // The known document types, plus anything unexpected in the current results.
+  // KYC_DOC_TYPE_FILTERS is fixed; see its definition for why the options
+  // cannot be gathered from the rows on screen.
   const docTypeOptions = useMemo(
-    () =>
-      [...new Set(submissions.flatMap((s) => s.documentLabels || []))].sort(),
+    () => [
+      ...new Set([
+        ...KYC_DOC_TYPE_FILTERS,
+        ...submissions.flatMap((s) => s.documentLabels || []),
+      ]),
+    ].sort(),
     [submissions],
   );
 

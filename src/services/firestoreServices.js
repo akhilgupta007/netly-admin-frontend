@@ -76,6 +76,23 @@ function accountStatus(data) {
 }
 
 /**
+ * Every value accountStatus can return, for the filter dropdowns.
+ *
+ * Status filtering is an exact match on the rendered label, so the dropdown
+ * and this function have to agree. They had drifted: the dropdowns offered
+ * "Pending Verification", which nothing ever returns, so choosing it always
+ * gave an empty table; and they omitted "Invited", which nine accounts
+ * currently hold and no filter could reach.
+ */
+export const ACCOUNT_STATUS_FILTERS = [
+  "Active",
+  "Invited",
+  "Suspended",
+  "Suspension expired",
+  "Banned",
+];
+
+/**
  * Builds a display name from whatever the user document actually has.
  * @param {object} data - The users/{uid} data.
  * @param {string} fallback - Used when nothing is present.
@@ -447,9 +464,23 @@ const KYC_DOC_LABELS = {
   governmentId: "Government ID",
   proofOfAddress: "Proof of Address",
   businessRegistration: "Business Registration",
+  // Submitted by the apps and present on live submissions; without it the
+  // slug fell through to the generic de-camel-casing below.
+  proofOfLicense: "Proof of Licence",
   drivingLicense: "Driving Licence",
   passport: "Passport",
 };
+
+/**
+ * The document types the filter offers.
+ *
+ * Fixed, rather than gathered from whatever is on screen. The KYC filter used
+ * to build its options from the current page of results, so choosing a type
+ * narrowed the page, the options were rebuilt from the narrowed page, and the
+ * rest disappeared one by one — a type that was not on page one, such as
+ * Government ID, could never be chosen at all.
+ */
+export const KYC_DOC_TYPE_FILTERS = Object.values(KYC_DOC_LABELS).sort();
 
 /**
  * Readable label for a document slug.
@@ -2438,7 +2469,15 @@ export async function fetchPayoutQueueFromFirestore(params = {}) {
         walletStatus: payoutReady ? "Ready for payout" : "Pending verification",
         payoutReady,
         completedBookings: completedCount.get(uid) || 0,
-        lastPayoutDate: last ? formatFirestoreDate(last.processedAt) : "—",
+        // Only a payout that actually paid gets a date. A skipped run — no
+        // Stripe account, payouts disabled — still writes a payout_logs row,
+        // and showing its date beside an empty Transferred Amount read as a
+        // transfer whose figure had gone missing. 34 of the 40 rows on this
+        // platform are skipped, so most of the table looked broken.
+        lastPayoutDate:
+          last?.status === "succeeded" ?
+            formatFirestoreDate(last.processedAt) :
+            "—",
         lastPayoutAmount: last ? Number(last.amount) || 0 : null,
         transferredAmount:
           last?.status === "succeeded" ? Number(last.amount) || 0 : null,
